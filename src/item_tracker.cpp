@@ -227,9 +227,6 @@ bool ItemTracker::PassesFilter(const Stat& stat)
     // Count filter - but always allow coins like DRF does
     if (stat.IsCoin()) return true; // Always include coins in profit calculations
     
-    if (stat.count > 0 && !g_Settings.filterPositiveCount) return false;
-    if (stat.count < 0 && !g_Settings.filterNegativeCount) return false;
-    
     // Ignored items filter
     if (stat.IsItem() && IsItemIgnored(stat.apiId) && !g_Settings.filterIgnored) return false;
     if (stat.IsCurrency() && IsCurrencyIgnored(stat.apiId) && !g_Settings.filterIgnored) return false;

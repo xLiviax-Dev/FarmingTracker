@@ -36,7 +36,7 @@ extern "C" __declspec(dllexport) AddonDefinition_t* GetAddonDef()
     s_AddonDef.Description      = "Tracks farmed items and currencies in real-time via DRF (drf.rs).";
     s_AddonDef.Load             = AddonLoad;
     s_AddonDef.Unload           = AddonUnload;
-    s_AddonDef.Flags            = AF_None;  // Enable hotloading for immediate plugin deactivation
+    s_AddonDef.Flags            = AF_None;
     s_AddonDef.Provider         = UP_GitHub;
     s_AddonDef.UpdateLink       = "https://github.com/xLiviax-Dev/FarmingTracker/releases";
     return &s_AddonDef;
@@ -47,7 +47,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID)
     switch (ul_reason_for_call)
     {
         case DLL_PROCESS_ATTACH:
-            DisableThreadLibraryCalls(hModule);
+            // DisableThreadLibraryCalls entfernt, um korrektes DLL-Entladen zu ermöglichen
             break;
         case DLL_PROCESS_DETACH:
             break;

@@ -291,32 +291,38 @@ static void RenderMiniWindow()
         if (g_Settings.miniWindowShowProfit)
         {
             long long totalProfit = ItemTracker::CalcTotalCustomProfit();
-            ImGui::Text("Profit: %s", FormatCoin(totalProfit).c_str());
+            ImVec4 profitColor = totalProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (totalProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(profitColor, "Profit: %s", FormatCoin(totalProfit).c_str());
         }
 
         if (g_Settings.miniWindowShowProfitPerHour)
         {
             auto duration = ItemTracker::GetSessionDuration();
             long long profitPerHour = ItemTracker::GetTotalProfitPerHour(duration);
-            ImGui::Text("Profit/Hour: %s", FormatCoin(profitPerHour).c_str());
+            ImVec4 profitPerHourColor = profitPerHour > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (profitPerHour < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(profitPerHourColor, "Profit/Hour: %s", FormatCoin(profitPerHour).c_str());
         }
 
         if (g_Settings.miniWindowShowTradingProfitSell)
         {
             long long tpSell = ItemTracker::CalcTotalTpSellProfit();
-            ImGui::Text("TP Sell: %s", FormatCoin(tpSell).c_str());
+            ImVec4 tpSellColor = tpSell > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (tpSell < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(tpSellColor, "TP Sell: %s", FormatCoin(tpSell).c_str());
         }
 
         if (g_Settings.miniWindowShowTradingProfitInstant)
         {
             long long tpInstant = ItemTracker::CalcTotalTpInstantProfit();
-            ImGui::Text("TP Instant: %s", FormatCoin(tpInstant).c_str());
+            ImVec4 tpInstantColor = tpInstant > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (tpInstant < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(tpInstantColor, "TP Instant: %s", FormatCoin(tpInstant).c_str());
         }
 
         if (g_Settings.miniWindowShowTotalItems)
         {
             auto items = ItemTracker::GetItemsCopy();
-            ImGui::Text("Total Items: %zu", items.size());
+            size_t totalItems = items.size();
+            ImVec4 totalItemsColor = totalItems > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (totalItems < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(totalItemsColor, "Total Items: %zu", totalItems);
         }
 
         if (g_Settings.miniWindowShowSessionDuration)
@@ -335,7 +341,8 @@ static void RenderMainWindow()
 
     AutoReset::Tick();
 
-    ImGui::SetNextWindowSize(ImVec2(520, 640), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(g_Settings.mainWindowPosX, g_Settings.mainWindowPosY), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(g_Settings.mainWindowWidth, g_Settings.mainWindowHeight), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSizeConstraints(ImVec2(320, 220), ImVec2(1200, 1200));
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
@@ -347,6 +354,34 @@ static void RenderMainWindow()
         ImGui::End();
         return;
     }
+
+    // Gradient background if enabled
+    if (g_Settings.enableGradientBackgrounds)
+    {
+        ImVec2 windowPos = ImGui::GetWindowPos();
+        ImVec2 windowSize = ImGui::GetWindowSize();
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+        ImVec4 topColor = ImVec4(0.95f, 0.95f, 1.0f, 1.0f);
+        ImVec4 bottomColor = ImVec4(0.85f, 0.85f, 0.95f, 1.0f);
+
+        drawList->AddRectFilledMultiColor(
+            windowPos,
+            ImVec2(windowPos.x + windowSize.x, windowPos.y + windowSize.y),
+            ImGui::ColorConvertFloat4ToU32(topColor),
+            ImGui::ColorConvertFloat4ToU32(topColor),
+            ImGui::ColorConvertFloat4ToU32(bottomColor),
+            ImGui::ColorConvertFloat4ToU32(bottomColor)
+        );
+    }
+
+    // Save window position and size
+    ImVec2 pos = ImGui::GetWindowPos();
+    g_Settings.mainWindowPosX = pos.x;
+    g_Settings.mainWindowPosY = pos.y;
+    ImVec2 size = ImGui::GetWindowSize();
+    g_Settings.mainWindowWidth = size.x;
+    g_Settings.mainWindowHeight = size.y;
 
     DrfStatus status = DrfClient::GetStatus();
     ImGui::TextColored(StatusColor(status), "DRF: %s", StatusText(status));
@@ -377,11 +412,12 @@ static void RenderMainWindow()
 
     ImGui::Separator();
 
-    if (ImGui::BeginTabBar("FT_Tabs"))
+    if (ImGui::BeginTabBar("FT_Tabs", ImGuiTabBarFlags_Reorderable))
     {
         // === Summary Tab ===
         if (ImGui::BeginTabItem("Summary"))
         {
+            g_Settings.activeTab = 0;
             // DRF Status Warning
             DrfStatus status = DrfClient::GetStatus();
             if (status == DrfStatus::Disconnected)
@@ -409,11 +445,12 @@ static void RenderMainWindow()
                 ImGui::TextDisabled("Please set your GW2 API Key in Settings for item details.");
                 ImGui::Spacing();
                 ImGui::Separator();
-                ImGui::Spacing();
             }
 
             // Overview
             ImGui::Text("Overview:");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Current farming session overview");
             ImGui::Separator();
             long long totalProfit = ItemTracker::CalcTotalCustomProfit();
             auto duration = ItemTracker::GetSessionDuration();
@@ -423,29 +460,47 @@ static void RenderMainWindow()
 
             ImGui::Text("Total Profit:          ");
             ImGui::SameLine();
-            ImGui::TextColored(ImVec4(1.f, 0.84f, 0.f, 1.f), "%s", FormatCoin(totalProfit).c_str());
+            ImVec4 profitColor = totalProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (totalProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(profitColor, "%s", FormatCoin(totalProfit).c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Total custom profit from all items");
 
             ImGui::Text("Total Items:           ");
             ImGui::SameLine();
-            ImGui::Text("%zu", items.size());
+            size_t totalItems = items.size();
+            ImVec4 totalItemsColor = totalItems > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (totalItems < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(totalItemsColor, "%zu", totalItems);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Total number of unique items tracked");
 
             ImGui::Text("Total Currencies:      ");
             ImGui::SameLine();
-            ImGui::Text("%zu", currencies.size());
+            size_t totalCurrencies = currencies.size();
+            ImVec4 totalCurrenciesColor = totalCurrencies > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (totalCurrencies < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(totalCurrenciesColor, "%zu", totalCurrencies);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Total number of unique currencies tracked");
 
             ImGui::Text("Profit Per Hour:       ");
             ImGui::SameLine();
-            ImGui::TextColored(ImVec4(1.f, 0.84f, 0.f, 1.f), "%s", FormatCoin(profitPerHour).c_str());
+            ImVec4 profitPerHourColor = profitPerHour > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (profitPerHour < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(profitPerHourColor, "%s", FormatCoin(profitPerHour).c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Profit per hour based on session duration");
 
             ImGui::Text("Session Duration:      ");
             ImGui::SameLine();
             ImGui::Text("%s", FormatDuration(duration.count()).c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Current farming session duration");
 
             ImGui::Spacing();
             ImGui::Spacing();
 
             // Top Items
             ImGui::Text("Top Items (Profit):");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Top 5 items by profit value");
             ImGui::Separator();
             auto sortedByProfit = ItemTracker::GetSortedItems(ItemTracker::SortMode::ProfitDesc);
             int count = 0;
@@ -456,43 +511,69 @@ static void RenderMainWindow()
                 long long profit = ItemTracker::GetStatProfit(st);
                 if (profit <= 0) continue;
                 std::string name = st.details.loaded ? st.details.name : "Loading...";
-                ImGui::Text("%d. %s (%s)", count + 1, name.c_str(), FormatCoin(profit).c_str());
+                ImGui::Text("%d. %s (", count + 1, name.c_str());
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(1.f, 0.84f, 0.f, 1.f), "%s", FormatCoin(profit).c_str());
+                ImGui::SameLine();
+                ImGui::Text(")");
                 count++;
             }
 
             ImGui::Spacing();
-            ImGui::Text("Top Items (Count):");
-            ImGui::Separator();
-            auto sortedByCount = ItemTracker::GetSortedItems(ItemTracker::SortMode::CountDesc);
-            count = 0;
-            for (auto& [id, st] : sortedByCount)
+            if (ImGui::CollapsingHeader("Top Items (Count)##TopItemsHeader", g_Settings.showTopItems ? ImGuiTreeNodeFlags_DefaultOpen : 0))
             {
-                if (count >= 5) break;
-                if (st.count == 0) continue;
-                std::string name = st.details.loaded ? st.details.name : "Loading...";
-                ImGui::Text("%d. %s (%lld)", count + 1, name.c_str(), st.count);
-                count++;
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Top 5 items by count");
+                auto sortedByCount = ItemTracker::GetSortedItems(ItemTracker::SortMode::CountDesc);
+                count = 0;
+                for (auto& [id, st] : sortedByCount)
+                {
+                    if (count >= 5) break;
+                    if (st.count == 0) continue;
+                    std::string name = st.details.loaded ? st.details.name : "Loading...";
+                    ImGui::Text("%d. %s (", count + 1, name.c_str());
+                    ImGui::SameLine();
+                    ImVec4 countColor = st.count > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (st.count < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                    ImGui::TextColored(countColor, "%lld", st.count);
+                    ImGui::SameLine();
+                    ImGui::Text(")");
+                    count++;
+                }
             }
+            if (ImGui::IsItemClicked())
+                SettingsManager::Save();
 
             ImGui::Spacing();
-            ImGui::Text("Top Currencies:");
-            ImGui::Separator();
-            auto sortedCurrencies = ItemTracker::GetSortedCurrencies(ItemTracker::SortMode::CountDesc);
-            count = 0;
-            for (auto& [id, st] : sortedCurrencies)
+            if (ImGui::CollapsingHeader("Top Currencies##TopCurrenciesHeader", g_Settings.showTopCurrencies ? ImGuiTreeNodeFlags_DefaultOpen : 0))
             {
-                if (count >= 5) break;
-                if (st.count == 0) continue;
-                std::string name = st.details.loaded ? st.details.name : (id == 1 ? "Coin" : "Loading...");
-                ImGui::Text("%d. %s (%lld)", count + 1, name.c_str(), st.count);
-                count++;
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Top 5 currencies by count");
+                auto sortedCurrencies = ItemTracker::GetSortedCurrencies(ItemTracker::SortMode::CountDesc);
+                count = 0;
+                for (auto& [id, st] : sortedCurrencies)
+                {
+                    if (count >= 5) break;
+                    if (st.count == 0) continue;
+                    std::string name = st.details.loaded ? st.details.name : (id == 1 ? "Coin" : "Loading...");
+                    ImGui::Text("%d. %s (", count + 1, name.c_str());
+                    ImGui::SameLine();
+                    ImVec4 countColor = st.count > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (st.count < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                    ImGui::TextColored(countColor, "%lld", st.count);
+                    ImGui::SameLine();
+                    ImGui::Text(")");
+                    count++;
+                }
             }
+            if (ImGui::IsItemClicked())
+                SettingsManager::Save();
 
             ImGui::Spacing();
             ImGui::Spacing();
 
             // Quick Statistics
             ImGui::Text("Quick Statistics:");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Overview of farming statistics");
             ImGui::Separator();
             long long totalItemValue = 0;
             int itemCount = 0;
@@ -507,14 +588,22 @@ static void RenderMainWindow()
             if (itemCount > 0)
             {
                 double avgValue = static_cast<double>(totalItemValue) / itemCount;
-                ImGui::Text("Average Item Value:  %s", FormatCoin(static_cast<long long>(avgValue)).c_str());
+                long long avgValueLL = static_cast<long long>(avgValue);
+                ImVec4 avgValueColor = avgValueLL > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (avgValueLL < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                ImGui::Text("Average Item Value:  ");
+                ImGui::SameLine();
+                ImGui::TextColored(avgValueColor, "%s", FormatCoin(avgValueLL).c_str());
             }
             else
             {
                 ImGui::Text("Average Item Value:  N/A");
             }
 
-            ImGui::Text("Total Unique Items:  %zu", items.size());
+            size_t totalUniqueItems = items.size();
+            ImVec4 totalUniqueItemsColor = totalUniqueItems > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (totalUniqueItems < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::Text("Total Unique Items:  ");
+            ImGui::SameLine();
+            ImGui::TextColored(totalUniqueItemsColor, "%zu", totalUniqueItems);
 
             // No Data Warning
             if (items.empty() && currencies.empty())
@@ -529,6 +618,8 @@ static void RenderMainWindow()
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Text("Export:");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Export farming data to file");
             if (ImGui::Button("Export as JSON##ExportJson"))
             {
                 std::string jsonData = ItemTracker::ExportToJson();
@@ -573,6 +664,7 @@ static void RenderMainWindow()
         // === Items Tab ===
         if (ImGui::BeginTabItem("Items"))
         {
+            g_Settings.activeTab = 1;
             // Search bar
             if (g_Settings.enableSearch)
             {
@@ -600,6 +692,8 @@ static void RenderMainWindow()
             };
             if (ImGui::Combo("##SortItems", &g_Settings.itemSortMode, sortLabels, 5))
                 SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Sort items by count, ID, or name");
 
             ImGui::SameLine();
 
@@ -619,100 +713,186 @@ static void RenderMainWindow()
                 g_Settings.itemRarityFilterMin = rarityCombo;
                 SettingsManager::Save();
             }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Filter items by minimum rarity");
 
             ImGui::Spacing();
 
             auto sortedItems = ItemTracker::GetSortedItems(static_cast<ItemTracker::SortMode>(g_Settings.itemSortMode));
 
-            // Items Table with enhanced features
-            int itemTableColumnCount = g_Settings.enableFavorites ? 6 : 5;
-            if (ImGui::BeginTable("##ItemsTable", itemTableColumnCount, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable | ImGuiTableFlags_Resizable))
+            if (g_Settings.enableGridView)
             {
-                float iconColumnWidth = static_cast<float>(g_Settings.iconSize) + 10.0f; // iconSize + padding
-                ImGui::TableSetupColumn("Icon", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);
-                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_NoHide);
-                ImGui::TableSetupColumn("Count", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 80.0f);
-                ImGui::TableSetupColumn("Profit", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 120.0f);
-                if (g_Settings.enableFavorites)
-                    ImGui::TableSetupColumn("Favorite", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 60.0f);
-                ImGui::TableSetupColumn("Ignore", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 60.0f);
-                ImGui::TableHeadersRow();
+                // Grid View
+                float cellSize = static_cast<float>(g_Settings.iconSize) + 10.0f; // icon + padding
+                ImVec2 windowSize = ImGui::GetWindowSize();
+                int columns = std::clamp(static_cast<int>(windowSize.x / cellSize), 2, 10);
 
-                for (auto& [id, st] : sortedItems)
+                if (ImGui::BeginChild("##ItemsGrid", ImVec2(0, 0), true))
                 {
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.iconSize), st.details.loaded ? st.details.rarity : "");
-
-                    ImGui::TableSetColumnIndex(1);
-                    std::string name = st.details.loaded ? st.details.name : "Loading...";
-                    ImVec4 col = ImVec4(1.f, 1.f, 1.f, 1.f);
-                    if (st.details.loaded && !st.details.rarity.empty())
+                    int col = 0;
+                    for (auto& [id, st] : sortedItems)
                     {
-                        // Rarity color (enhanced) - according to GW2 Wiki
-                        if (st.details.rarity == "Junk") col = ImVec4(0.7f, 0.7f, 0.7f, 1.f);
-                        else if (st.details.rarity == "Basic") col = ImVec4(1.f, 1.f, 1.f, 1.f);
-                        else if (st.details.rarity == "Fine") col = ImVec4(0.0f, 0.5f, 1.f, 1.f);
-                        else if (st.details.rarity == "Masterwork") col = ImVec4(0.2f, 0.8f, 0.2f, 1.f);
-                        else if (st.details.rarity == "Rare") col = ImVec4(1.f, 0.9f, 0.0f, 1.f);
-                        else if (st.details.rarity == "Exotic") col = ImVec4(1.f, 0.6f, 0.0f, 1.f);
-                        else if (st.details.rarity == "Ascended") col = ImVec4(0.9f, 0.3f, 0.9f, 1.f);
-                        else if (st.details.rarity == "Legendary") col = ImVec4(1.0f, 0.5f, 0.8f, 1.f);
-                    }
-                    TextWithTooltip(name.c_str(), 200.0f, col);
-                    if (ImGui::IsItemHovered() && st.details.loaded)
-                    {
-                        ImGui::BeginTooltip();
-                        ImGui::Text("Rarity: %s", st.details.rarity.c_str());
-                        ImGui::Text("Type: %d", static_cast<int>(st.details.itemType));
-                        ImGui::Text("Vendor Value: %s", FormatCoin(st.details.vendorValue).c_str());
-                        ImGui::Text("TP Sell (Gross): %s", FormatCoin(st.details.tpSellPrice).c_str());
-                        ImGui::Text("TP Sell (Net): %s", FormatCoin(static_cast<long long>(st.details.tpSellPrice * 85.0 / 100.0)).c_str());
-                        ImGui::Text("TP Buy (Gross): %s", FormatCoin(st.details.tpBuyPrice).c_str());
-                        ImGui::Text("TP Buy (Net): %s", FormatCoin(static_cast<long long>(st.details.tpBuyPrice * 85.0 / 100.0)).c_str());
-                        ImGui::Text("Account-bound: %s", st.details.accountBound ? "Yes" : "No");
-                        ImGui::Text("NoSell: %s", st.details.noSell ? "Yes" : "No");
-                        ImGui::EndTooltip();
-                    }
+                        if (col > 0)
+                            ImGui::SameLine();
 
-                    ImGui::TableSetColumnIndex(2);
-                    ImGui::Text("%lld", st.count);
-
-                    ImGui::TableSetColumnIndex(3);
-                    long long profit = ItemTracker::GetStatProfit(st);
-                    if (profit > 0)
-                        ImGui::TextColored(ImVec4(1.f, 0.84f, 0.f, 1.f), "%s", FormatCoin(profit).c_str());
-                    else if (profit < 0)
-                        ImGui::TextColored(ImVec4(0.9f, 0.2f, 0.2f, 1.f), "%s", FormatCoin(profit).c_str());
-                    else
-                        ImGui::TextUnformatted("No profit");
-
-                    int currentColumn = 4;
-                    if (g_Settings.enableFavorites)
-                    {
-                        ImGui::TableSetColumnIndex(currentColumn++);
-                        bool isFavorite = st.isFavorite;
-                        if (ImGui::Checkbox(("##fav_" + std::to_string(id)).c_str(), &isFavorite))
+                        ImGui::PushID(id);
+                        if (ImGui::BeginChild("##ItemCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar))
                         {
-                            ItemTracker::SetFavorite(id, isFavorite);
+                            // Icon
+                            ImVec2 cursor = ImGui::GetCursorPos();
+                            DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.iconSize), st.details.loaded ? st.details.rarity : "");
+
+                            // Tooltip
+                            if (ImGui::IsItemHovered() && st.details.loaded)
+                            {
+                                ImGui::BeginTooltip();
+                                ImGui::Text("%s", st.details.name.c_str());
+                                ImGui::Separator();
+                                ImVec4 countColor = st.count > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (st.count < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                                ImGui::TextColored(countColor, "Count: %lld", st.count);
+                                long long profit = ItemTracker::GetStatProfit(st);
+                                if (profit > 0)
+                                    ImGui::TextColored(ImVec4(1.f, 0.84f, 0.f, 1.f), "Profit: %s", FormatCoin(profit).c_str());
+                                else if (profit < 0)
+                                    ImGui::TextColored(ImVec4(0.9f, 0.2f, 0.2f, 1.f), "Profit: %s", FormatCoin(profit).c_str());
+                                else
+                                    ImGui::TextUnformatted("Profit: No profit");
+                                ImGui::Separator();
+                                ImGui::Text("Rarity: %s", st.details.rarity.c_str());
+                                ImGui::Text("Type: %d", static_cast<int>(st.details.itemType));
+                                ImVec4 vendorColor = st.details.vendorValue > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.details.vendorValue < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                                ImGui::TextColored(vendorColor, "Vendor Value: %s", FormatCoin(st.details.vendorValue).c_str());
+                                ImVec4 tpSellGrossColor = st.details.tpSellPrice > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.details.tpSellPrice < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                                ImGui::TextColored(tpSellGrossColor, "TP Sell (Gross): %s", FormatCoin(st.details.tpSellPrice).c_str());
+                                long long tpSellNet = static_cast<long long>(st.details.tpSellPrice * 85.0 / 100.0);
+                                ImVec4 tpSellNetColor = tpSellNet > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (tpSellNet < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                                ImGui::TextColored(tpSellNetColor, "TP Sell (Net): %s", FormatCoin(tpSellNet).c_str());
+                                ImVec4 tpBuyGrossColor = st.details.tpBuyPrice > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.details.tpBuyPrice < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                                ImGui::TextColored(tpBuyGrossColor, "TP Buy (Gross): %s", FormatCoin(st.details.tpBuyPrice).c_str());
+                                long long tpBuyNet = static_cast<long long>(st.details.tpBuyPrice * 85.0 / 100.0);
+                                ImVec4 tpBuyNetColor = tpBuyNet > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (tpBuyNet < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                                ImGui::TextColored(tpBuyNetColor, "TP Buy (Net): %s", FormatCoin(tpBuyNet).c_str());
+                                ImGui::Text("Account-bound: %s", st.details.accountBound ? "Yes" : "No");
+                                ImGui::Text("NoSell: %s", st.details.noSell ? "Yes" : "No");
+                                ImGui::EndTooltip();
+                            }
                         }
-                    }
+                        ImGui::EndChild();
+                        ImGui::PopID();
 
-                    ImGui::TableSetColumnIndex(currentColumn);
-                    if (g_Settings.enableIgnoredItems)
-                    {
-                        bool isIgnored = st.isIgnored;
-                        if (ImGui::Checkbox(("##ign_" + std::to_string(id)).c_str(), &isIgnored))
+                        col++;
+                        if (col >= columns)
                         {
-                            if (isIgnored)
-                                IgnoredItemsManager::IgnoreItem(id);
-                            else
-                                IgnoredItemsManager::UnignoreItem(id);
+                            col = 0;
                         }
                     }
                 }
+                ImGui::EndChild();
+            }
+            else
+            {
+                // Items Table with enhanced features
+                int itemTableColumnCount = g_Settings.enableFavorites ? 6 : 5;
+                if (ImGui::BeginTable("##ItemsTable", itemTableColumnCount, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable | ImGuiTableFlags_Resizable))
+                {
+                    float iconColumnWidth = static_cast<float>(g_Settings.iconSize) + 10.0f; // iconSize + padding
+                    ImGui::TableSetupColumn("Icon", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);
+                    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_NoHide);
+                    ImGui::TableSetupColumn("Count", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 80.0f);
+                    ImGui::TableSetupColumn("Profit", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 120.0f);
+                    if (g_Settings.enableFavorites)
+                        ImGui::TableSetupColumn("Favorite", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 60.0f);
+                    ImGui::TableSetupColumn("Ignore", ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 60.0f);
+                    ImGui::TableHeadersRow();
 
-                ImGui::EndTable();
+                    for (auto& [id, st] : sortedItems)
+                    {
+                        ImGui::TableNextRow();
+                        ImGui::TableSetColumnIndex(0);
+                        DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.iconSize), st.details.loaded ? st.details.rarity : "");
+
+                        ImGui::TableSetColumnIndex(1);
+                        std::string name = st.details.loaded ? st.details.name : "Loading...";
+                        ImVec4 col = ImVec4(1.f, 1.f, 1.f, 1.f);
+                        if (st.details.loaded && !st.details.rarity.empty())
+                        {
+                            // Rarity color (enhanced) - according to GW2 Wiki
+                            if (st.details.rarity == "Junk") col = ImVec4(0.7f, 0.7f, 0.7f, 1.f);
+                            else if (st.details.rarity == "Basic") col = ImVec4(1.f, 1.f, 1.f, 1.f);
+                            else if (st.details.rarity == "Fine") col = ImVec4(0.0f, 0.5f, 1.f, 1.f);
+                            else if (st.details.rarity == "Masterwork") col = ImVec4(0.2f, 0.8f, 0.2f, 1.f);
+                            else if (st.details.rarity == "Rare") col = ImVec4(1.f, 0.9f, 0.0f, 1.f);
+                            else if (st.details.rarity == "Exotic") col = ImVec4(1.f, 0.6f, 0.0f, 1.f);
+                            else if (st.details.rarity == "Ascended") col = ImVec4(0.9f, 0.3f, 0.9f, 1.f);
+                            else if (st.details.rarity == "Legendary") col = ImVec4(1.0f, 0.5f, 0.8f, 1.f);
+                        }
+                        TextWithTooltip(name.c_str(), 200.0f, col);
+                        if (ImGui::IsItemHovered() && st.details.loaded)
+                        {
+                            ImGui::BeginTooltip();
+                            ImGui::Text("Rarity: %s", st.details.rarity.c_str());
+                            ImGui::Text("Type: %d", static_cast<int>(st.details.itemType));
+                            ImVec4 vendorColor = st.details.vendorValue > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.details.vendorValue < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                            ImGui::TextColored(vendorColor, "Vendor Value: %s", FormatCoin(st.details.vendorValue).c_str());
+                            ImVec4 tpSellGrossColor = st.details.tpSellPrice > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.details.tpSellPrice < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                            ImGui::TextColored(tpSellGrossColor, "TP Sell (Gross): %s", FormatCoin(st.details.tpSellPrice).c_str());
+                            long long tpSellNet = static_cast<long long>(st.details.tpSellPrice * 85.0 / 100.0);
+                            ImVec4 tpSellNetColor = tpSellNet > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (tpSellNet < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                            ImGui::TextColored(tpSellNetColor, "TP Sell (Net): %s", FormatCoin(tpSellNet).c_str());
+                            ImVec4 tpBuyGrossColor = st.details.tpBuyPrice > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.details.tpBuyPrice < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                            ImGui::TextColored(tpBuyGrossColor, "TP Buy (Gross): %s", FormatCoin(st.details.tpBuyPrice).c_str());
+                            long long tpBuyNet = static_cast<long long>(st.details.tpBuyPrice * 85.0 / 100.0);
+                            ImVec4 tpBuyNetColor = tpBuyNet > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (tpBuyNet < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                            ImGui::TextColored(tpBuyNetColor, "TP Buy (Net): %s", FormatCoin(tpBuyNet).c_str());
+                            ImGui::Text("Account-bound: %s", st.details.accountBound ? "Yes" : "No");
+                            ImGui::Text("NoSell: %s", st.details.noSell ? "Yes" : "No");
+                            ImGui::EndTooltip();
+                        }
+
+                        ImGui::TableSetColumnIndex(2);
+                        ImVec4 countColor = st.count > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (st.count < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                        ImGui::TextColored(countColor, "%lld", st.count);
+
+                        ImGui::TableSetColumnIndex(3);
+                        long long profit = ItemTracker::GetStatProfit(st);
+                        if (profit > 0)
+                            ImGui::TextColored(ImVec4(1.f, 0.84f, 0.f, 1.f), "%s", FormatCoin(profit).c_str());
+                        else if (profit < 0)
+                            ImGui::TextColored(ImVec4(0.9f, 0.2f, 0.2f, 1.f), "%s", FormatCoin(profit).c_str());
+                        else
+                            ImGui::TextUnformatted("No profit");
+
+                        int currentColumn = 4;
+                        if (g_Settings.enableFavorites)
+                        {
+                            ImGui::TableSetColumnIndex(currentColumn++);
+                            bool isFavorite = st.isFavorite;
+                            if (ImGui::Checkbox(("##fav_" + std::to_string(id)).c_str(), &isFavorite))
+                            {
+                                ItemTracker::SetFavorite(id, isFavorite);
+                            }
+                            if (ImGui::IsItemHovered())
+                                ImGui::SetTooltip("Toggle favorite");
+                        }
+
+                        ImGui::TableSetColumnIndex(currentColumn);
+                        if (g_Settings.enableIgnoredItems)
+                        {
+                            bool isIgnored = st.isIgnored;
+                            if (ImGui::Checkbox(("##ign_" + std::to_string(id)).c_str(), &isIgnored))
+                            {
+                                if (isIgnored)
+                                    IgnoredItemsManager::IgnoreItem(id);
+                                else
+                                    IgnoredItemsManager::UnignoreItem(id);
+                            }
+                            if (ImGui::IsItemHovered())
+                                ImGui::SetTooltip("Toggle ignore");
+                        }
+                    }
+
+                    ImGui::EndTable();
+                }
             }
 
             ImGui::EndTabItem();
@@ -721,6 +901,7 @@ static void RenderMainWindow()
         // === Currencies Tab ===
         if (ImGui::BeginTabItem("Currencies"))
         {
+            g_Settings.activeTab = 2;
             // Search bar
             if (g_Settings.enableSearch)
             {
@@ -767,7 +948,8 @@ static void RenderMainWindow()
                     {
                         ImGui::BeginTooltip();
                         ImGui::Text("API ID: %d", id);
-                        ImGui::Text("Count: %lld", st.count);
+                        ImVec4 countColor = st.count > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (st.count < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                        ImGui::TextColored(countColor, "Count: %lld", st.count);
                         ImGui::EndTooltip();
                     }
 
@@ -779,7 +961,8 @@ static void RenderMainWindow()
                     }
                     else
                     {
-                        ImGui::Text("%lld", st.count);
+                        ImVec4 countColor = st.count > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (st.count < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                        ImGui::TextColored(countColor, "%lld", st.count);
                     }
 
                     ImGui::TableSetColumnIndex(3);
@@ -793,6 +976,8 @@ static void RenderMainWindow()
                             else
                                 IgnoredItemsManager::UnignoreCurrency(id);
                         }
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Toggle ignore");
                     }
                 }
 
@@ -805,13 +990,23 @@ static void RenderMainWindow()
         // === Profit Tab ===
         if (ImGui::BeginTabItem("Profit"))
         {
+            g_Settings.activeTab = 3;
             long long tpSell = ItemTracker::CalcTotalTpSellProfit();
             long long tpInstant = ItemTracker::CalcTotalTpInstantProfit();
             long long custom = ItemTracker::CalcTotalCustomProfit();
 
+            ImGui::Separator();
+            ImGui::Text("Profits:");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Total profits from farming");
+            ImGui::Separator();
+
             ImGui::Text("Approx. Profits:");
             ImGui::SameLine();
-            ImGui::TextColored(ImVec4(1.f, 0.84f, 0.f, 1.f), "%s", FormatCoin(custom).c_str());
+            ImVec4 customColor = custom > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (custom < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(customColor, "%s", FormatCoin(custom).c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Total profit from custom profit values");
 
             ImGui::Spacing();
             ImGui::Text("Approx. Gold Per Hour:");
@@ -819,43 +1014,65 @@ static void RenderMainWindow()
             auto duration = ItemTracker::GetSessionDuration();
             long long seconds = duration.count();
             long long profitPerHour = ItemTracker::GetTotalProfitPerHour(duration);
-            ImGui::TextColored(ImVec4(1.f, 0.84f, 0.f, 1.f), "%s",
-                FormatCoin(profitPerHour).c_str());
+            ImVec4 profitPerHourColor = profitPerHour > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (profitPerHour < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(profitPerHourColor, "%s", FormatCoin(profitPerHour).c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Profit per hour based on session duration");
 
             ImGui::Spacing();
             ImGui::Separator();
+            ImGui::Text("Trading Profits:");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Profits from selling items on Trading Post");
+            ImGui::Separator();
+
             ImGui::Text("Approx. Trading Profits (Listings):");
             ImGui::SameLine();
-            ImGui::TextColored(ImVec4(1.f, 0.84f, 0.f, 1.f), "%s", FormatCoin(tpSell).c_str());
+            ImVec4 tpSellColor = tpSell > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (tpSell < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(tpSellColor, "%s", FormatCoin(tpSell).c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Total profit if sold via TP listings");
 
             ImGui::Spacing();
             ImGui::Text("Approx. Trading Profits (Instant Sell):");
             ImGui::SameLine();
-            ImGui::TextColored(ImVec4(1.f, 0.84f, 0.f, 1.f), "%s", FormatCoin(tpInstant).c_str());
+            ImVec4 tpInstantColor = tpInstant > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (tpInstant < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(tpInstantColor, "%s", FormatCoin(tpInstant).c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Total profit if sold via TP instant buy orders");
 
             ImGui::Spacing();
             ImGui::Spacing();
             ImGui::Separator();
-            ImGui::TextDisabled("Trading Details (Opportunity Cost):");
+            ImGui::Text("Trading Details (Opportunity Cost):");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Profit lost by not selling via TP listings");
 
             ImGui::Spacing();
             ImGui::Text("Lost Profit (vs TP Sell):");
             ImGui::SameLine();
             long long opportunityCost = ItemTracker::GetOpportunityCostProfit();
-            ImVec4 ocColor = opportunityCost > 0 ? ImVec4(1.f, 0.3f, 0.3f, 1.f) : ImVec4(0.3f, 1.f, 0.3f, 1.f);
+            ImVec4 ocColor = opportunityCost > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (opportunityCost < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
             ImGui::TextColored(ocColor, "%s", FormatCoin(opportunityCost).c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Gold = profit lost, Red = profit gained vs TP sell");
 
             ImGui::Spacing();
             ImGui::Text("Lost Profit Per Hour (vs TP Sell):");
             ImGui::SameLine();
             long long opportunityCostPerHour = ItemTracker::GetOpportunityCostProfitPerHour(duration);
-            ImGui::TextColored(ocColor, "%s", FormatCoin(opportunityCostPerHour).c_str());
+            ImVec4 ocPerHourColor = opportunityCostPerHour > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (opportunityCostPerHour < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(ocPerHourColor, "%s", FormatCoin(opportunityCostPerHour).c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Opportunity cost per hour");
 
             if (seconds > 0)
             {
                 ImGui::Spacing();
                 ImGui::Separator();
                 ImGui::Text("Session duration: %s", FormatDuration(seconds).c_str());
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Current farming session duration");
             }
 
             ImGui::EndTabItem();
@@ -864,100 +1081,184 @@ static void RenderMainWindow()
         // === Filter Tab ===
         if (ImGui::BeginTabItem("Filter"))
         {
-            ImGui::Text("Count Filters:");
-            ImGui::Checkbox("Positive count", &g_Settings.filterPositiveCount);
-            ImGui::SameLine();
-            ImGui::Checkbox("Negative count", &g_Settings.filterNegativeCount);
-
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Text("Sell Method Filters:");
-            ImGui::Checkbox("Sellable to vendor", &g_Settings.filterSellableToVendor);
-            ImGui::Checkbox("Sellable on TP", &g_Settings.filterSellableOnTp);
-            ImGui::Checkbox("Has custom profit", &g_Settings.filterCustomProfit);
+            if (ImGui::Checkbox("Sellable to vendor", &g_Settings.filterSellableToVendor))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show items sellable to vendor");
+            if (ImGui::Checkbox("Sellable on TP", &g_Settings.filterSellableOnTp))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show items sellable on Trading Post");
+            if (ImGui::Checkbox("Has custom profit", &g_Settings.filterCustomProfit))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show items with custom profit set");
 
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Text("API Knowledge Filters:");
-            ImGui::Checkbox("Known by API", &g_Settings.filterKnownByApi);
+            if (ImGui::Checkbox("Known by API", &g_Settings.filterKnownByApi))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show items known by GW2 API");
             ImGui::SameLine();
-            ImGui::Checkbox("Unknown by API", &g_Settings.filterUnknownByApi);
+            if (ImGui::Checkbox("Unknown by API", &g_Settings.filterUnknownByApi))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show items not known by GW2 API");
 
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Text("Item Type Filters:");
-            ImGui::Checkbox("Armor", &g_Settings.filterTypeArmor);
+            if (ImGui::Checkbox("Armor", &g_Settings.filterTypeArmor))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show armor items");
             ImGui::SameLine();
-            ImGui::Checkbox("Weapon", &g_Settings.filterTypeWeapon);
-            ImGui::Checkbox("Trinket", &g_Settings.filterTypeTrinket);
+            if (ImGui::Checkbox("Weapon", &g_Settings.filterTypeWeapon))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show weapon items");
+            if (ImGui::Checkbox("Trinket", &g_Settings.filterTypeTrinket))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show trinket items");
             ImGui::SameLine();
-            ImGui::Checkbox("Gizmo", &g_Settings.filterTypeGizmo);
-            ImGui::Checkbox("Crafting Material", &g_Settings.filterTypeCraftingMaterial);
+            if (ImGui::Checkbox("Gizmo", &g_Settings.filterTypeGizmo))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show gizmo items");
+            if (ImGui::Checkbox("Crafting Material", &g_Settings.filterTypeCraftingMaterial))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show crafting materials");
             ImGui::SameLine();
-            ImGui::Checkbox("Consumable", &g_Settings.filterTypeConsumable);
-            ImGui::Checkbox("Gathering Tool", &g_Settings.filterTypeGatheringTool);
+            if (ImGui::Checkbox("Consumable", &g_Settings.filterTypeConsumable))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show consumable items");
+            if (ImGui::Checkbox("Gathering Tool", &g_Settings.filterTypeGatheringTool))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show gathering tools");
             ImGui::SameLine();
-            ImGui::Checkbox("Bag", &g_Settings.filterTypeBag);
-            ImGui::Checkbox("Container", &g_Settings.filterTypeContainer);
+            if (ImGui::Checkbox("Bag", &g_Settings.filterTypeBag))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show bags");
+            if (ImGui::Checkbox("Container", &g_Settings.filterTypeContainer))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show containers");
             ImGui::SameLine();
-            ImGui::Checkbox("Mini Pet", &g_Settings.filterTypeMiniPet);
+            if (ImGui::Checkbox("Mini Pet", &g_Settings.filterTypeMiniPet))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show mini pets");
 
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Text("Currency Filters:");
-            ImGui::Checkbox("Karma", &g_Settings.filterKarma);
+            if (ImGui::Checkbox("Karma", &g_Settings.filterKarma))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show karma currency");
             ImGui::SameLine();
-            ImGui::Checkbox("Laurel", &g_Settings.filterLaurel);
-            ImGui::Checkbox("Gem", &g_Settings.filterGem);
+            if (ImGui::Checkbox("Laurel", &g_Settings.filterLaurel))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show laurel currency");
+            if (ImGui::Checkbox("Gem", &g_Settings.filterGem))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show gem currency");
             ImGui::SameLine();
-            ImGui::Checkbox("Fractal Relic", &g_Settings.filterFractalRelic);
-            ImGui::Checkbox("Badge of Honor", &g_Settings.filterBadgeOfHonor);
+            if (ImGui::Checkbox("Fractal Relic", &g_Settings.filterFractalRelic))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show fractal relic currency");
+            if (ImGui::Checkbox("Badge of Honor", &g_Settings.filterBadgeOfHonor))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show badge of honor currency");
             ImGui::SameLine();
-            ImGui::Checkbox("Guild Commendation", &g_Settings.filterGuildCommendation);
+            if (ImGui::Checkbox("Guild Commendation", &g_Settings.filterGuildCommendation))
+                SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show guild commendation currency");
 
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Text("Additional Filters:");
             if (ImGui::Checkbox("Account-bound", &g_Settings.filterAccountBound))
                 SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show account-bound items");
             ImGui::SameLine();
             if (ImGui::Checkbox("Not Account-bound", &g_Settings.filterNotAccountBound))
                 SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show non-account-bound items");
             if (ImGui::Checkbox("NoSell", &g_Settings.filterNoSell))
                 SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show NoSell items");
             ImGui::SameLine();
             if (ImGui::Checkbox("Not NoSell", &g_Settings.filterNotNoSell))
                 SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show sellable items");
             if (ImGui::Checkbox("Favorite", &g_Settings.filterFavorite))
                 SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show favorite items");
             ImGui::SameLine();
             if (ImGui::Checkbox("Not Favorite", &g_Settings.filterNotFavorite))
                 SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show non-favorite items");
             if (ImGui::Checkbox("Ignored", &g_Settings.filterIgnored))
                 SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show ignored items");
             ImGui::SameLine();
             if (ImGui::Checkbox("Not Ignored", &g_Settings.filterNotIgnored))
                 SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show non-ignored items");
 
             ImGui::Spacing();
             ImGui::Separator();
             if (ImGui::Checkbox("Range Filters", &g_Settings.showRangeFilters))
                 SettingsManager::Save();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Show price and quantity range filters");
 
             if (g_Settings.showRangeFilters)
             {
                 ImGui::Text("Price Range (Copper):");
                 if (ImGui::InputInt("Min Price", &g_Settings.filterMinPrice))
                     SettingsManager::Save();
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Minimum price filter (0 = disabled)");
                 ImGui::SameLine();
                 if (ImGui::InputInt("Max Price", &g_Settings.filterMaxPrice))
                     SettingsManager::Save();
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Maximum price filter (0 = disabled)");
                 ImGui::Text("Quantity Range:");
                 if (ImGui::InputInt("Min Quantity", &g_Settings.filterMinQuantity))
                     SettingsManager::Save();
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Minimum quantity filter (0 = disabled)");
                 ImGui::SameLine();
                 if (ImGui::InputInt("Max Quantity", &g_Settings.filterMaxQuantity))
                     SettingsManager::Save();
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Maximum quantity filter (0 = disabled)");
             }
 
             ImGui::EndTabItem();
@@ -966,6 +1267,7 @@ static void RenderMainWindow()
         // === Custom Profit Tab ===
         if (g_Settings.enableCustomProfit && ImGui::BeginTabItem("Custom Profit"))
         {
+            g_Settings.activeTab = 4;
             ImGui::Text("Set custom profit values for items/currencies");
             ImGui::TextDisabled("Feature implemented - UI to be added");
 
@@ -986,8 +1288,12 @@ static void RenderMainWindow()
             auto ignoredItems = IgnoredItemsManager::GetIgnoredItems();
             auto ignoredCurrencies = IgnoredItemsManager::GetIgnoredCurrencies();
 
-            ImGui::Text("Ignored Items: %zu", ignoredItems.size());
-            ImGui::Text("Ignored Currencies: %zu", ignoredCurrencies.size());
+            size_t ignoredItemsCount = ignoredItems.size();
+            ImVec4 ignoredItemsColor = ignoredItemsCount > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (ignoredItemsCount < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(ignoredItemsColor, "Ignored Items: %zu", ignoredItemsCount);
+            size_t ignoredCurrenciesCount = ignoredCurrencies.size();
+            ImVec4 ignoredCurrenciesColor = ignoredCurrenciesCount > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (ignoredCurrenciesCount < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(ignoredCurrenciesColor, "Ignored Currencies: %zu", ignoredCurrenciesCount);
 
             ImGui::Spacing();
             if (ImGui::Button("Clear All Ignored"))
@@ -1001,12 +1307,17 @@ static void RenderMainWindow()
         // === Debug Tab ===
         if (g_Settings.enableDebugTab && ImGui::BeginTabItem("Debug"))
         {
+            g_Settings.activeTab = 5;
             ImGui::Text("Debug Information");
             ImGui::Separator();
             
             // DRF Status
             ImGui::Text("DRF Status: %s", StatusText(DrfClient::GetStatus()));
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Current DRF connection status");
             ImGui::Text("DRF Reconnect Count: %d", DrfClient::GetReconnectCount());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Number of DRF reconnection attempts");
 
             // GW2 API Status
             const char* gw2StatusText = "Unknown";
@@ -1017,46 +1328,82 @@ static void RenderMainWindow()
                 case Gw2Fetcher::Gw2Status::Error: gw2StatusText = "Error"; break;
             }
             ImGui::Text("GW2 API Status: %s", gw2StatusText);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Current GW2 API connection status");
             ImGui::Text("GW2 API Reconnect Count: %d", Gw2Fetcher::GetReconnectCount());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Number of GW2 API reconnection attempts");
 
             // Session Info
             ImGui::Text("Session Duration: %s", FormatDuration(ItemTracker::GetSessionDuration().count()).c_str());
-            
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Current farming session duration");
+
             // Items/Currencies
             auto items = ItemTracker::GetItemsCopy();
             auto currencies = ItemTracker::GetCurrenciesCopy();
-            ImGui::Text("Total Items: %zu", items.size());
-            ImGui::Text("Total Currencies: %zu", currencies.size());
-            
+            size_t totalItems = items.size();
+            ImVec4 totalItemsColor = totalItems > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (totalItems < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(totalItemsColor, "Total Items: %zu", totalItems);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Total number of tracked items");
+            size_t totalCurrencies = currencies.size();
+            ImVec4 totalCurrenciesColor = totalCurrencies > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (totalCurrencies < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(totalCurrenciesColor, "Total Currencies: %zu", totalCurrencies);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Total number of tracked currencies");
+
             // Memory Usage
             PROCESS_MEMORY_COUNTERS pmc;
             if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc)))
             {
                 SIZE_T memUsageMB = pmc.WorkingSetSize / (1024 * 1024);
                 ImGui::Text("GW2 Process Memory: %zu MB", memUsageMB);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Current GW2 process memory usage");
             }
 
             // API Request Count
             ImGui::Text("GW2 API Request Count: %d", Gw2Api::GetRequestCount());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Total number of GW2 API requests made");
 
             // Profit Info
             long long totalProfit = ItemTracker::CalcTotalCustomProfit();
             long long tpSellProfit = ItemTracker::CalcTotalTpSellProfit();
             long long vendorProfit = ItemTracker::CalcTotalVendorProfit();
-            ImGui::Text("Total Profit: %s", FormatCoin(totalProfit).c_str());
-            ImGui::Text("TP Sell Profit: %s", FormatCoin(tpSellProfit).c_str());
-            ImGui::Text("Vendor Profit: %s", FormatCoin(vendorProfit).c_str());
+            ImVec4 totalProfitColor = totalProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (totalProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(totalProfitColor, "Total Profit: %s", FormatCoin(totalProfit).c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Total custom profit");
+            ImVec4 tpSellProfitColor = tpSellProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (tpSellProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(tpSellProfitColor, "TP Sell Profit: %s", FormatCoin(tpSellProfit).c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Total TP sell profit");
+            ImVec4 vendorProfitColor = vendorProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (vendorProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(vendorProfitColor, "Vendor Profit: %s", FormatCoin(vendorProfit).c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Total vendor sell profit");
 
             // Profit per Hour
             auto duration = ItemTracker::GetSessionDuration();
             long long profitPerHour = ItemTracker::GetTotalProfitPerHour(duration);
-            ImGui::Text("Profit Per Hour: %s", FormatCoin(profitPerHour).c_str());
+            ImVec4 profitPerHourColor = profitPerHour > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (profitPerHour < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(profitPerHourColor, "Profit Per Hour: %s", FormatCoin(profitPerHour).c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Profit per hour calculation");
 
             // Opportunity Cost
             long long opportunityCostProfit = ItemTracker::GetOpportunityCostProfit();
             long long opportunityCostProfitPerHour = ItemTracker::GetOpportunityCostProfitPerHour(duration);
-            ImGui::Text("Opportunity Cost Profit: %s", FormatCoin(opportunityCostProfit).c_str());
-            ImGui::Text("Opportunity Cost Profit/Hour: %s", FormatCoin(opportunityCostProfitPerHour).c_str());
+            ImVec4 opportunityCostProfitColor = opportunityCostProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (opportunityCostProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(opportunityCostProfitColor, "Opportunity Cost Profit: %s", FormatCoin(opportunityCostProfit).c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Opportunity cost vs TP sell");
+            ImVec4 opportunityCostProfitPerHourColor = opportunityCostProfitPerHour > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (opportunityCostProfitPerHour < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            ImGui::TextColored(opportunityCostProfitPerHourColor, "Opportunity Cost Profit/Hour: %s", FormatCoin(opportunityCostProfitPerHour).c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Opportunity cost per hour");
 
             // Filter Status
             int ignoredItemsCount = 0;
@@ -1066,7 +1413,11 @@ static void RenderMainWindow()
             for (auto& [id, st] : currencies)
                 if (st.isIgnored) ignoredCurrenciesCount++;
             ImGui::Text("Ignored Items: %d", ignoredItemsCount);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Number of ignored items");
             ImGui::Text("Ignored Currencies: %d", ignoredCurrenciesCount);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Number of ignored currencies");
 
             ImGui::Spacing();
             ImGui::Separator();
@@ -1075,6 +1426,8 @@ static void RenderMainWindow()
             ImGui::Text("DRF Logs:");
             if (ImGui::Button("Clear DRF Logs"))
                 DrfClient::ClearLogs();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Clear all DRF log entries");
             ImGui::SameLine();
             ImGui::Text("(Last 100 entries)");
 
@@ -1106,6 +1459,8 @@ static void RenderMainWindow()
             ImGui::Text("GW2 API Logs:");
             if (ImGui::Button("Clear GW2 Logs"))
                 Gw2Api::ClearLogs();
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Clear all GW2 API log entries");
             ImGui::SameLine();
             ImGui::Text("(Last 100 entries)");
 
@@ -1135,11 +1490,18 @@ static void RenderMainWindow()
 
             // Item/Currency Details
             ImGui::Text("Item/Currency Details (First 5):");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("First 5 tracked items and currencies with details");
             int itemCount = 0;
             for (auto& [id, st] : items)
             {
                 if (itemCount >= 5) break;
-                ImGui::Text("Item %d: %s (Count: %lld, Loaded: %s)", id, st.details.loaded ? st.details.name.c_str() : "Loading...", st.count, st.details.loaded ? "Yes" : "No");
+                ImVec4 countColor = st.count > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (st.count < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                ImGui::Text("Item %d: %s (Count: ", id, st.details.loaded ? st.details.name.c_str() : "Loading...");
+                ImGui::SameLine();
+                ImGui::TextColored(countColor, "%lld", st.count);
+                ImGui::SameLine();
+                ImGui::Text(", Loaded: %s)", st.details.loaded ? "Yes" : "No");
                 itemCount++;
             }
 
@@ -1148,7 +1510,12 @@ static void RenderMainWindow()
             {
                 if (currencyCount >= 5) break;
                 std::string name = st.details.loaded ? st.details.name : (id == 1 ? "Coin" : "Loading...");
-                ImGui::Text("Currency %d: %s (Count: %lld, Loaded: %s)", id, name.c_str(), st.count, st.details.loaded ? "Yes" : "No");
+                ImVec4 countColor = st.count > 0 ? ImVec4(0.93f, 0.68f, 0.05f, 1.f) : (st.count < 0 ? ImVec4(0.59f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                ImGui::Text("Currency %d: %s (Count: ", id, name.c_str());
+                ImGui::SameLine();
+                ImGui::TextColored(countColor, "%lld", st.count);
+                ImGui::SameLine();
+                ImGui::Text(", Loaded: %s)", st.details.loaded ? "Yes" : "No");
                 currencyCount++;
             }
 
@@ -1157,13 +1524,21 @@ static void RenderMainWindow()
 
             // Custom Profit List
             ImGui::Text("Custom Profit Items (First 5):");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("First 5 items with custom profit set");
             int customProfitCount = 0;
             for (auto& [id, st] : items)
             {
                 if (customProfitCount >= 5) break;
                 if (st.HasCustomProfit())
                 {
-                    ImGui::Text("Item %d: %s (Custom Profit: %s)", id, st.details.loaded ? st.details.name.c_str() : "Loading...", FormatCoin(st.GetCustomProfit()).c_str());
+                    long long customProfit = st.GetCustomProfit();
+                    ImVec4 customProfitColor = customProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (customProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                    ImGui::Text("Item %d: %s (Custom Profit: ", id, st.details.loaded ? st.details.name.c_str() : "Loading...");
+                    ImGui::SameLine();
+                    ImGui::TextColored(customProfitColor, "%s", FormatCoin(customProfit).c_str());
+                    ImGui::SameLine();
+                    ImGui::Text(")");
                     customProfitCount++;
                 }
             }
@@ -1175,6 +1550,8 @@ static void RenderMainWindow()
 
             // Ignored Items List
             ImGui::Text("Ignored Items (First 5):");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("First 5 ignored items");
             int ignoredCount = 0;
             for (auto& [id, st] : items)
             {
@@ -1194,10 +1571,20 @@ static void RenderMainWindow()
             // Settings
             ImGui::Text("Settings:");
             ImGui::Text("API Key: %s", g_Settings.gw2ApiKey.empty() ? "Not set" : "Set");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("GW2 API key status");
             ImGui::Text("DRF Token: %s", g_Settings.drfToken.empty() ? "Not set" : "Set");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("DRF token status");
             ImGui::Text("Toggle Hotkey: %s", g_Settings.toggleHotkey.c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Main window toggle hotkey");
             ImGui::Text("Auto-Reset Mode: %d", g_Settings.automaticResetMode);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Current automatic reset mode");
             ImGui::Text("Next Reset: %s", g_Settings.nextResetDateTimeUtc.c_str());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Next scheduled reset time (UTC)");
 
             ImGui::Spacing();
             ImGui::Separator();
@@ -1207,7 +1594,7 @@ static void RenderMainWindow()
             ImGui::Checkbox("Use fake DRF server", &g_Settings.useFakeDrfServer);
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("For testing purposes only");
-            
+
             ImGui::Spacing();
             ImGui::Separator();
 
@@ -1216,6 +1603,8 @@ static void RenderMainWindow()
             {
                 ItemTracker::Reset();
             }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Reset all farming data");
 
             ImGui::EndTabItem();
         }
@@ -1325,11 +1714,15 @@ static void RenderOptions()
     {
         DrfClient::Connect(g_Settings.drfToken);
     }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Reconnect to DRF with the current token");
     ImGui::SameLine();
     if (ImGui::Button("Reload GW2 API Key"))
     {
         Gw2Fetcher::UpdateApiKey();
     }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Reload GW2 API key for item data fetching");
     ImGui::Separator();
 
     const char* resetModes[] = {
@@ -1348,6 +1741,8 @@ static void RenderOptions()
         SettingsManager::Save();
         AutoReset::RefreshSchedule();
     }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("When to automatically reset farming counters");
 
     if (g_Settings.automaticResetMode == 7)
     {
@@ -1358,9 +1753,21 @@ static void RenderOptions()
             SettingsManager::Save();
             AutoReset::RefreshSchedule();
         }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Minutes after addon unload before automatic reset");
     }
 
     ImGui::Text("Next scheduled reset (UTC): %s", AutoReset::GetNextResetDisplayUtc().c_str());
+
+    ImGui::Spacing();
+    ImGui::Separator();
+
+    // Visual Enhancement Settings
+    ImGui::Text("Visual Enhancements:");
+    if (ImGui::Checkbox("Gradient backgrounds", &g_Settings.enableGradientBackgrounds))
+        SettingsManager::Save();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Enables smooth gradient backgrounds for a more modern look");
 
     ImGui::Spacing();
     ImGui::Separator();
@@ -1371,31 +1778,55 @@ static void RenderOptions()
         ImGui::SetTooltip("Loads icons from render.guildwars2.com via Nexus.");
     if (ImGui::SliderInt("Icon size", &g_Settings.iconSize, 16, 96))
         SettingsManager::Save();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Size of item icons in pixels (16-96)");
     if (ImGui::Checkbox("Show rarity borders", &g_Settings.showRarityBorder))
         SettingsManager::Save();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Shows colored borders around icons based on item rarity");
+    if (ImGui::Checkbox("Enable Grid View", &g_Settings.enableGridView))
+        SettingsManager::Save();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Toggle between list and grid view in Items tab");
 
     ImGui::Spacing();
     ImGui::Separator();
     ImGui::Text("Mini Window (Overlay Widget):");
     if (ImGui::Checkbox("Show mini window", &g_Settings.showMiniWindow))
         SettingsManager::Save();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Shows a small overlay widget with key statistics");
 
     if (g_Settings.showMiniWindow)
     {
         if (ImGui::Checkbox("Show Profit", &g_Settings.miniWindowShowProfit))
             SettingsManager::Save();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Display total profit in mini window");
         if (ImGui::Checkbox("Show Profit/Hour", &g_Settings.miniWindowShowProfitPerHour))
             SettingsManager::Save();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Display profit per hour in mini window");
         if (ImGui::Checkbox("Show TP Sell (Listings)", &g_Settings.miniWindowShowTradingProfitSell))
             SettingsManager::Save();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Display TP sell profit (listings) in mini window");
         if (ImGui::Checkbox("Show TP Instant (Instant Sell)", &g_Settings.miniWindowShowTradingProfitInstant))
             SettingsManager::Save();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Display TP instant sell profit in mini window");
         if (ImGui::Checkbox("Show Total Items", &g_Settings.miniWindowShowTotalItems))
             SettingsManager::Save();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Display total item count in mini window");
         if (ImGui::Checkbox("Show Session Duration", &g_Settings.miniWindowShowSessionDuration))
             SettingsManager::Save();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Display session duration in mini window");
         if (ImGui::Checkbox("Window click through", &g_Settings.miniWindowClickThrough))
             SettingsManager::Save();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Allows clicking through the mini window to the game");
     }
 
     ImGui::Spacing();
@@ -1405,19 +1836,31 @@ static void RenderOptions()
     ImGui::Text("Advanced Features:");
     if (ImGui::Checkbox("Enable search", &g_Settings.enableSearch))
         SettingsManager::Save();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Enables search bar in Items and Currencies tabs");
     if (ImGui::Checkbox("Enable ignored items", &g_Settings.enableIgnoredItems))
         SettingsManager::Save();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Enables ignoring specific items/currencies from tracking");
     if (ImGui::Checkbox("Enable custom profit", &g_Settings.enableCustomProfit))
         SettingsManager::Save();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Enables setting custom profit values for specific items");
     if (ImGui::Checkbox("Enable favorites", &g_Settings.enableFavorites))
         SettingsManager::Save();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Enables marking items as favorites");
     if (ImGui::Checkbox("Enable debug tab", &g_Settings.enableDebugTab))
         SettingsManager::Save();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Shows debug information for troubleshooting");
 
     if (ImGui::Checkbox("Show advanced settings", &g_Settings.showAdvancedSettings))
     {
         SettingsManager::Save();
     }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Shows additional advanced filter and display settings");
 
     if (g_Settings.showAdvancedSettings)
     {
@@ -1427,10 +1870,16 @@ static void RenderOptions()
 
         if (ImGui::SliderInt("Negative count icon opacity", &g_Settings.negativeCountIconOpacity, 0, 255))
             SettingsManager::Save();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Opacity of negative count icons (0-255)");
         if (ImGui::SliderInt("Count background opacity", &g_Settings.countBackgroundOpacity, 0, 255))
             SettingsManager::Save();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Opacity of count background (0-255)");
         if (ImGui::Checkbox("Main window click through", &g_Settings.mainWindowClickThrough))
             SettingsManager::Save();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Allows clicking through the main window to the game");
     }
 }
 

@@ -48,6 +48,16 @@ struct Settings
 
     // Main Window Settings
     bool mainWindowClickThrough = false;
+    float mainWindowPosX = 100.0f;
+    float mainWindowPosY = 100.0f;
+    float mainWindowWidth = 800.0f;
+    float mainWindowHeight = 600.0f;
+
+    // Tab Settings
+    int activeTab = 0; // 0=Summary, 1=Items, 2=Currencies, 3=Profit, 4=Debug
+
+    // Visual Enhancement Settings
+    bool enableGradientBackgrounds = false;
 
     // 0 = |count| desc, 1 = |count| asc, 2 = api id asc, 3 = api id desc, 4 = name A–Z
     int itemSortMode = 0;
@@ -62,8 +72,6 @@ struct Settings
     // === Advanced Features ===
     
     // Extended Filtering
-    bool filterPositiveCount = true;
-    bool filterNegativeCount = true;
     bool filterSellableToVendor = true;
     bool filterSellableOnTp = true;
     bool filterCustomProfit = true;
@@ -142,6 +150,13 @@ struct Settings
 
     // Favorites System
     bool enableFavorites = false;
+
+    // Grid View Settings
+    bool enableGridView = false;
+
+    // UI State Settings
+    bool showTopItems = true;
+    bool showTopCurrencies = true;
     
     // Debug Features
     bool enableDebugTab = false;

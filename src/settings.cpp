@@ -162,6 +162,12 @@ void SettingsManager::Load()
         if (j.contains("miniWindowPosY")) g_Settings.miniWindowPosY = j["miniWindowPosY"].get<float>();
         if (j.contains("miniWindowWidth")) g_Settings.miniWindowWidth = j["miniWindowWidth"].get<float>();
         if (j.contains("miniWindowHeight")) g_Settings.miniWindowHeight = j["miniWindowHeight"].get<float>();
+        if (j.contains("mainWindowPosX")) g_Settings.mainWindowPosX = j["mainWindowPosX"].get<float>();
+        if (j.contains("mainWindowPosY")) g_Settings.mainWindowPosY = j["mainWindowPosY"].get<float>();
+        if (j.contains("mainWindowWidth")) g_Settings.mainWindowWidth = j["mainWindowWidth"].get<float>();
+        if (j.contains("mainWindowHeight")) g_Settings.mainWindowHeight = j["mainWindowHeight"].get<float>();
+        if (j.contains("activeTab")) g_Settings.activeTab = j["activeTab"].get<int>();
+        if (j.contains("enableGradientBackgrounds")) g_Settings.enableGradientBackgrounds = j["enableGradientBackgrounds"].get<bool>();
         if (j.contains("iconSize"))           g_Settings.iconSize           = j["iconSize"].get<int>();
         if (j.contains("showRarityBorder"))   g_Settings.showRarityBorder   = j["showRarityBorder"].get<bool>();
         if (j.contains("itemSortMode"))       g_Settings.itemSortMode       = j["itemSortMode"].get<int>();
@@ -171,8 +177,6 @@ void SettingsManager::Load()
         
         // === Advanced Settings ===
         // Extended Filtering
-        if (j.contains("filterPositiveCount")) g_Settings.filterPositiveCount = j["filterPositiveCount"].get<bool>();
-        if (j.contains("filterNegativeCount")) g_Settings.filterNegativeCount = j["filterNegativeCount"].get<bool>();
         if (j.contains("filterSellableToVendor")) g_Settings.filterSellableToVendor = j["filterSellableToVendor"].get<bool>();
         if (j.contains("filterSellableOnTp")) g_Settings.filterSellableOnTp = j["filterSellableOnTp"].get<bool>();
         if (j.contains("filterCustomProfit")) g_Settings.filterCustomProfit = j["filterCustomProfit"].get<bool>();
@@ -251,6 +255,13 @@ void SettingsManager::Load()
 
         // Favorites System
         if (j.contains("enableFavorites")) g_Settings.enableFavorites = j["enableFavorites"].get<bool>();
+
+        // Grid View Settings
+        if (j.contains("enableGridView")) g_Settings.enableGridView = j["enableGridView"].get<bool>();
+
+        // UI State Settings
+        if (j.contains("showTopItems")) g_Settings.showTopItems = j["showTopItems"].get<bool>();
+        if (j.contains("showTopCurrencies")) g_Settings.showTopCurrencies = j["showTopCurrencies"].get<bool>();
         
         // Debug Features
         if (j.contains("enableDebugTab")) g_Settings.enableDebugTab = j["enableDebugTab"].get<bool>();
@@ -323,6 +334,12 @@ void SettingsManager::Save()
     j["miniWindowPosY"]         = g_Settings.miniWindowPosY;
     j["miniWindowWidth"]        = g_Settings.miniWindowWidth;
     j["miniWindowHeight"]       = g_Settings.miniWindowHeight;
+    j["mainWindowPosX"]         = g_Settings.mainWindowPosX;
+    j["mainWindowPosY"]         = g_Settings.mainWindowPosY;
+    j["mainWindowWidth"]        = g_Settings.mainWindowWidth;
+    j["mainWindowHeight"]       = g_Settings.mainWindowHeight;
+    j["activeTab"]              = g_Settings.activeTab;
+    j["enableGradientBackgrounds"] = g_Settings.enableGradientBackgrounds;
     j["iconSize"]              = g_Settings.iconSize;
     j["showRarityBorder"]      = g_Settings.showRarityBorder;
     j["itemSortMode"]          = g_Settings.itemSortMode;
@@ -332,8 +349,6 @@ void SettingsManager::Save()
     
     // === Advanced Settings ===
     // Extended Filtering
-    j["filterPositiveCount"]   = g_Settings.filterPositiveCount;
-    j["filterNegativeCount"]   = g_Settings.filterNegativeCount;
     j["filterSellableToVendor"] = g_Settings.filterSellableToVendor;
     j["filterSellableOnTp"]    = g_Settings.filterSellableOnTp;
     j["filterCustomProfit"]    = g_Settings.filterCustomProfit;
@@ -412,6 +427,13 @@ void SettingsManager::Save()
 
     // Favorites System
     j["enableFavorites"]       = g_Settings.enableFavorites;
+
+    // Grid View Settings
+    j["enableGridView"]        = g_Settings.enableGridView;
+
+    // UI State Settings
+    j["showTopItems"]          = g_Settings.showTopItems;
+    j["showTopCurrencies"]     = g_Settings.showTopCurrencies;
     
     // Debug Features
     j["enableDebugTab"]        = g_Settings.enableDebugTab;
@@ -483,6 +505,8 @@ void SettingsManager::Save()
     if (file.is_open())
     {
         file << j.dump(4);
+        file.flush();
+        file.close();
         if (APIDefs)
             APIDefs->Log(LOGL_INFO, "FarmingTracker", "Settings saved successfully");
     }

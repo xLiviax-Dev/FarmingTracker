@@ -129,7 +129,7 @@ void Gw2Fetcher::Shutdown()
     s_Shutdown.store(true);
     s_Wake.store(true);
     s_Cv.notify_all();
-    
+
     if (s_Thread.joinable())
     {
         s_Thread.join(); // Wait for thread to finish

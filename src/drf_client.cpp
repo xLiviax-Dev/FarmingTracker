@@ -45,6 +45,12 @@ static std::atomic<int>               s_ReconnectCount{ 0 };
 static std::thread                    s_WorkerThread;
 static std::mutex                     s_ConnectMutex;
 
+// WinHTTP handles for forced shutdown
+static HINTERNET                       s_hSession = nullptr;
+static HINTERNET                       s_hConnect = nullptr;
+static HINTERNET                       s_hWebSocket = nullptr;
+static std::mutex                      s_HandleMutex;
+
 // Helpers to signal the worker to reconnect with a new token
 static std::atomic<bool>              s_ReconnectRequested{ false };
 static std::string                    s_PendingToken;
@@ -160,6 +166,12 @@ static bool RunConnection(const std::string& token)
         return true;
     }
 
+    // Store handles for forced shutdown
+    {
+        std::lock_guard<std::mutex> lock(s_HandleMutex);
+        s_hSession = hSession;
+    }
+
     // Connect to drf.rs:443
     HINTERNET hConnect = WinHttpConnect(
         hSession,
@@ -173,6 +185,12 @@ static bool RunConnection(const std::string& token)
         WinHttpCloseHandle(hSession);
         SetStatus(DrfStatus::Error);
         return true;
+    }
+
+    // Store hConnect handle
+    {
+        std::lock_guard<std::mutex> lock(s_HandleMutex);
+        s_hConnect = hConnect;
     }
 
     // Open WebSocket upgrade request
@@ -224,6 +242,12 @@ static bool RunConnection(const std::string& token)
         WinHttpCloseHandle(hSession);
         SetStatus(DrfStatus::Disconnected);
         return true;
+    }
+
+    // Store hWebSocket handle
+    {
+        std::lock_guard<std::mutex> lock(s_HandleMutex);
+        s_hWebSocket = hWebSocket;
     }
 
     // Send authentication: "Bearer <token>"
@@ -344,6 +368,14 @@ static bool RunConnection(const std::string& token)
     WinHttpCloseHandle(hConnect);
     WinHttpCloseHandle(hSession);
 
+    // Clear handles
+    {
+        std::lock_guard<std::mutex> lock(s_HandleMutex);
+        s_hWebSocket = nullptr;
+        s_hConnect = nullptr;
+        s_hSession = nullptr;
+    }
+
     return shouldRetry;
 }
 
@@ -426,10 +458,38 @@ void DrfClient::Shutdown()
 {
     s_Shutdown.store(true);
     s_ReconnectRequested.store(true); // wake the worker
-    
+
+    // Force close WebSocket connection to prevent DLL lock
+    {
+        std::lock_guard<std::mutex> lock(s_HandleMutex);
+        if (s_hWebSocket)
+        {
+            WinHttpWebSocketClose(s_hWebSocket, WINHTTP_WEB_SOCKET_SUCCESS_CLOSE_STATUS, nullptr, 0);
+            WinHttpCloseHandle(s_hWebSocket);
+            s_hWebSocket = nullptr;
+        }
+        if (s_hConnect)
+        {
+            WinHttpCloseHandle(s_hConnect);
+            s_hConnect = nullptr;
+        }
+        if (s_hSession)
+        {
+            WinHttpCloseHandle(s_hSession);
+            s_hSession = nullptr;
+        }
+    }
+
+    // Give the thread a moment to exit gracefully
     if (s_WorkerThread.joinable())
     {
-        s_WorkerThread.join(); // Wait for thread to finish
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+        // Force detach if thread doesn't finish (WebSocket receive may be blocking)
+        if (s_WorkerThread.joinable())
+        {
+            s_WorkerThread.detach();
+        }
     }
 }
 
