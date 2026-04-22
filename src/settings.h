@@ -1,14 +1,30 @@
 #pragma once
 #include <string>
 #include <map>
+#include <vector>
 
 // ---------------------------------------------------------------------------
 // Settings → <GW2>/addons/FarmingTracker/settings.json
 // automaticResetMode enum order (0-7), do not reorder.
 // ---------------------------------------------------------------------------
 
+struct Account
+{
+    std::string name;
+    std::string drfToken;
+    std::string gw2ApiKey;
+};
+
 struct Settings
 {
+    // Language (stored as string for JSON serialization)
+    std::string language = "English";
+
+    // Multi-Account System
+    std::vector<Account> accounts;
+    int currentAccountIndex = 0;
+
+    // Legacy single account fields (for backwards compatibility)
     std::string drfToken;
 
     // 0 Never, 1 OnAddonLoad, 2 Daily UTC, 3 Weekly Mon 07:30 UTC, 4 NA WvW Sat 02 UTC,
@@ -30,7 +46,13 @@ struct Settings
     std::string nextResetDateTimeUtc;
 
     int  iconSize         = 32;
+    int  gridIconSize     = 32;
     bool showRarityBorder   = true;
+
+    // Gradient Background Settings
+    bool enableGradientBackgrounds = false;
+    float gradientTopColor[4] = {0.95f, 0.95f, 1.0f, 1.0f};
+    float gradientBottomColor[4] = {0.85f, 0.85f, 0.95f, 1.0f};
 
     // Mini Window (Overlay Widget) Settings
     bool showMiniWindow = false;
@@ -55,9 +77,6 @@ struct Settings
 
     // Tab Settings
     int activeTab = 0; // 0=Summary, 1=Items, 2=Currencies, 3=Profit, 4=Debug
-
-    // Visual Enhancement Settings
-    bool enableGradientBackgrounds = false;
 
     // 0 = |count| desc, 1 = |count| asc, 2 = api id asc, 3 = api id desc, 4 = name A–Z
     int itemSortMode = 0;
@@ -121,6 +140,45 @@ struct Settings
     bool filterBadgeOfHonor = true;
     bool filterGuildCommendation = true;
     bool filterTransmutationCharge = true;
+    bool filterSpiritShards = true;
+    bool filterUnboundMagic = true;
+    bool filterVolatileMagic = true;
+    bool filterAirshipParts = true;
+    bool filterGeode = true;
+    bool filterLeyLineCrystals = true;
+    bool filterTradeContracts = true;
+    bool filterElegyMosaic = true;
+    bool filterUncommonCoins = true;
+    bool filterAstralAcclaim = true;
+    bool filterPristineFractalRelics = true;
+    bool filterUnstableFractalEssence = true;
+    bool filterMagnetiteShards = true;
+    bool filterGaetingCrystals = true;
+    bool filterProphetShards = true;
+    bool filterGreenProphetShards = true;
+    bool filterWvWSkirmishTickets = true;
+    bool filterProofsOfHeroics = true;
+    bool filterPvpLeagueTickets = true;
+    bool filterAscendedShardsOfGlory = true;
+    bool filterResearchNotes = true;
+    bool filterTyrianDefenseSeal = true;
+    bool filterTestimonyOfDesertHeroics = true;
+    bool filterTestimonyOfJadeHeroics = true;
+    bool filterTestimonyOfCastoranHeroics = true;
+    bool filterLegendaryInsight = true;
+    bool filterTalesOfDungeonDelving = true;
+    bool filterImperialFavor = true;
+    bool filterCanachCoins = true;
+    bool filterAncientCoin = true;
+    bool filterUnusualCoin = true;
+    bool filterJadeSliver = true;
+    bool filterStaticCharge = true;
+    bool filterPinchOfStardust = true;
+    bool filterCalcifiedGasp = true;
+    bool filterUrsusOblige = true;
+    bool filterGaetingCrystalJanthir = true;
+    bool filterAntiquatedDucat = true;
+    bool filterAetherRichSap = true;
     
     // Custom Profit System
     bool enableCustomProfit = false;
@@ -131,11 +189,9 @@ struct Settings
     
     // Ignored Items
     bool enableIgnoredItems = false;
-    
+
     // Advanced UI Settings
     bool showAdvancedSettings = false;
-    int negativeCountIconOpacity = 77;
-    int countBackgroundOpacity = 0;
 
     // Count Display Settings
     int countTextColor = 0xFFFFFF; // White

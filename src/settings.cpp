@@ -26,7 +26,7 @@ static std::string SimpleEncrypt(const std::string& data, const std::string&)
 
     DATA_BLOB inBlob, outBlob;
     inBlob.pbData = (BYTE*)data.c_str();
-    inBlob.cbData = data.size();
+    inBlob.cbData = static_cast<DWORD>(data.size());
 
     if (!CryptProtectData(&inBlob, L"FarmingTracker", NULL, NULL, NULL, CRYPTPROTECT_UI_FORBIDDEN, &outBlob))
     {
@@ -44,7 +44,7 @@ static std::string SimpleDecrypt(const std::string& encrypted, const std::string
 
     DATA_BLOB inBlob, outBlob;
     inBlob.pbData = (BYTE*)encrypted.c_str();
-    inBlob.cbData = encrypted.size();
+    inBlob.cbData = static_cast<DWORD>(encrypted.size());
 
     if (!CryptUnprotectData(&inBlob, NULL, NULL, NULL, NULL, CRYPTPROTECT_UI_FORBIDDEN, &outBlob))
     {
@@ -91,12 +91,11 @@ static void ClampSettings()
     g_Settings.minutesUntilResetAfterShutdown =
         std::clamp(g_Settings.minutesUntilResetAfterShutdown, 1, 24 * 60);
     g_Settings.iconSize = std::clamp(g_Settings.iconSize, 16, 128);
+    g_Settings.gridIconSize = std::clamp(g_Settings.gridIconSize, 16, 128);
     g_Settings.itemSortMode = std::clamp(g_Settings.itemSortMode, 0, 4);
     g_Settings.itemRarityFilterMin = std::clamp(g_Settings.itemRarityFilterMin, 0, 7);
-    
+
     // Clamp other settings
-    g_Settings.negativeCountIconOpacity = std::clamp(g_Settings.negativeCountIconOpacity, 0, 255);
-    g_Settings.countBackgroundOpacity = std::clamp(g_Settings.countBackgroundOpacity, 0, 255);
     g_Settings.countFontSize = std::clamp(g_Settings.countFontSize, 10, 40);
     g_Settings.countHorizontalAlignment = std::clamp(g_Settings.countHorizontalAlignment, 0, 2);
     g_Settings.profitWindowDisplayMode = std::clamp(g_Settings.profitWindowDisplayMode, 0, 2);
@@ -135,7 +134,48 @@ void SettingsManager::Load()
         json j;
         file >> j;
 
-        // Load encrypted tokens
+        // Load language
+        if (j.contains("language")) g_Settings.language = j["language"].get<std::string>();
+
+        // Load multi-account system
+        if (j.contains("accounts") && j["accounts"].is_array())
+        {
+            g_Settings.accounts.clear();
+            for (const auto& accJson : j["accounts"])
+            {
+                Account acc;
+                if (accJson.contains("name")) acc.name = accJson["name"].get<std::string>();
+                if (accJson.contains("drfToken")) {
+                    std::string encryptedToken = accJson["drfToken"].get<std::string>();
+                    acc.drfToken = SimpleDecrypt(FromHexString(encryptedToken), "FarmingTracker2024");
+                }
+                if (accJson.contains("gw2ApiKey")) {
+                    std::string encryptedKey = accJson["gw2ApiKey"].get<std::string>();
+                    acc.gw2ApiKey = SimpleDecrypt(FromHexString(encryptedKey), "FarmingTracker2024");
+                }
+                g_Settings.accounts.push_back(acc);
+            }
+        }
+        if (j.contains("currentAccountIndex")) g_Settings.currentAccountIndex = j["currentAccountIndex"].get<int>();
+
+        // Backwards compatibility: if no accounts exist but legacy tokens do, migrate to account system
+        if (g_Settings.accounts.empty())
+        {
+            Account defaultAccount;
+            defaultAccount.name = "Default";
+            if (j.contains("drfToken")) {
+                std::string encryptedToken = j["drfToken"].get<std::string>();
+                defaultAccount.drfToken = SimpleDecrypt(FromHexString(encryptedToken), "FarmingTracker2024");
+            }
+            if (j.contains("gw2ApiKey")) {
+                std::string encryptedKey = j["gw2ApiKey"].get<std::string>();
+                defaultAccount.gw2ApiKey = SimpleDecrypt(FromHexString(encryptedKey), "FarmingTracker2024");
+            }
+            g_Settings.accounts.push_back(defaultAccount);
+            g_Settings.currentAccountIndex = 0;
+        }
+
+        // Load encrypted tokens (legacy, for backwards compatibility)
         if (j.contains("drfToken")) {
             std::string encryptedToken = j["drfToken"].get<std::string>();
             g_Settings.drfToken = SimpleDecrypt(FromHexString(encryptedToken), "FarmingTracker2024");
@@ -168,7 +208,26 @@ void SettingsManager::Load()
         if (j.contains("mainWindowHeight")) g_Settings.mainWindowHeight = j["mainWindowHeight"].get<float>();
         if (j.contains("activeTab")) g_Settings.activeTab = j["activeTab"].get<int>();
         if (j.contains("enableGradientBackgrounds")) g_Settings.enableGradientBackgrounds = j["enableGradientBackgrounds"].get<bool>();
+        if (j.contains("gradientTopColor"))
+        {
+            auto arr = j["gradientTopColor"];
+            if (arr.is_array() && arr.size() == 4)
+            {
+                for (int i = 0; i < 4; i++)
+                    g_Settings.gradientTopColor[i] = arr[i].get<float>();
+            }
+        }
+        if (j.contains("gradientBottomColor"))
+        {
+            auto arr = j["gradientBottomColor"];
+            if (arr.is_array() && arr.size() == 4)
+            {
+                for (int i = 0; i < 4; i++)
+                    g_Settings.gradientBottomColor[i] = arr[i].get<float>();
+            }
+        }
         if (j.contains("iconSize"))           g_Settings.iconSize           = j["iconSize"].get<int>();
+        if (j.contains("gridIconSize"))       g_Settings.gridIconSize       = j["gridIconSize"].get<int>();
         if (j.contains("showRarityBorder"))   g_Settings.showRarityBorder   = j["showRarityBorder"].get<bool>();
         if (j.contains("itemSortMode"))       g_Settings.itemSortMode       = j["itemSortMode"].get<int>();
         if (j.contains("itemRarityFilterMin")) g_Settings.itemRarityFilterMin = j["itemRarityFilterMin"].get<int>();
@@ -226,7 +285,46 @@ void SettingsManager::Load()
         if (j.contains("filterBadgeOfHonor")) g_Settings.filterBadgeOfHonor = j["filterBadgeOfHonor"].get<bool>();
         if (j.contains("filterGuildCommendation")) g_Settings.filterGuildCommendation = j["filterGuildCommendation"].get<bool>();
         if (j.contains("filterTransmutationCharge")) g_Settings.filterTransmutationCharge = j["filterTransmutationCharge"].get<bool>();
-        
+        if (j.contains("filterSpiritShards")) g_Settings.filterSpiritShards = j["filterSpiritShards"].get<bool>();
+        if (j.contains("filterUnboundMagic")) g_Settings.filterUnboundMagic = j["filterUnboundMagic"].get<bool>();
+        if (j.contains("filterVolatileMagic")) g_Settings.filterVolatileMagic = j["filterVolatileMagic"].get<bool>();
+        if (j.contains("filterAirshipParts")) g_Settings.filterAirshipParts = j["filterAirshipParts"].get<bool>();
+        if (j.contains("filterGeode")) g_Settings.filterGeode = j["filterGeode"].get<bool>();
+        if (j.contains("filterLeyLineCrystals")) g_Settings.filterLeyLineCrystals = j["filterLeyLineCrystals"].get<bool>();
+        if (j.contains("filterTradeContracts")) g_Settings.filterTradeContracts = j["filterTradeContracts"].get<bool>();
+        if (j.contains("filterElegyMosaic")) g_Settings.filterElegyMosaic = j["filterElegyMosaic"].get<bool>();
+        if (j.contains("filterUncommonCoins")) g_Settings.filterUncommonCoins = j["filterUncommonCoins"].get<bool>();
+        if (j.contains("filterAstralAcclaim")) g_Settings.filterAstralAcclaim = j["filterAstralAcclaim"].get<bool>();
+        if (j.contains("filterPristineFractalRelics")) g_Settings.filterPristineFractalRelics = j["filterPristineFractalRelics"].get<bool>();
+        if (j.contains("filterUnstableFractalEssence")) g_Settings.filterUnstableFractalEssence = j["filterUnstableFractalEssence"].get<bool>();
+        if (j.contains("filterMagnetiteShards")) g_Settings.filterMagnetiteShards = j["filterMagnetiteShards"].get<bool>();
+        if (j.contains("filterGaetingCrystals")) g_Settings.filterGaetingCrystals = j["filterGaetingCrystals"].get<bool>();
+        if (j.contains("filterProphetShards")) g_Settings.filterProphetShards = j["filterProphetShards"].get<bool>();
+        if (j.contains("filterGreenProphetShards")) g_Settings.filterGreenProphetShards = j["filterGreenProphetShards"].get<bool>();
+        if (j.contains("filterWvWSkirmishTickets")) g_Settings.filterWvWSkirmishTickets = j["filterWvWSkirmishTickets"].get<bool>();
+        if (j.contains("filterProofsOfHeroics")) g_Settings.filterProofsOfHeroics = j["filterProofsOfHeroics"].get<bool>();
+        if (j.contains("filterPvpLeagueTickets")) g_Settings.filterPvpLeagueTickets = j["filterPvpLeagueTickets"].get<bool>();
+        if (j.contains("filterAscendedShardsOfGlory")) g_Settings.filterAscendedShardsOfGlory = j["filterAscendedShardsOfGlory"].get<bool>();
+        if (j.contains("filterResearchNotes")) g_Settings.filterResearchNotes = j["filterResearchNotes"].get<bool>();
+        if (j.contains("filterTyrianDefenseSeal")) g_Settings.filterTyrianDefenseSeal = j["filterTyrianDefenseSeal"].get<bool>();
+        if (j.contains("filterTestimonyOfDesertHeroics")) g_Settings.filterTestimonyOfDesertHeroics = j["filterTestimonyOfDesertHeroics"].get<bool>();
+        if (j.contains("filterTestimonyOfJadeHeroics")) g_Settings.filterTestimonyOfJadeHeroics = j["filterTestimonyOfJadeHeroics"].get<bool>();
+        if (j.contains("filterTestimonyOfCastoranHeroics")) g_Settings.filterTestimonyOfCastoranHeroics = j["filterTestimonyOfCastoranHeroics"].get<bool>();
+        if (j.contains("filterLegendaryInsight")) g_Settings.filterLegendaryInsight = j["filterLegendaryInsight"].get<bool>();
+        if (j.contains("filterTalesOfDungeonDelving")) g_Settings.filterTalesOfDungeonDelving = j["filterTalesOfDungeonDelving"].get<bool>();
+        if (j.contains("filterImperialFavor")) g_Settings.filterImperialFavor = j["filterImperialFavor"].get<bool>();
+        if (j.contains("filterCanachCoins")) g_Settings.filterCanachCoins = j["filterCanachCoins"].get<bool>();
+        if (j.contains("filterAncientCoin")) g_Settings.filterAncientCoin = j["filterAncientCoin"].get<bool>();
+        if (j.contains("filterUnusualCoin")) g_Settings.filterUnusualCoin = j["filterUnusualCoin"].get<bool>();
+        if (j.contains("filterJadeSliver")) g_Settings.filterJadeSliver = j["filterJadeSliver"].get<bool>();
+        if (j.contains("filterStaticCharge")) g_Settings.filterStaticCharge = j["filterStaticCharge"].get<bool>();
+        if (j.contains("filterPinchOfStardust")) g_Settings.filterPinchOfStardust = j["filterPinchOfStardust"].get<bool>();
+        if (j.contains("filterCalcifiedGasp")) g_Settings.filterCalcifiedGasp = j["filterCalcifiedGasp"].get<bool>();
+        if (j.contains("filterUrsusOblige")) g_Settings.filterUrsusOblige = j["filterUrsusOblige"].get<bool>();
+        if (j.contains("filterGaetingCrystalJanthir")) g_Settings.filterGaetingCrystalJanthir = j["filterGaetingCrystalJanthir"].get<bool>();
+        if (j.contains("filterAntiquatedDucat")) g_Settings.filterAntiquatedDucat = j["filterAntiquatedDucat"].get<bool>();
+        if (j.contains("filterAetherRichSap")) g_Settings.filterAetherRichSap = j["filterAetherRichSap"].get<bool>();
+
         // Custom Profit System
         if (j.contains("enableCustomProfit")) g_Settings.enableCustomProfit = j["enableCustomProfit"].get<bool>();
         
@@ -236,11 +334,9 @@ void SettingsManager::Load()
         
         // Ignored Items
         if (j.contains("enableIgnoredItems")) g_Settings.enableIgnoredItems = j["enableIgnoredItems"].get<bool>();
-        
+
         // Advanced UI Settings
         if (j.contains("showAdvancedSettings")) g_Settings.showAdvancedSettings = j["showAdvancedSettings"].get<bool>();
-        if (j.contains("negativeCountIconOpacity")) g_Settings.negativeCountIconOpacity = j["negativeCountIconOpacity"].get<int>();
-        if (j.contains("countBackgroundOpacity")) g_Settings.countBackgroundOpacity = j["countBackgroundOpacity"].get<int>();
 
         // Count Display Settings
         if (j.contains("countTextColor")) g_Settings.countTextColor = j["countTextColor"].get<int>();
@@ -313,7 +409,22 @@ void SettingsManager::Save()
     ClampSettings();
 
     json j;
-    // Save encrypted tokens
+    // Save language
+    j["language"]              = g_Settings.language;
+
+    // Save multi-account system
+    j["accounts"] = nlohmann::json::array();
+    for (const auto& acc : g_Settings.accounts)
+    {
+        nlohmann::json accJson;
+        accJson["name"] = acc.name;
+        accJson["drfToken"] = ToHexString(SimpleEncrypt(acc.drfToken, "FarmingTracker2024"));
+        accJson["gw2ApiKey"] = ToHexString(SimpleEncrypt(acc.gw2ApiKey, "FarmingTracker2024"));
+        j["accounts"].push_back(accJson);
+    }
+    j["currentAccountIndex"] = g_Settings.currentAccountIndex;
+
+    // Save encrypted tokens (legacy, for backwards compatibility)
     j["drfToken"]              = ToHexString(SimpleEncrypt(g_Settings.drfToken, "FarmingTracker2024"));
     j["automaticResetMode"]    = g_Settings.automaticResetMode;
     j["minutesUntilReset"]     = g_Settings.minutesUntilResetAfterShutdown;
@@ -340,7 +451,14 @@ void SettingsManager::Save()
     j["mainWindowHeight"]       = g_Settings.mainWindowHeight;
     j["activeTab"]              = g_Settings.activeTab;
     j["enableGradientBackgrounds"] = g_Settings.enableGradientBackgrounds;
+    j["gradientTopColor"] = nlohmann::json::array();
+    for (int i = 0; i < 4; i++)
+        j["gradientTopColor"].push_back(g_Settings.gradientTopColor[i]);
+    j["gradientBottomColor"] = nlohmann::json::array();
+    for (int i = 0; i < 4; i++)
+        j["gradientBottomColor"].push_back(g_Settings.gradientBottomColor[i]);
     j["iconSize"]              = g_Settings.iconSize;
+    j["gridIconSize"]          = g_Settings.gridIconSize;
     j["showRarityBorder"]      = g_Settings.showRarityBorder;
     j["itemSortMode"]          = g_Settings.itemSortMode;
     j["itemRarityFilterMin"]   = g_Settings.itemRarityFilterMin;
@@ -398,7 +516,46 @@ void SettingsManager::Save()
     j["filterBadgeOfHonor"]    = g_Settings.filterBadgeOfHonor;
     j["filterGuildCommendation"] = g_Settings.filterGuildCommendation;
     j["filterTransmutationCharge"] = g_Settings.filterTransmutationCharge;
-    
+    j["filterSpiritShards"]    = g_Settings.filterSpiritShards;
+    j["filterUnboundMagic"]    = g_Settings.filterUnboundMagic;
+    j["filterVolatileMagic"]   = g_Settings.filterVolatileMagic;
+    j["filterAirshipParts"]    = g_Settings.filterAirshipParts;
+    j["filterGeode"]           = g_Settings.filterGeode;
+    j["filterLeyLineCrystals"] = g_Settings.filterLeyLineCrystals;
+    j["filterTradeContracts"]  = g_Settings.filterTradeContracts;
+    j["filterElegyMosaic"]     = g_Settings.filterElegyMosaic;
+    j["filterUncommonCoins"]   = g_Settings.filterUncommonCoins;
+    j["filterAstralAcclaim"]   = g_Settings.filterAstralAcclaim;
+    j["filterPristineFractalRelics"] = g_Settings.filterPristineFractalRelics;
+    j["filterUnstableFractalEssence"] = g_Settings.filterUnstableFractalEssence;
+    j["filterMagnetiteShards"] = g_Settings.filterMagnetiteShards;
+    j["filterGaetingCrystals"] = g_Settings.filterGaetingCrystals;
+    j["filterProphetShards"]   = g_Settings.filterProphetShards;
+    j["filterGreenProphetShards"] = g_Settings.filterGreenProphetShards;
+    j["filterWvWSkirmishTickets"] = g_Settings.filterWvWSkirmishTickets;
+    j["filterProofsOfHeroics"] = g_Settings.filterProofsOfHeroics;
+    j["filterPvpLeagueTickets"] = g_Settings.filterPvpLeagueTickets;
+    j["filterAscendedShardsOfGlory"] = g_Settings.filterAscendedShardsOfGlory;
+    j["filterResearchNotes"]   = g_Settings.filterResearchNotes;
+    j["filterTyrianDefenseSeal"] = g_Settings.filterTyrianDefenseSeal;
+    j["filterTestimonyOfDesertHeroics"] = g_Settings.filterTestimonyOfDesertHeroics;
+    j["filterTestimonyOfJadeHeroics"] = g_Settings.filterTestimonyOfJadeHeroics;
+    j["filterTestimonyOfCastoranHeroics"] = g_Settings.filterTestimonyOfCastoranHeroics;
+    j["filterLegendaryInsight"] = g_Settings.filterLegendaryInsight;
+    j["filterTalesOfDungeonDelving"] = g_Settings.filterTalesOfDungeonDelving;
+    j["filterImperialFavor"] = g_Settings.filterImperialFavor;
+    j["filterCanachCoins"] = g_Settings.filterCanachCoins;
+    j["filterAncientCoin"] = g_Settings.filterAncientCoin;
+    j["filterUnusualCoin"] = g_Settings.filterUnusualCoin;
+    j["filterJadeSliver"] = g_Settings.filterJadeSliver;
+    j["filterStaticCharge"] = g_Settings.filterStaticCharge;
+    j["filterPinchOfStardust"] = g_Settings.filterPinchOfStardust;
+    j["filterCalcifiedGasp"] = g_Settings.filterCalcifiedGasp;
+    j["filterUrsusOblige"] = g_Settings.filterUrsusOblige;
+    j["filterGaetingCrystalJanthir"] = g_Settings.filterGaetingCrystalJanthir;
+    j["filterAntiquatedDucat"] = g_Settings.filterAntiquatedDucat;
+    j["filterAetherRichSap"] = g_Settings.filterAetherRichSap;
+
     // Custom Profit System
     j["enableCustomProfit"]    = g_Settings.enableCustomProfit;
     
@@ -408,11 +565,9 @@ void SettingsManager::Save()
     
     // Ignored Items
     j["enableIgnoredItems"]    = g_Settings.enableIgnoredItems;
-    
+
     // Advanced UI Settings
     j["showAdvancedSettings"]  = g_Settings.showAdvancedSettings;
-    j["negativeCountIconOpacity"] = g_Settings.negativeCountIconOpacity;
-    j["countBackgroundOpacity"] = g_Settings.countBackgroundOpacity;
 
     // Count Display Settings
     j["countTextColor"]        = g_Settings.countTextColor;

@@ -293,6 +293,7 @@ bool ItemTracker::PassesFilter(const Stat& stat)
     {
         switch (stat.apiId)
         {
+            case 1: break; // Gold - immer anzeigen
             case 2: if (!g_Settings.filterKarma) return false; break;
             case 3: if (!g_Settings.filterLaurel) return false; break;
             case 4: if (!g_Settings.filterGem) return false; break;
@@ -300,6 +301,44 @@ bool ItemTracker::PassesFilter(const Stat& stat)
             case 15: if (!g_Settings.filterBadgeOfHonor) return false; break;
             case 16: if (!g_Settings.filterGuildCommendation) return false; break;
             case 18: if (!g_Settings.filterTransmutationCharge) return false; break;
+            case 23: if (!g_Settings.filterSpiritShards) return false; break;
+            case 32: if (!g_Settings.filterUnboundMagic) return false; break;
+            case 45: if (!g_Settings.filterVolatileMagic) return false; break;
+            case 19: if (!g_Settings.filterAirshipParts) return false; break;
+            case 22: if (!g_Settings.filterGeode) return false; break;
+            case 20: if (!g_Settings.filterLeyLineCrystals) return false; break;
+            case 38: if (!g_Settings.filterTradeContracts) return false; break;
+            case 39: if (!g_Settings.filterElegyMosaic) return false; break;
+            case 72: if (!g_Settings.filterAstralAcclaim) return false; break;
+            case 24: if (!g_Settings.filterPristineFractalRelics) return false; break;
+            case 50: if (!g_Settings.filterUnstableFractalEssence) return false; break;
+            case 28: if (!g_Settings.filterMagnetiteShards) return false; break;
+            case 35: if (!g_Settings.filterGaetingCrystals) return false; break;
+            case 53: if (!g_Settings.filterProphetShards) return false; break;
+            case 57: if (!g_Settings.filterGreenProphetShards) return false; break;
+            case 26: if (!g_Settings.filterWvWSkirmishTickets) return false; break;
+            case 31: if (!g_Settings.filterProofsOfHeroics) return false; break;
+            case 30: if (!g_Settings.filterPvpLeagueTickets) return false; break;
+            case 33: if (!g_Settings.filterAscendedShardsOfGlory) return false; break;
+            case 61: if (!g_Settings.filterResearchNotes) return false; break;
+            case 52: if (!g_Settings.filterTyrianDefenseSeal) return false; break;
+            case 36: if (!g_Settings.filterTestimonyOfDesertHeroics) return false; break;
+            case 65: if (!g_Settings.filterTestimonyOfJadeHeroics) return false; break;
+            case 82: if (!g_Settings.filterTestimonyOfCastoranHeroics) return false; break;
+            case 70: if (!g_Settings.filterLegendaryInsight) return false; break;
+            case 69: if (!g_Settings.filterTalesOfDungeonDelving) return false; break;
+            case 68: if (!g_Settings.filterImperialFavor) return false; break;
+            case 67: if (!g_Settings.filterCanachCoins) return false; break;
+            case 66: if (!g_Settings.filterAncientCoin) return false; break;
+            case 62: if (!g_Settings.filterUnusualCoin) return false; break;
+            case 64: if (!g_Settings.filterJadeSliver) return false; break;
+            case 78: if (!g_Settings.filterStaticCharge) return false; break;
+            case 73: if (!g_Settings.filterPinchOfStardust) return false; break;
+            case 75: if (!g_Settings.filterCalcifiedGasp) return false; break;
+            case 76: if (!g_Settings.filterUrsusOblige) return false; break;
+            case 77: if (!g_Settings.filterGaetingCrystalJanthir) return false; break;
+            case 81: if (!g_Settings.filterAntiquatedDucat) return false; break;
+            case 83: if (!g_Settings.filterAetherRichSap) return false; break;
             default: break;
         }
     }
@@ -475,15 +514,15 @@ long long ItemTracker::GetStatProfit(const Stat& stat)
     long long vendorPrice = stat.details.vendorValue;
     long long tpSellPrice = static_cast<long long>(stat.details.tpSellPrice * 85.0 / 100.0); // 15% fee on sell
 
-    // Account-bound items can only be sold to vendor (if vendorValue > 0 and not noSell)
-    // They cannot be sold on TP
+    // Check vendor price (if not noSell)
     long long maxPrice = 0;
-    if (vendorPrice > 0 && !stat.details.noSell) maxPrice = vendorPrice;
+    if (!stat.details.noSell && vendorPrice > 0) {
+        maxPrice = vendorPrice;
+    }
 
-    // For non-account-bound items, also consider TP sell price
-    if (!stat.details.accountBound)
-    {
-        if (tpSellPrice > maxPrice) maxPrice = tpSellPrice;
+    // Check TP price (API is source of truth - if it returns a price, the item is tradable)
+    if (tpSellPrice > maxPrice) {
+        maxPrice = tpSellPrice;
     }
 
     // If no price is available, item is not tradeable

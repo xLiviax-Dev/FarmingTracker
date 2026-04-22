@@ -106,6 +106,7 @@
     <ClCompile Include="src\custom_profit.cpp" />
     <ClCompile Include="src\ignored_items.cpp" />
     <ClCompile Include="src\search_manager.cpp" />
+    <ClCompile Include="src\localization.cpp" />
     <!-- Dear ImGui: must match Nexus’s embedded version (RaidcoreGG/Nexus src/thirdparty/imgui). Mismatch = crash in ImGui::Begin. -->
     <ClCompile Include="include\imgui\imgui.cpp" />
     <ClCompile Include="include\imgui\imgui_draw.cpp" />
@@ -124,6 +125,7 @@
     <ClInclude Include="src\custom_profit.h" />
     <ClInclude Include="src\ignored_items.h" />
     <ClInclude Include="src\search_manager.h" />
+    <ClInclude Include="src\localization.h" />
     <ClInclude Include="include\nexus\Nexus.h" />
   </ItemGroup>
   <ItemGroup>

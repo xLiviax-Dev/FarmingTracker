@@ -17,6 +17,7 @@
 #include "custom_profit.h"
 #include "ignored_items.h"
 #include "search_manager.h"
+#include "localization.h"
 
 void AddonLoad(AddonAPI_t* aApi);
 void AddonUnload();
@@ -73,12 +74,29 @@ void AddonLoad(AddonAPI_t* aApi)
     APIDefs->Log(LOGL_INFO, "FarmingTracker", addonDir ? addonDir : "NULL");
     SettingsManager::Init(addonDir);
 
+    // Initialize localization with saved language
+    Localization::SetLanguage(Localization::StringToLanguage(g_Settings.language));
+
     AutoReset::OnAddonLoad();
 
     DrfClient::Init([](DrfStatus s) { /* Status change callback - unused */ });
 
-    if (SettingsManager::IsTokenValid(g_Settings.drfToken))
-        DrfClient::Connect(g_Settings.drfToken);
+    // Load token from active account
+    std::string activeDrfToken;
+    if (!g_Settings.accounts.empty() && g_Settings.currentAccountIndex >= 0 && g_Settings.currentAccountIndex < g_Settings.accounts.size())
+    {
+        activeDrfToken = g_Settings.accounts[g_Settings.currentAccountIndex].drfToken;
+        // Also update legacy fields for backwards compatibility
+        g_Settings.drfToken = activeDrfToken;
+        g_Settings.gw2ApiKey = g_Settings.accounts[g_Settings.currentAccountIndex].gw2ApiKey;
+    }
+    else
+    {
+        activeDrfToken = g_Settings.drfToken; // Fallback to legacy
+    }
+
+    if (SettingsManager::IsTokenValid(activeDrfToken))
+        DrfClient::Connect(activeDrfToken);
 
     Gw2Fetcher::Init();
 
