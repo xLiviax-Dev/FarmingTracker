@@ -28,10 +28,11 @@ struct Settings
     std::string drfToken;
 
     // 0 Never, 1 OnAddonLoad, 2 Daily UTC, 3 Weekly Mon 07:30 UTC, 4 NA WvW Sat 02 UTC,
-    // 5 EU WvW Fri 18 UTC, 6 Map bonus Thu 20 UTC, 7 Minutes after shutdown
+    // 5 EU WvW Fri 18 UTC, 6 Map bonus Thu 20 UTC, 7 Minutes after shutdown, 8 Custom days
     int automaticResetMode = 1;
 
     int minutesUntilResetAfterShutdown = 30;
+    int customResetDays = 1; // For custom reset mode (1-28 days)
 
     // GW2 official API key (account) - for item/currency/commerce data
     std::string gw2ApiKey;
@@ -46,8 +47,8 @@ struct Settings
     std::string nextResetDateTimeUtc;
 
     int  iconSize         = 32;
-    int  gridIconSize     = 32;
     bool showRarityBorder   = true;
+    float rarityBorderSize = 3.0f;
 
     // Gradient Background Settings
     bool enableGradientBackgrounds = false;
@@ -189,6 +190,7 @@ struct Settings
     
     // Ignored Items
     bool enableIgnoredItems = false;
+    bool showIgnoredItems = true; // Show ignored items in Items/Currencies tabs
 
     // Advanced UI Settings
     bool showAdvancedSettings = false;
@@ -206,9 +208,18 @@ struct Settings
 
     // Favorites System
     bool enableFavorites = false;
+    bool enableFavoritesTab = false;
+    bool favoritesFirst = false;
+    bool enableFavoriteTextColor = false;
+    float favoriteTextColor[4] = {1.0f, 0.8f, 0.4f, 1.0f}; // Gold
+    bool enableFavoriteRowColor = false;
+    float favoriteRowColor[4] = {0.3f, 0.25f, 0.15f, 1.0f}; // Dark gold
 
     // Grid View Settings
-    bool enableGridView = false;
+    bool enableGridViewItems = false;
+    bool enableGridViewCurrencies = false;
+    int gridIconSize = 48;
+    int gridIconSizeCurrencies = 48;
 
     // UI State Settings
     bool showTopItems = true;
@@ -231,6 +242,30 @@ struct Settings
 
     // Salvage Kit settings by Item ID
     std::map<int, SalvageKitSetting> salvageKitSettings;
+
+    // === Settings Profile System ===
+    struct SettingsProfile
+    {
+        std::string name;
+        std::string profileData; // JSON string of settings
+    };
+    std::vector<SettingsProfile> settingsProfiles;
+    int currentProfileIndex = -1; // -1 = no profile selected (use default settings)
+
+
+    // === Automatic Backups ===
+    bool enableAutoBackups = true;
+    int maxBackupCount = 5; // Maximum number of backups to keep
+    int backupFrequency = 1; // Backup frequency (0 = manual only, 1 = daily, 2 = weekly)
+
+    // === Notification Settings ===
+    bool enableNotifications = false;
+    bool notifyProfitGoal = false;
+    int profitGoalAmount = 1000000; // 100g in copper coins
+    bool notifyResetWarning = true;
+    int resetWarningMinutes = 5;
+    bool notifySessionComplete = false;
+    int sessionCompleteHours = 4;
 };
 
 extern Settings g_Settings;
@@ -242,4 +277,14 @@ namespace SettingsManager
     void Save();
     bool IsTokenValid(const std::string& token);
     bool IsGw2ApiKeyPlausible(const std::string& key);
+    void ExportToFile(const std::string& filePath);
+    void ImportFromFile(const std::string& filePath);
+    void ResetToDefaults();
+
+    // Profile Management
+    void CreateProfile(const std::string& name);
+    void ApplyProfile(int index);
+    void DeleteProfile(int index);
+    void UpdateProfile(int index);
+    int GetProfileCount();
 }

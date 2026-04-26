@@ -20,6 +20,7 @@ enum class ItemType {
 struct ApiDetails
 {
     std::string name;
+    std::string description;
     std::string iconUrl;
     int         vendorValue  = 0;
     int         tpBuyPrice   = 0;
@@ -55,6 +56,7 @@ namespace ItemTracker
                  const std::map<int, long long>& currencies);
 
     void Reset();
+    void ClearPersistedData(const char* addonDir);
 
     std::map<int, Stat> GetItemsCopy();
     std::map<int, Stat> GetCurrenciesCopy();
@@ -106,7 +108,7 @@ namespace ItemTracker
 
     // Multi-Sort
     enum SortMode {
-        CountDesc, CountAsc, ApiIdAsc, ApiIdDesc, NameAZ, NameZA,
+        PriceDesc, PriceAsc, CountDesc, CountAsc, NameAZ, NameZA,
         ProfitDesc, ProfitAsc, RarityDesc, RarityAsc, TypeAZ, TypeZA
     };
     std::vector<std::pair<int, Stat>> GetSortedItems(SortMode mode, bool secondary = false);
@@ -130,4 +132,8 @@ namespace ItemTracker
     // Export Functions
     std::string ExportToJson();
     std::string ExportToCsv();
+
+    // Persistence Functions
+    void SaveData(const char* addonDir);
+    void LoadData(const char* addonDir);
 }

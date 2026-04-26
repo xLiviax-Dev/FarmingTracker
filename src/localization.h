@@ -6,6 +6,7 @@
 
 #include <string>
 #include <map>
+#include <unordered_map>
 
 namespace Localization
 {
@@ -40,4 +41,16 @@ namespace Localization
 
     // Convert string to language enum
     Language StringToLanguage(const std::string& str);
+
+    // Language translation functions (defined in separate files)
+    const std::unordered_map<std::string, const char*> GetEnglishTranslations();
+    const std::unordered_map<std::string, const char*> GetGermanTranslations();
+    const std::unordered_map<std::string, const char*> GetFrenchTranslations();
+    const std::unordered_map<std::string, const char*> GetSpanishTranslations();
+    const std::unordered_map<std::string, const char*> GetChineseTranslations();
+    const std::unordered_map<std::string, const char*> GetCzechTranslations();
+    const std::unordered_map<std::string, const char*> GetItalianTranslations();
+    const std::unordered_map<std::string, const char*> GetPolishTranslations();
+    const std::unordered_map<std::string, const char*> GetPortugueseTranslations();
+    const std::unordered_map<std::string, const char*> GetRussianTranslations();
 }

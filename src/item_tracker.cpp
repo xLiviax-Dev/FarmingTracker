@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <sstream>
 #include <deque>
+#include <fstream>
 
 using json = nlohmann::json;
 
@@ -105,6 +106,17 @@ void ItemTracker::Reset()
     std::lock_guard<std::mutex> lock(s_Mutex);
     s_Items.clear();
     s_Currencies.clear();
+}
+
+void ItemTracker::ClearPersistedData(const char* addonDir)
+{
+    if (!addonDir)
+        return;
+
+    std::string dataPath = std::string(addonDir) + "\\farming_data.json";
+    
+    // Delete the persistence file
+    std::remove(dataPath.c_str());
 }
 
 std::map<int, Stat> ItemTracker::GetItemsCopy()
@@ -355,6 +367,12 @@ bool ItemTracker::PassesFilter(const Stat& stat)
     if (g_Settings.filterMinQuantity > 0 && std::abs(stat.count) < g_Settings.filterMinQuantity) return false;
     if (g_Settings.filterMaxQuantity > 0 && std::abs(stat.count) > g_Settings.filterMaxQuantity) return false;
 
+    // Rarity filter
+    if (stat.IsItem() && g_Settings.itemRarityFilterMin > 0 && stat.details.loaded)
+    {
+        if (RarityRank(stat.details.rarity) < g_Settings.itemRarityFilterMin) return false;
+    }
+
     return true;
 }
 
@@ -421,21 +439,28 @@ std::vector<std::pair<int, Stat>> ItemTracker::GetSortedItems(SortMode mode, boo
 {
     auto items = GetFilteredItems();
     std::vector<std::pair<int, Stat>> sorted(items.begin(), items.end());
-    
+
     std::sort(sorted.begin(), sorted.end(), [mode](const auto& a, const auto& b) {
         const auto& statA = a.second;
         const auto& statB = b.second;
-        
+
+        // Favorites first if enabled
+        if (g_Settings.favoritesFirst)
+        {
+            if (statA.isFavorite != statB.isFavorite)
+                return statA.isFavorite > statB.isFavorite;
+        }
+
         switch (mode)
         {
+            case SortMode::PriceDesc:
+                return GetStatProfit(statA) > GetStatProfit(statB);
+            case SortMode::PriceAsc:
+                return GetStatProfit(statA) < GetStatProfit(statB);
             case SortMode::CountDesc:
                 return std::abs(statA.count) > std::abs(statB.count);
             case SortMode::CountAsc:
                 return std::abs(statA.count) < std::abs(statB.count);
-            case SortMode::ApiIdAsc:
-                return statA.apiId < statB.apiId;
-            case SortMode::ApiIdDesc:
-                return statA.apiId > statB.apiId;
             case SortMode::NameAZ:
                 return statA.details.name < statB.details.name;
             case SortMode::NameZA:
@@ -456,7 +481,7 @@ std::vector<std::pair<int, Stat>> ItemTracker::GetSortedItems(SortMode mode, boo
                 return false;
         }
     });
-    
+
     return sorted;
 }
 
@@ -464,21 +489,28 @@ std::vector<std::pair<int, Stat>> ItemTracker::GetSortedCurrencies(SortMode mode
 {
     auto currencies = GetFilteredCurrencies();
     std::vector<std::pair<int, Stat>> sorted(currencies.begin(), currencies.end());
-    
+
     std::sort(sorted.begin(), sorted.end(), [mode](const auto& a, const auto& b) {
         const auto& statA = a.second;
         const auto& statB = b.second;
-        
+
+        // Favorites first if enabled
+        if (g_Settings.favoritesFirst)
+        {
+            if (statA.isFavorite != statB.isFavorite)
+                return statA.isFavorite > statB.isFavorite;
+        }
+
         switch (mode)
         {
+            case SortMode::PriceDesc:
+                return GetStatProfit(statA) > GetStatProfit(statB);
+            case SortMode::PriceAsc:
+                return GetStatProfit(statA) < GetStatProfit(statB);
             case SortMode::CountDesc:
                 return std::abs(statA.count) > std::abs(statB.count);
             case SortMode::CountAsc:
                 return std::abs(statA.count) < std::abs(statB.count);
-            case SortMode::ApiIdAsc:
-                return statA.apiId < statB.apiId;
-            case SortMode::ApiIdDesc:
-                return statA.apiId > statB.apiId;
             case SortMode::NameAZ:
                 return statA.details.name < statB.details.name;
             case SortMode::NameZA:
@@ -491,7 +523,7 @@ std::vector<std::pair<int, Stat>> ItemTracker::GetSortedCurrencies(SortMode mode
                 return false;
         }
     });
-    
+
     return sorted;
 }
 
@@ -847,6 +879,128 @@ int ItemTracker::RarityRank(const std::string& rarity)
     return 0;
 }
 
+// === Persistence Functions ===
+void ItemTracker::SaveData(const char* addonDir)
+{
+    if (!addonDir)
+        return;
+
+    std::string dataPath = std::string(addonDir) + "\\farming_data.json";
+    
+    nlohmann::json data;
+    data["timestamp"] = std::chrono::system_clock::now().time_since_epoch().count();
+    data["sessionStart"] = std::chrono::duration_cast<std::chrono::seconds>(
+        s_SessionStart.time_since_epoch()).count();
+
+    // Save items
+    nlohmann::json itemsArray = nlohmann::json::array();
+    {
+        std::lock_guard<std::mutex> lock(s_Mutex);
+        for (const auto& [id, stat] : s_Items)
+        {
+            nlohmann::json item;
+            item["apiId"] = id;
+            item["count"] = stat.count;
+            item["isFavorite"] = stat.isFavorite;
+            itemsArray.push_back(item);
+        }
+    }
+    data["items"] = itemsArray;
+
+    // Save currencies
+    nlohmann::json currenciesArray = nlohmann::json::array();
+    {
+        std::lock_guard<std::mutex> lock(s_Mutex);
+        for (const auto& [id, stat] : s_Currencies)
+        {
+            nlohmann::json currency;
+            currency["apiId"] = id;
+            currency["count"] = stat.count;
+            currency["isFavorite"] = stat.isFavorite;
+            currenciesArray.push_back(currency);
+        }
+    }
+    data["currencies"] = currenciesArray;
+
+    // Write to file
+    std::ofstream file(dataPath);
+    if (file.is_open())
+    {
+        file << data.dump(4);
+        file.close();
+    }
+}
+
+void ItemTracker::LoadData(const char* addonDir)
+{
+    if (!addonDir)
+        return;
+
+    std::string dataPath = std::string(addonDir) + "\\farming_data.json";
+    
+    std::ifstream file(dataPath);
+    if (!file.is_open())
+        return;
+
+    try
+    {
+        nlohmann::json data;
+        file >> data;
+        file.close();
+
+        // Load session start if available
+        if (data.contains("sessionStart"))
+        {
+            std::lock_guard<std::mutex> sessionLock(s_SessionStartMutex);
+            long long sessionStartSeconds = data["sessionStart"].get<long long>();
+            s_SessionStart = std::chrono::steady_clock::time_point() + 
+                std::chrono::seconds(sessionStartSeconds);
+        }
+
+        // Load items
+        if (data.contains("items") && data["items"].is_array())
+        {
+            std::lock_guard<std::mutex> lock(s_Mutex);
+            for (const auto& itemJson : data["items"])
+            {
+                int apiId = itemJson["apiId"].get<int>();
+                long long count = itemJson["count"].get<long long>();
+                bool isFavorite = itemJson.value("isFavorite", false);
+
+                Stat s;
+                s.apiId = apiId;
+                s.type = StatType::Item;
+                s.count = count;
+                s.isFavorite = isFavorite;
+                s_Items[apiId] = s;
+            }
+        }
+
+        // Load currencies
+        if (data.contains("currencies") && data["currencies"].is_array())
+        {
+            std::lock_guard<std::mutex> lock(s_Mutex);
+            for (const auto& currencyJson : data["currencies"])
+            {
+                int apiId = currencyJson["apiId"].get<int>();
+                long long count = currencyJson["count"].get<long long>();
+                bool isFavorite = currencyJson.value("isFavorite", false);
+
+                Stat s;
+                s.apiId = apiId;
+                s.type = StatType::Currency;
+                s.count = count;
+                s.isFavorite = isFavorite;
+                s_Currencies[apiId] = s;
+            }
+        }
+    }
+    catch (...)
+    {
+        // If loading fails, just continue with empty data
+    }
+}
+
 std::vector<int> ItemTracker::CollectPendingItemIds()
 {
     std::lock_guard<std::mutex> lock(s_Mutex);
@@ -1027,6 +1181,7 @@ void ItemTracker::ApplyCurrencyTable(const json& currenciesArray)
         if (it == s_Currencies.end()) continue;
 
         it->second.details.name = c.value("name", "");
+        it->second.details.description = c.value("description", "");
         if (c.contains("icon") && c["icon"].is_string())
             it->second.details.iconUrl = BuildIconUrl(c["icon"].get<std::string>());
         it->second.details.loaded = true;

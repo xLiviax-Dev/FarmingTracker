@@ -1,6 +1,7 @@
 #include "auto_reset.h"
 #include "settings.h"
 #include "item_tracker.h"
+#include "shared.h"
 
 #include <chrono>
 #include <ctime>
@@ -94,7 +95,7 @@ namespace
         {
         case 0: // Never
         case 1: // OnAddonLoad
-            return Clock::time_point::max();
+            return (Clock::time_point::max)();
         case 7: // MinutesAfterShutdown
             return fromUtc + std::chrono::minutes(minutesAfterShutdown);
         case 2: // Daily 00:00 UTC — next calendar day midnight
@@ -107,8 +108,15 @@ namespace
             return NextWeeklyUtc(fromUtc, 5, 18, 0);
         case 6: // Thursday 20:00 UTC (Map bonus)
             return NextWeeklyUtc(fromUtc, 4, 20, 0);
+        case 8: // Custom days (1-28 days)
+        {
+            int days = g_Settings.customResetDays;
+            if (days < 1) days = 1;
+            if (days > 28) days = 28;
+            return StartOfUtcDay(fromUtc) + std::chrono::hours(24 * days);
+        }
         default:
-            return Clock::time_point::max();
+            return (Clock::time_point::max)();
         }
     }
 
@@ -125,6 +133,7 @@ namespace
     }
 
     static bool s_IsFirstAddonLoad = true;
+    static Clock::time_point s_LastResetTime = (Clock::time_point::min)();
 
     bool ShouldResetNowOnLoad()
     {
@@ -137,13 +146,23 @@ namespace
         const bool isAddonStart = s_IsFirstAddonLoad;
         s_IsFirstAddonLoad = false;
 
+        // Check if we already reset today (within the same reset period)
+        const bool alreadyResetToday = (s_LastResetTime != (Clock::time_point::min)()) &&
+            (UtcNow() - s_LastResetTime < std::chrono::hours(24));
+
         switch (mode)
         {
         case 0: return false;
         case 1: return isAddonStart;
         case 7: return isAddonStart && isPastReset;
         default:
-            return isPastReset;
+            // Only reset if past reset time AND haven't reset today
+            if (isPastReset && !alreadyResetToday)
+            {
+                s_LastResetTime = UtcNow();
+                return true;
+            }
+            return false;
         }
     }
 }
@@ -154,7 +173,12 @@ void AutoReset::OnAddonLoad()
         UpdateNextResetDateTime();
 
     if (ShouldResetNowOnLoad())
+    {
         ItemTracker::Reset();
+        // Clear persisted data after reset
+        const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
+        ItemTracker::ClearPersistedData(addonDir);
+    }
 
     UpdateNextResetDateTime();
 }
@@ -182,6 +206,9 @@ void AutoReset::Tick()
         return;
 
     ItemTracker::Reset();
+    // Clear persisted data after reset
+    const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
+    ItemTracker::ClearPersistedData(addonDir);
     UpdateNextResetDateTime();
     SettingsManager::Save();
 }

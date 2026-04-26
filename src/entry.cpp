@@ -18,6 +18,7 @@
 #include "ignored_items.h"
 #include "search_manager.h"
 #include "localization.h"
+#include "item_tracker.h"
 
 void AddonLoad(AddonAPI_t* aApi);
 void AddonUnload();
@@ -79,6 +80,9 @@ void AddonLoad(AddonAPI_t* aApi)
 
     AutoReset::OnAddonLoad();
 
+    // Load persisted farming data
+    ItemTracker::LoadData(addonDir);
+
     DrfClient::Init([](DrfStatus s) { /* Status change callback - unused */ });
 
     // Load token from active account
@@ -130,6 +134,11 @@ void AddonUnload()
         
         AutoReset::OnAddonUnload();
         APIDefs->Log(LOGL_INFO, "FarmingTracker", "Auto reset shutdown complete");
+        
+        // Save farming data before shutdown
+        const char* addonDir = APIDefs->Paths_GetAddonDirectory("FarmingTracker");
+        ItemTracker::SaveData(addonDir);
+        APIDefs->Log(LOGL_INFO, "FarmingTracker", "Farming data saved");
         
         SettingsManager::Save();
         APIDefs->Log(LOGL_INFO, "FarmingTracker", "Settings saved");
