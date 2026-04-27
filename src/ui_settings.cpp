@@ -15,7 +15,10 @@ void RenderOptions()
 {
     ImGui::TextUnformatted(Localization::GetText("farming_tracker_title"));
     ImGui::Separator();
-    ImGui::Checkbox(Localization::GetText("show_main_window"), &UICommon::s_ShowMainWindow);
+    if (ImGui::Checkbox(Localization::GetText("show_main_window"), &g_Settings.showMainWindow))
+        SettingsManager::Save();
+    if (ImGui::Checkbox(Localization::GetText("show_mini_window"), &g_Settings.showMiniWindow))
+        SettingsManager::Save();
 
     ImGui::Spacing();
     ImGui::Separator();
@@ -403,6 +406,11 @@ void RenderOptions()
         // Favorites UI
         ImGui::Text("%s", Localization::GetText("favorites_ui"));
 
+        if (ImGui::Checkbox(Localization::GetText("enable_favorites_tab"), &g_Settings.enableFavoritesTab))
+            SettingsManager::Save();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("%s", Localization::GetText("enable_favorites_tab_tooltip"));
+
         if (ImGui::Checkbox(Localization::GetText("favorites_first"), &g_Settings.favoritesFirst))
             SettingsManager::Save();
         if (ImGui::IsItemHovered())
@@ -459,6 +467,37 @@ void RenderOptions()
                 ImGui::EndPopup();
             }
         }
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+
+    // === Other Tabs ===
+    if (ImGui::CollapsingHeader(Localization::GetText("tabs_settings")))
+    {
+        ImGui::Text("%s", Localization::GetText("tabs_description"));
+
+        ImGui::Spacing();
+        ImGui::Separator();
+
+        // Ignored Tab
+        if (ImGui::Checkbox(Localization::GetText("enable_ignored_tab"), &g_Settings.enableIgnoredTab))
+            SettingsManager::Save();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("%s", Localization::GetText("enable_ignored_tab_tooltip"));
+
+        ImGui::Spacing();
+
+        // Custom Profit
+        ImGui::Text("%s", Localization::GetText("custom_profit_system"));
+
+        ImGui::Spacing();
+        ImGui::Separator();
+
+        if (ImGui::Checkbox(Localization::GetText("enable_custom_profit"), &g_Settings.enableCustomProfit))
+            SettingsManager::Save();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("%s", Localization::GetText("enable_custom_profit_tooltip"));
     }
 
     ImGui::Spacing();

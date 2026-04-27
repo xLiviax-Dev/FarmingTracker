@@ -72,6 +72,10 @@ void RenderFavoritesTab()
                             ImGui::Separator();
                             ImVec4 countColor = st.count > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.count < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
                             ImGui::TextColored(countColor, "%s %lld", Localization::GetText("count_label"), st.count);
+                            ImGui::Separator();
+                            char itemIdLabel[256];
+                            snprintf(itemIdLabel, sizeof(itemIdLabel), Localization::GetText("item_id_label"), id);
+                            ImGui::Text("%s", itemIdLabel);
                             ImGui::EndTooltip();
                         }
 

@@ -255,8 +255,31 @@ void SettingsManager::Load()
 
         // Range Filters
         if (j.contains("showRangeFilters")) g_Settings.showRangeFilters = j["showRangeFilters"].get<bool>();
-        if (j.contains("filterMinPrice")) g_Settings.filterMinPrice = j["filterMinPrice"].get<int>();
-        if (j.contains("filterMaxPrice")) g_Settings.filterMaxPrice = j["filterMaxPrice"].get<int>();
+        
+        // Load new separate gold/silver/copper fields
+        if (j.contains("filterMinPriceGold")) g_Settings.filterMinPriceGold = j["filterMinPriceGold"].get<int>();
+        if (j.contains("filterMinPriceSilver")) g_Settings.filterMinPriceSilver = j["filterMinPriceSilver"].get<int>();
+        if (j.contains("filterMinPriceCopper")) g_Settings.filterMinPriceCopper = j["filterMinPriceCopper"].get<int>();
+        if (j.contains("filterMaxPriceGold")) g_Settings.filterMaxPriceGold = j["filterMaxPriceGold"].get<int>();
+        if (j.contains("filterMaxPriceSilver")) g_Settings.filterMaxPriceSilver = j["filterMaxPriceSilver"].get<int>();
+        if (j.contains("filterMaxPriceCopper")) g_Settings.filterMaxPriceCopper = j["filterMaxPriceCopper"].get<int>();
+        
+        // Backward compatibility: convert old single copper value to gold/silver/copper
+        if (j.contains("filterMinPrice") && !j.contains("filterMinPriceGold"))
+        {
+            int oldMinPrice = j["filterMinPrice"].get<int>();
+            g_Settings.filterMinPriceGold = oldMinPrice / 10000;
+            g_Settings.filterMinPriceSilver = (oldMinPrice % 10000) / 100;
+            g_Settings.filterMinPriceCopper = oldMinPrice % 100;
+        }
+        if (j.contains("filterMaxPrice") && !j.contains("filterMaxPriceGold"))
+        {
+            int oldMaxPrice = j["filterMaxPrice"].get<int>();
+            g_Settings.filterMaxPriceGold = oldMaxPrice / 10000;
+            g_Settings.filterMaxPriceSilver = (oldMaxPrice % 10000) / 100;
+            g_Settings.filterMaxPriceCopper = oldMaxPrice % 100;
+        }
+        
         if (j.contains("filterMinQuantity")) g_Settings.filterMinQuantity = j["filterMinQuantity"].get<int>();
         if (j.contains("filterMaxQuantity")) g_Settings.filterMaxQuantity = j["filterMaxQuantity"].get<int>();
 
@@ -536,8 +559,12 @@ void SettingsManager::Save()
 
     // Range Filters
     j["showRangeFilters"]      = g_Settings.showRangeFilters;
-    j["filterMinPrice"]        = g_Settings.filterMinPrice;
-    j["filterMaxPrice"]        = g_Settings.filterMaxPrice;
+    j["filterMinPriceGold"]    = g_Settings.filterMinPriceGold;
+    j["filterMinPriceSilver"]  = g_Settings.filterMinPriceSilver;
+    j["filterMinPriceCopper"]  = g_Settings.filterMinPriceCopper;
+    j["filterMaxPriceGold"]    = g_Settings.filterMaxPriceGold;
+    j["filterMaxPriceSilver"]  = g_Settings.filterMaxPriceSilver;
+    j["filterMaxPriceCopper"]  = g_Settings.filterMaxPriceCopper;
     j["filterMinQuantity"]     = g_Settings.filterMinQuantity;
     j["filterMaxQuantity"]     = g_Settings.filterMaxQuantity;
 
@@ -832,8 +859,12 @@ void SettingsManager::ExportToFile(const std::string& filePath)
     j["filterIgnored"]         = g_Settings.filterIgnored;
     j["filterNotIgnored"]      = g_Settings.filterNotIgnored;
     j["showRangeFilters"]      = g_Settings.showRangeFilters;
-    j["filterMinPrice"]        = g_Settings.filterMinPrice;
-    j["filterMaxPrice"]        = g_Settings.filterMaxPrice;
+    j["filterMinPriceGold"]    = g_Settings.filterMinPriceGold;
+    j["filterMinPriceSilver"]  = g_Settings.filterMinPriceSilver;
+    j["filterMinPriceCopper"]  = g_Settings.filterMinPriceCopper;
+    j["filterMaxPriceGold"]    = g_Settings.filterMaxPriceGold;
+    j["filterMaxPriceSilver"]  = g_Settings.filterMaxPriceSilver;
+    j["filterMaxPriceCopper"]  = g_Settings.filterMaxPriceCopper;
     j["filterMinQuantity"]     = g_Settings.filterMinQuantity;
     j["filterMaxQuantity"]     = g_Settings.filterMaxQuantity;
     j["filterTypeArmor"]       = g_Settings.filterTypeArmor;
@@ -1091,8 +1122,31 @@ void SettingsManager::ImportFromFile(const std::string& filePath)
         if (j.contains("filterIgnored")) g_Settings.filterIgnored = j["filterIgnored"].get<bool>();
         if (j.contains("filterNotIgnored")) g_Settings.filterNotIgnored = j["filterNotIgnored"].get<bool>();
         if (j.contains("showRangeFilters")) g_Settings.showRangeFilters = j["showRangeFilters"].get<bool>();
-        if (j.contains("filterMinPrice")) g_Settings.filterMinPrice = j["filterMinPrice"].get<int>();
-        if (j.contains("filterMaxPrice")) g_Settings.filterMaxPrice = j["filterMaxPrice"].get<int>();
+        
+        // Load new separate gold/silver/copper fields
+        if (j.contains("filterMinPriceGold")) g_Settings.filterMinPriceGold = j["filterMinPriceGold"].get<int>();
+        if (j.contains("filterMinPriceSilver")) g_Settings.filterMinPriceSilver = j["filterMinPriceSilver"].get<int>();
+        if (j.contains("filterMinPriceCopper")) g_Settings.filterMinPriceCopper = j["filterMinPriceCopper"].get<int>();
+        if (j.contains("filterMaxPriceGold")) g_Settings.filterMaxPriceGold = j["filterMaxPriceGold"].get<int>();
+        if (j.contains("filterMaxPriceSilver")) g_Settings.filterMaxPriceSilver = j["filterMaxPriceSilver"].get<int>();
+        if (j.contains("filterMaxPriceCopper")) g_Settings.filterMaxPriceCopper = j["filterMaxPriceCopper"].get<int>();
+        
+        // Backward compatibility: convert old single copper value to gold/silver/copper
+        if (j.contains("filterMinPrice") && !j.contains("filterMinPriceGold"))
+        {
+            int oldMinPrice = j["filterMinPrice"].get<int>();
+            g_Settings.filterMinPriceGold = oldMinPrice / 10000;
+            g_Settings.filterMinPriceSilver = (oldMinPrice % 10000) / 100;
+            g_Settings.filterMinPriceCopper = oldMinPrice % 100;
+        }
+        if (j.contains("filterMaxPrice") && !j.contains("filterMaxPriceGold"))
+        {
+            int oldMaxPrice = j["filterMaxPrice"].get<int>();
+            g_Settings.filterMaxPriceGold = oldMaxPrice / 10000;
+            g_Settings.filterMaxPriceSilver = (oldMaxPrice % 10000) / 100;
+            g_Settings.filterMaxPriceCopper = oldMaxPrice % 100;
+        }
+        
         if (j.contains("filterMinQuantity")) g_Settings.filterMinQuantity = j["filterMinQuantity"].get<int>();
         if (j.contains("filterMaxQuantity")) g_Settings.filterMaxQuantity = j["filterMaxQuantity"].get<int>();
         if (j.contains("filterTypeArmor")) g_Settings.filterTypeArmor = j["filterTypeArmor"].get<bool>();
@@ -1282,8 +1336,12 @@ void SettingsManager::ResetToDefaults()
     g_Settings.filterIgnored = false;
     g_Settings.filterNotIgnored = true;
     g_Settings.showRangeFilters = true;
-    g_Settings.filterMinPrice = 0;
-    g_Settings.filterMaxPrice = 0;
+    g_Settings.filterMinPriceGold = 0;
+    g_Settings.filterMinPriceSilver = 0;
+    g_Settings.filterMinPriceCopper = 0;
+    g_Settings.filterMaxPriceGold = 0;
+    g_Settings.filterMaxPriceSilver = 0;
+    g_Settings.filterMaxPriceCopper = 0;
     g_Settings.filterMinQuantity = 0;
     g_Settings.filterMaxQuantity = 0;
     g_Settings.filterTypeArmor = true;

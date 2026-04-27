@@ -116,6 +116,10 @@ void RenderItemsTab()
                         char noSellLabel[256];
                         snprintf(noSellLabel, sizeof(noSellLabel), Localization::GetText("nosell_label"), st.details.noSell ? Localization::GetText("yes_label") : Localization::GetText("no_label"));
                         ImGui::Text("%s", noSellLabel);
+                        ImGui::Separator();
+                        char itemIdLabel[256];
+                        snprintf(itemIdLabel, sizeof(itemIdLabel), Localization::GetText("item_id_label"), id);
+                        ImGui::Text("%s", itemIdLabel);
                         ImGui::EndTooltip();
                     }
 
@@ -234,6 +238,10 @@ void RenderItemsTab()
                     char noSellLabel[256];
                     snprintf(noSellLabel, sizeof(noSellLabel), Localization::GetText("nosell_label"), st.details.noSell ? Localization::GetText("yes_label") : Localization::GetText("no_label"));
                     ImGui::Text("%s", noSellLabel);
+                    ImGui::Separator();
+                    char itemIdLabel[256];
+                    snprintf(itemIdLabel, sizeof(itemIdLabel), Localization::GetText("item_id_label"), id);
+                    ImGui::Text("%s", itemIdLabel);
                     ImGui::EndTooltip();
                 }
 

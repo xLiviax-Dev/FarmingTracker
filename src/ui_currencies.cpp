@@ -66,6 +66,10 @@ void RenderCurrenciesTab()
                         ImGui::Separator();
                         ImVec4 countColor = st.count > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.count < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
                         ImGui::TextColored(countColor, "Count: %lld", st.count);
+                        ImGui::Separator();
+                        char currencyIdLabel[256];
+                        snprintf(currencyIdLabel, sizeof(currencyIdLabel), Localization::GetText("currency_id_label"), id);
+                        ImGui::Text("%s", currencyIdLabel);
                         ImGui::EndTooltip();
                     }
 
@@ -134,7 +138,6 @@ void RenderCurrenciesTab()
 
                 ImGui::TableSetColumnIndex(1);
                 std::string name = st.details.loaded ? st.details.name : (id == 1 ? "Coin" : "Loading...");
-
                 // Add star icon for favorites
                 if (st.isFavorite)
                 {
@@ -149,9 +152,17 @@ void RenderCurrenciesTab()
                     // Apply favorite text color if enabled
                     if (st.isFavorite && g_Settings.enableFavoriteTextColor)
                         karmaColor = ImVec4(g_Settings.favoriteTextColor[0], g_Settings.favoriteTextColor[1], g_Settings.favoriteTextColor[2], g_Settings.favoriteTextColor[3]);
-                    ImGui::TextColored(karmaColor, "%s", name.c_str());
-                    if (ImGui::IsItemHovered())
-                        ImGui::SetTooltip(name.c_str());
+                    UICommon::TextWithTooltip(name.c_str(), 200.0f, karmaColor);
+                    if (ImGui::IsItemHovered() && st.details.loaded)
+                    {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("%s", st.details.name.c_str());
+                        ImGui::Separator();
+                        char currencyIdLabel[256];
+                        snprintf(currencyIdLabel, sizeof(currencyIdLabel), Localization::GetText("currency_id_label"), id);
+                        ImGui::Text("%s", currencyIdLabel);
+                        ImGui::EndTooltip();
+                    }
                 }
                 else
                 {
@@ -169,16 +180,22 @@ void RenderCurrenciesTab()
                         ImGui::Text("Name: %s", st.details.name.c_str());
                         if (!st.details.description.empty())
                             ImGui::Text("In-game description: %s", st.details.description.c_str());
-                        ImGui::Text("API ID: %d", id);
                         ImVec4 countColor = st.count > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.count < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
                         ImGui::TextColored(countColor, "Count: %lld", st.count);
+                        ImGui::Separator();
+                        char currencyIdLabel[256];
+                        snprintf(currencyIdLabel, sizeof(currencyIdLabel), Localization::GetText("currency_id_label"), id);
+                        ImGui::Text("%s", currencyIdLabel);
                     }
                     else
                     {
-                        ImGui::Text("API ID: %d", id);
                         ImGui::Text("Loading...");
                         ImVec4 countColor = st.count > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.count < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
                         ImGui::TextColored(countColor, "Count: %lld", st.count);
+                        ImGui::Separator();
+                        char currencyIdLabel[256];
+                        snprintf(currencyIdLabel, sizeof(currencyIdLabel), Localization::GetText("currency_id_label"), id);
+                        ImGui::Text("%s", currencyIdLabel);
                     }
                     ImGui::EndTooltip();
                 }

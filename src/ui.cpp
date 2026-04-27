@@ -38,7 +38,7 @@ static void RenderShortcut();
 
 static void RenderMainWindow()
 {
-    if (!UICommon::s_ShowMainWindow) return;
+    if (!g_Settings.showMainWindow) return;
 
     AutoReset::Tick();
 
@@ -50,7 +50,7 @@ static void RenderMainWindow()
     if (g_Settings.mainWindowClickThrough)
         flags |= ImGuiWindowFlags_NoInputs;
 
-    if (ImGui::Begin("Farming Tracker##FT_Main", &UICommon::s_ShowMainWindow, flags))
+    if (ImGui::Begin("Farming Tracker##FT_Main", &g_Settings.showMainWindow, flags))
     {
         // Gradient background if enabled
         if (g_Settings.enableGradientBackgrounds)
@@ -145,31 +145,31 @@ static void RenderMainWindow()
                 ImGui::EndTabItem();
             }
 
-            if (ImGui::BeginTabItem(Localization::GetText("tab_favorites")))
+            if (g_Settings.enableFavoritesTab && ImGui::BeginTabItem(Localization::GetText("tab_favorites")))
             {
                 g_Settings.activeTab = 4;
                 UIFavorites::RenderFavoritesTab();
                 ImGui::EndTabItem();
             }
 
-            if (ImGui::BeginTabItem(Localization::GetText("tab_ignored")))
+            if (g_Settings.enableIgnoredTab && ImGui::BeginTabItem(Localization::GetText("tab_ignored")))
             {
                 g_Settings.activeTab = 5;
                 UIIgnored::RenderIgnoredTab();
                 ImGui::EndTabItem();
             }
 
-            if (ImGui::BeginTabItem(Localization::GetText("tab_filter")))
+            if (g_Settings.enableCustomProfit && ImGui::BeginTabItem(Localization::GetText("tab_custom_profit")))
             {
                 g_Settings.activeTab = 6;
-                UIFilter::RenderFilterTab();
+                UICustomProfit::RenderCustomProfitTab();
                 ImGui::EndTabItem();
             }
 
-            if (g_Settings.enableCustomProfit && ImGui::BeginTabItem(Localization::GetText("tab_custom_profit")))
+            if (ImGui::BeginTabItem(Localization::GetText("tab_filter")))
             {
                 g_Settings.activeTab = 7;
-                UICustomProfit::RenderCustomProfitTab();
+                UIFilter::RenderFilterTab();
                 ImGui::EndTabItem();
             }
 
@@ -189,15 +189,21 @@ static void RenderMainWindow()
 
 static void RenderShortcut()
 {
-    ImGui::Checkbox("Show Farming Tracker", &UICommon::s_ShowMainWindow);
+    ImGui::Checkbox("Show Farming Tracker", &g_Settings.showMainWindow);
 }
 
 static void ProcessKeybind(const char* aIdentifier, bool aIsRelease)
 {
     if (!aIsRelease && strcmp(aIdentifier, "FT_TOGGLE_MAIN") == 0)
-        UICommon::s_ShowMainWindow = !UICommon::s_ShowMainWindow;
+    {
+        g_Settings.showMainWindow = !g_Settings.showMainWindow;
+        SettingsManager::Save();
+    }
     if (!aIsRelease && strcmp(aIdentifier, "FT_TOGGLE_MINI") == 0)
+    {
         g_Settings.showMiniWindow = !g_Settings.showMiniWindow;
+        SettingsManager::Save();
+    }
 }
 
 void UI::Init()

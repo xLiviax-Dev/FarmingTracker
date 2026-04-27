@@ -359,8 +359,18 @@ bool ItemTracker::PassesFilter(const Stat& stat)
     if (stat.IsItem() && stat.details.loaded)
     {
         long long pricePerUnit = GetStatProfit(stat) / (stat.count != 0 ? stat.count : 1);
-        if (g_Settings.filterMinPrice > 0 && pricePerUnit < g_Settings.filterMinPrice) return false;
-        if (g_Settings.filterMaxPrice > 0 && pricePerUnit > g_Settings.filterMaxPrice) return false;
+        
+        // Convert min price to copper
+        long long minPriceCopper = g_Settings.filterMinPriceGold * 10000 + 
+                                    g_Settings.filterMinPriceSilver * 100 + 
+                                    g_Settings.filterMinPriceCopper;
+        // Convert max price to copper
+        long long maxPriceCopper = g_Settings.filterMaxPriceGold * 10000 + 
+                                    g_Settings.filterMaxPriceSilver * 100 + 
+                                    g_Settings.filterMaxPriceCopper;
+        
+        if (minPriceCopper > 0 && pricePerUnit < minPriceCopper) return false;
+        if (maxPriceCopper > 0 && pricePerUnit > maxPriceCopper) return false;
     }
 
     // Quantity range filter

@@ -66,10 +66,11 @@ struct Settings
     bool miniWindowClickThrough = false;
     float miniWindowPosX = 50.0f;
     float miniWindowPosY = 50.0f;
-    float miniWindowWidth = 200.0f;
-    float miniWindowHeight = 150.0f;
+    float miniWindowWidth = 350.0f;
+    float miniWindowHeight = 200.0f;
 
     // Main Window Settings
+    bool showMainWindow = true;
     bool mainWindowClickThrough = false;
     float mainWindowPosX = 100.0f;
     float mainWindowPosY = 100.0f;
@@ -105,13 +106,17 @@ struct Settings
     bool filterNotNoSell = true;
     bool filterFavorite = true;
     bool filterNotFavorite = true;
-    bool filterIgnored = false;
+    bool filterIgnored = true;
     bool filterNotIgnored = true;
 
     // Range Filters
     bool showRangeFilters = true;
-    int filterMinPrice = 0;
-    int filterMaxPrice = 0;
+    int filterMinPriceGold = 0;
+    int filterMinPriceSilver = 0;
+    int filterMinPriceCopper = 0;
+    int filterMaxPriceGold = 0;
+    int filterMaxPriceSilver = 0;
+    int filterMaxPriceCopper = 0;
     int filterMinQuantity = 0;
     int filterMaxQuantity = 0;
 
@@ -214,6 +219,9 @@ struct Settings
     float favoriteTextColor[4] = {1.0f, 0.8f, 0.4f, 1.0f}; // Gold
     bool enableFavoriteRowColor = false;
     float favoriteRowColor[4] = {0.3f, 0.25f, 0.15f, 1.0f}; // Dark gold
+
+    // Ignored Tab
+    bool enableIgnoredTab = false;
 
     // Grid View Settings
     bool enableGridViewItems = false;
