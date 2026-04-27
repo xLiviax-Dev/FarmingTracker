@@ -189,7 +189,7 @@ static void RenderMainWindow()
 
 static void RenderShortcut()
 {
-    ImGui::Checkbox("Show Farming Tracker", &g_Settings.showMainWindow);
+    ImGui::Checkbox(Localization::GetText("show_main_window"), &g_Settings.showMainWindow);
 }
 
 static void ProcessKeybind(const char* aIdentifier, bool aIsRelease)
