@@ -305,7 +305,7 @@ bool ItemTracker::PassesFilter(const Stat& stat)
     {
         switch (stat.apiId)
         {
-            case 1: break; // Gold - immer anzeigen
+            case 1: break; // Gold - always show
             case 2: if (!g_Settings.filterKarma) return false; break;
             case 3: if (!g_Settings.filterLaurel) return false; break;
             case 4: if (!g_Settings.filterGem) return false; break;

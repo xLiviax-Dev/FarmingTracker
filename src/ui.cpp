@@ -22,12 +22,14 @@
 #include "gw2_fetcher.h"
 #include "auto_reset.h"
 #include "localization.h"
+#include "resource.h"
 #include "../include/nexus/Nexus.h"
 #include "../include/imgui/imgui.h"
 
 #include <string>
 #include <algorithm>
 #include <cstring>
+#include <vector>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -35,6 +37,28 @@
 // Forward declaration
 static void ProcessKeybind(const char* aIdentifier, bool aIsRelease);
 static void RenderShortcut();
+
+// Helper function: Loads bytes directly from the DLL
+static std::vector<unsigned char> GetResourceBytes(int resourceId) {
+    // Get the module handle of our own DLL
+    HMODULE hMod = NULL;
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                       (LPCSTR)&GetResourceBytes, &hMod);
+    
+    if (!hMod) return {};
+
+    // Find resource (Type 10 is RT_RCDATA)
+    HRSRC hRes = FindResourceA(hMod, MAKEINTRESOURCEA(resourceId), (LPCSTR)10);
+    if (!hRes) return {};
+
+    HGLOBAL hData = LoadResource(hMod, hRes);
+    DWORD size = SizeofResource(hMod, hRes);
+    void* pData = LockResource(hData);
+
+    if (!pData || size == 0) return {};
+    
+    return std::vector<unsigned char>((unsigned char*)pData, (unsigned char*)pData + size);
+}
 
 static void RenderMainWindow()
 {
@@ -190,6 +214,7 @@ static void RenderMainWindow()
 static void RenderShortcut()
 {
     ImGui::Checkbox(Localization::GetText("show_main_window"), &g_Settings.showMainWindow);
+    ImGui::Checkbox(Localization::GetText("show_mini_window"), &g_Settings.showMiniWindow);
 }
 
 static void ProcessKeybind(const char* aIdentifier, bool aIsRelease)
@@ -210,15 +235,14 @@ void UI::Init()
 {
     if (!APIDefs) return;
 
-    const char* dir = APIDefs->Paths_GetAddonDirectory("FarmingTracker");
-    if (dir)
-    {
-        std::string qa  = std::string(dir) + "\\qa_icon.png";
-        std::string qah = std::string(dir) + "\\qa_icon_hover.png";
-        if (GetFileAttributesA(qa.c_str()) != INVALID_FILE_ATTRIBUTES)
-            APIDefs->Textures_GetOrCreateFromFile("ICON_FT", qa.c_str());
-        if (GetFileAttributesA(qah.c_str()) != INVALID_FILE_ATTRIBUTES)
-            APIDefs->Textures_GetOrCreateFromFile("ICON_FT_HOVER", qah.c_str());
+    // 1. Bytes aus der Resource laden
+    std::vector<unsigned char> iconBytes = GetResourceBytes(IDB_ICON_FARMINGTRACKER);
+
+    if (!iconBytes.empty()) {
+        // 2. Nexus sagen: Erstelle Textur aus diesem Speicherbereich
+        APIDefs->Textures_GetOrCreateFromMemory("ICON_FT", iconBytes.data(), iconBytes.size());
+        // Hover-Effekt (wir nehmen das gleiche Bild)
+        APIDefs->Textures_GetOrCreateFromMemory("ICON_FT_HOVER", iconBytes.data(), iconBytes.size());
     }
 
     APIDefs->GUI_Register(RT_Render, RenderMainWindow);

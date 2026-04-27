@@ -1,0 +1,6 @@
+#ifndef RESOURCE_H
+#define RESOURCE_H
+
+#define IDB_ICON_FARMINGTRACKER 101
+
+#endif

@@ -145,7 +145,7 @@ void RenderCurrenciesTab()
                     ImGui::SameLine();
                 }
 
-                // Karma (ID 2) in pinker Farbe anzeigen
+                // Karma (ID 2) - display in pink color
                 if (id == 2)
                 {
                     ImVec4 karmaColor = ImVec4(1.0f, 0.41f, 0.71f, 1.0f);

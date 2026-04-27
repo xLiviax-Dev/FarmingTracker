@@ -1,0 +1,4 @@
+#include "resource.h"
+#include <windows.h>
+
+IDB_ICON_FARMINGTRACKER RCDATA "..\\data\\icons\\farmingtracker.png"
