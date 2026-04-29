@@ -1,7 +1,9 @@
 #include "ui_favorites.h"
 #include "settings.h"
 #include "item_tracker.h"
+#include "ignored_items.h"
 #include "localization.h"
+#include "ui_context_menu.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -127,6 +129,12 @@ void RenderFavoritesTab()
                     ImGui::TableSetColumnIndex(0);
                     UICommon::DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.iconSize), st.details.loaded ? st.details.rarity : "");
 
+                    // Right-click context menu
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    {
+                        UIContextMenu::OpenContextMenu("FavoriteItemContextMenu", id, st.details.loaded ? st.details.name : "");
+                    }
+
                     ImGui::TableSetColumnIndex(1);
                     std::string name = st.details.loaded ? st.details.name : "Loading...";
 
@@ -134,6 +142,12 @@ void RenderFavoritesTab()
                     ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.4f, 1.0f), "★ ");
                     ImGui::SameLine();
                     ImGui::Text("%s", name.c_str());
+
+                    // Right-click context menu for name
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    {
+                        UIContextMenu::OpenContextMenu("FavoriteItemContextMenu", id, st.details.loaded ? st.details.name : "");
+                    }
 
                     ImGui::TableSetColumnIndex(2);
                     ImVec4 countColor = st.count > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.count < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
@@ -153,6 +167,9 @@ void RenderFavoritesTab()
                     if (ImGui::IsItemHovered())
                         ImGui::SetTooltip("%s", Localization::GetText("toggle_favorite_tooltip"));
                 }
+
+                // Context menu popup (rendered once outside the loop)
+                UIContextMenu::RenderItemContextMenu("FavoriteItemContextMenu", UIContextMenu::ContextMenuType::Favorites);
 
                 ImGui::EndTable();
             }
@@ -213,6 +230,12 @@ void RenderFavoritesTab()
                             iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
                         UICommon::DrawItemIconCell(id, iconUrl, static_cast<float>(g_Settings.gridIconSizeCurrencies), st.details.loaded ? st.details.rarity : "");
 
+                        // Right-click context menu
+                        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                        {
+                            UIContextMenu::OpenContextMenu("FavoriteCurrencyContextMenu", id, st.details.loaded ? st.details.name : "");
+                        }
+
                         // Tooltip for icon
                         if (ImGui::IsItemHovered() && st.details.loaded)
                         {
@@ -243,6 +266,9 @@ void RenderFavoritesTab()
                         col = 0;
                     }
                 }
+
+                // Context menu popup (rendered once outside the loop)
+                UIContextMenu::RenderCurrencyContextMenu("FavoriteCurrencyContextMenu", UIContextMenu::ContextMenuType::Favorites);
             }
             ImGui::EndChild();
         }
@@ -274,6 +300,12 @@ void RenderFavoritesTab()
                         iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
                     UICommon::DrawItemIconCell(id, iconUrl, static_cast<float>(g_Settings.iconSize), st.details.loaded ? st.details.rarity : "");
 
+                    // Right-click context menu
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    {
+                        UIContextMenu::OpenContextMenu("FavoriteCurrencyContextMenu", id, st.details.loaded ? st.details.name : "");
+                    }
+
                     ImGui::TableSetColumnIndex(1);
                     std::string name = st.details.loaded ? st.details.name : (id == 1 ? "Coin" : "Loading...");
 
@@ -281,6 +313,12 @@ void RenderFavoritesTab()
                     ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.4f, 1.0f), "★ ");
                     ImGui::SameLine();
                     ImGui::Text("%s", name.c_str());
+
+                    // Right-click context menu for name
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    {
+                        UIContextMenu::OpenContextMenu("FavoriteCurrencyContextMenu", id, st.details.loaded ? st.details.name : "");
+                    }
 
                     ImGui::TableSetColumnIndex(2);
                     ImVec4 countColor = st.count > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.count < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
@@ -295,6 +333,9 @@ void RenderFavoritesTab()
                     if (ImGui::IsItemHovered())
                         ImGui::SetTooltip("%s", Localization::GetText("toggle_favorite_tooltip"));
                 }
+
+                // Context menu popup (rendered once outside the loop)
+                UIContextMenu::RenderCurrencyContextMenu("FavoriteCurrencyContextMenu", UIContextMenu::ContextMenuType::Favorites);
 
                 ImGui::EndTable();
             }

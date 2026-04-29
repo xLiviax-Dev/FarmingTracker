@@ -3,6 +3,7 @@
 #include "ignored_items.h"
 #include "search_manager.h"
 #include "settings.h"
+#include "session_history.h"
 #include "../include/nlohmann/json.hpp"
 
 #include <mutex>
@@ -92,8 +93,100 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
         UpdateOrInsert(s_Currencies, id, delta, StatType::Currency);
 }
 
+void ItemTracker::SaveCurrentSession()
+{
+    if (!g_Settings.enableSessionHistory)
+        return;
+
+    // Collect session data
+    SessionHistory::SessionData sessionData;
+
+    // Get session duration
+    auto duration = GetSessionDuration();
+    sessionData.durationSeconds = static_cast<int>(duration.count());
+
+    // Get session start and end time
+    auto now = std::chrono::system_clock::now();
+    auto nowTimeT = std::chrono::system_clock::to_time_t(now);
+    struct tm timeInfo;
+    localtime_s(&timeInfo, &nowTimeT);
+    char timeBuffer[64];
+    std::strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %H:%M:%S", &timeInfo);
+    sessionData.endTime = timeBuffer;
+
+    // Calculate start time
+    auto startTime = now - duration;
+    auto startTimeT = std::chrono::system_clock::to_time_t(startTime);
+    localtime_s(&timeInfo, &startTimeT);
+    std::strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %H:%M:%S", &timeInfo);
+    sessionData.startTime = timeBuffer;
+
+    // Get profit data
+    {
+        std::lock_guard<std::mutex> profitLock(s_ProfitHistoryMutex);
+        long long totalProfit = 0;
+        for (const auto& entry : s_ProfitHistory)
+        {
+            totalProfit += entry.profitPerHour;
+        }
+        sessionData.totalProfit = totalProfit;
+
+        if (duration.count() > 0)
+        {
+            sessionData.profitPerHour = (totalProfit * 3600) / duration.count();
+        }
+        else
+        {
+            sessionData.profitPerHour = 0;
+        }
+    }
+
+    // Get items and collect top drops and rarity counts
+    {
+        std::lock_guard<std::mutex> lock(s_Mutex);
+        sessionData.totalDrops = static_cast<int>(s_Items.size());
+
+        // Collect top drops (by value)
+        std::vector<std::pair<long long, SessionHistory::DropEntry>> drops;
+        for (const auto& [id, stat] : s_Items)
+        {
+            long long value = stat.GetCustomProfit() > 0 ? stat.GetCustomProfit() : stat.count * stat.details.vendorValue;
+            SessionHistory::DropEntry drop;
+            drop.itemId = id;
+            drop.itemName = stat.details.loaded ? stat.details.name : "Unknown";
+            drop.rarity = stat.details.loaded ? stat.details.rarity : "Unknown";
+            drop.count = static_cast<int>(stat.count);
+            drop.totalValue = value;
+            drops.push_back({value, drop});
+
+            // Collect rarity counts
+            std::string rarity = stat.details.loaded ? stat.details.rarity : "Unknown";
+            sessionData.rarityCounts[rarity]++;
+        }
+
+        // Sort by value descending and take top 10
+        std::sort(drops.begin(), drops.end(), [](const auto& a, const auto& b) {
+            return a.first > b.first;
+        });
+
+        for (size_t i = 0; i < std::min<size_t>(drops.size(), 10); i++)
+        {
+            sessionData.topDrops.push_back(drops[i].second);
+        }
+
+        // Map name (placeholder - would need DRF or GW2 API for actual map)
+        sessionData.mapName = "Unknown";
+    }
+
+    // Save session
+    SessionHistory::SaveSession(sessionData);
+}
+
 void ItemTracker::Reset()
 {
+    // Save session history before resetting
+    SaveCurrentSession();
+
     // Lock profit history FIRST to avoid deadlock with UpdateProfitHistory
     std::lock_guard<std::mutex> profitLock(s_ProfitHistoryMutex);
     s_ProfitHistory.clear();
@@ -181,6 +274,13 @@ void ItemTracker::SetFavorite(int apiId, bool favorite)
     auto currencyIt = s_Currencies.find(apiId);
     if (currencyIt != s_Currencies.end())
         currencyIt->second.isFavorite = favorite;
+
+    // If adding to favorites, remove from ignored
+    if (favorite)
+    {
+        IgnoredItemsManager::UnignoreItem(apiId);
+        IgnoredItemsManager::UnignoreCurrency(apiId);
+    }
 }
 
 bool ItemTracker::IsFavorite(int apiId)
@@ -810,6 +910,17 @@ long long ItemTracker::GetMovingAverageProfitPerHour()
     return sum / static_cast<long long>(s_ProfitHistory.size());
 }
 
+std::vector<std::pair<std::chrono::steady_clock::time_point, long long>> ItemTracker::GetProfitHistory()
+{
+    std::lock_guard<std::mutex> lock(s_ProfitHistoryMutex);
+    std::vector<std::pair<std::chrono::steady_clock::time_point, long long>> result;
+    for (const auto& entry : s_ProfitHistory)
+    {
+        result.push_back({entry.timestamp, entry.profitPerHour});
+    }
+    return result;
+}
+
 long long ItemTracker::TpSellProceedsPerUnitCopper(const ApiDetails& d)
 {
     if (d.tpSellPrice <= 0) return 0;
@@ -1207,4 +1318,27 @@ ItemTracker::CoinSplit ItemTracker::SplitCoin(long long copperValue)
     result.silver = static_cast<int>((abs_val % 10000) / 100);
     result.copper = static_cast<int>(abs_val % 100);
     return result;
+}
+
+std::pair<int, Stat> ItemTracker::GetBestDrop()
+{
+    std::lock_guard<std::mutex> lock(s_Mutex);
+    
+    std::pair<int, Stat> bestDrop = {0, Stat()};
+    long long maxProfit = 0;
+    
+    for (const auto& [id, stat] : s_Items)
+    {
+        if (stat.count == 0) continue;
+        if (!PassesFilter(stat)) continue;
+        
+        long long profit = GetStatProfit(stat);
+        if (profit > maxProfit)
+        {
+            maxProfit = profit;
+            bestDrop = {id, stat};
+        }
+    }
+    
+    return bestDrop;
 }

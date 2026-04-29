@@ -52,10 +52,11 @@ struct Stat
 
 namespace ItemTracker
 {
-    void AddDrop(const std::map<int, long long>& items,
-                 const std::map<int, long long>& currencies);
-
+    // === Core Functions ===
+    void Update(const std::map<int, int>& items, const std::map<int, int>& currencies);
+    void AddDrop(const std::map<int, long long>& items, const std::map<int, long long>& currencies);
     void Reset();
+    void SaveCurrentSession();
     void ClearPersistedData(const char* addonDir);
 
     std::map<int, Stat> GetItemsCopy();
@@ -128,6 +129,12 @@ namespace ItemTracker
     // Moving Average for Profit per Hour (like drf.rs)
     void UpdateProfitHistory();
     long long GetMovingAverageProfitPerHour();
+
+    // Sparkline Data
+    std::vector<std::pair<std::chrono::steady_clock::time_point, long long>> GetProfitHistory();
+
+    // Best Drop
+    std::pair<int, Stat> GetBestDrop();
 
     // Export Functions
     std::string ExportToJson();

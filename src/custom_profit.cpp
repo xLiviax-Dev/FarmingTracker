@@ -39,3 +39,17 @@ void CustomProfitManager::ClearAll()
     std::lock_guard<std::mutex> lock(s_Mutex);
     s_CustomProfits.clear();
 }
+
+std::map<int, long long> CustomProfitManager::GetAllCustomProfits()
+{
+    std::lock_guard<std::mutex> lock(s_Mutex);
+    std::map<int, long long> result;
+    for (std::map<int, CustomProfitEntry>::const_iterator it = s_CustomProfits.begin(); it != s_CustomProfits.end(); ++it)
+    {
+        if (it->second.hasCustomProfit)
+        {
+            result[it->first] = it->second.customProfitCopper;
+        }
+    }
+    return result;
+}

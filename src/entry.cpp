@@ -19,6 +19,7 @@
 #include "search_manager.h"
 #include "localization.h"
 #include "item_tracker.h"
+#include "session_history.h"
 
 void AddonLoad(AddonAPI_t* aApi);
 void AddonUnload();
@@ -82,6 +83,12 @@ void AddonLoad(AddonAPI_t* aApi)
 
     // Load persisted farming data
     ItemTracker::LoadData(addonDir);
+
+    // Initialize session history
+    SessionHistory::Init(addonDir);
+    SessionHistory::SetEnabled(g_Settings.enableSessionHistory);
+    SessionHistory::SetMaxSessions(g_Settings.maxSessionHistory);
+    SessionHistory::SetSaveAllItems(g_Settings.saveAllItemsInHistory);
 
     DrfClient::Init([](DrfStatus s) { /* Status change callback - unused */ });
 

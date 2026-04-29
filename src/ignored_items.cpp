@@ -1,5 +1,6 @@
 #include "ignored_items.h"
 #include "shared.h"
+#include "item_tracker.h"
 
 std::mutex IgnoredItemsManager::s_Mutex;
 std::set<int> IgnoredItemsManager::s_IgnoredItems;
@@ -7,14 +8,46 @@ std::set<int> IgnoredItemsManager::s_IgnoredCurrencies;
 
 void IgnoredItemsManager::IgnoreItem(int apiId)
 {
-    std::lock_guard<std::mutex> lock(s_Mutex);
-    s_IgnoredItems.insert(apiId);
+    {
+        std::lock_guard<std::mutex> lock(s_Mutex);
+        s_IgnoredItems.insert(apiId);
+    }
+    // Remove from favorites to avoid conflicting states (call outside lock to prevent deadlock)
+    ItemTracker::SetFavorite(apiId, false);
 }
 
 void IgnoredItemsManager::IgnoreCurrency(int apiId)
 {
-    std::lock_guard<std::mutex> lock(s_Mutex);
-    s_IgnoredCurrencies.insert(apiId);
+    {
+        std::lock_guard<std::mutex> lock(s_Mutex);
+        s_IgnoredCurrencies.insert(apiId);
+    }
+    // Remove from favorites to avoid conflicting states (call outside lock to prevent deadlock)
+    ItemTracker::SetFavorite(apiId, false);
+}
+
+void IgnoredItemsManager::SetIgnored(int apiId, bool ignored)
+{
+    if (ignored)
+    {
+        IgnoreItem(apiId);
+    }
+    else
+    {
+        UnignoreItem(apiId);
+    }
+}
+
+void IgnoredItemsManager::SetIgnoredCurrency(int apiId, bool ignored)
+{
+    if (ignored)
+    {
+        IgnoreCurrency(apiId);
+    }
+    else
+    {
+        UnignoreCurrency(apiId);
+    }
 }
 
 void IgnoredItemsManager::UnignoreItem(int apiId)

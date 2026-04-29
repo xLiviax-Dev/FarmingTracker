@@ -3,6 +3,7 @@
 #include "item_tracker.h"
 #include "ignored_items.h"
 #include "localization.h"
+#include "ui_context_menu.h"
 
 namespace UIIgnored
 {
@@ -52,9 +53,21 @@ void RenderIgnoredTab()
                     ImGui::TableSetColumnIndex(0);
                     UICommon::DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.iconSize), st.details.loaded ? st.details.rarity : "");
 
+                    // Right-click context menu
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    {
+                        UIContextMenu::OpenContextMenu("IgnoredItemContextMenu", id, st.details.loaded ? st.details.name : "");
+                    }
+
                     ImGui::TableSetColumnIndex(1);
                     std::string name = st.details.loaded ? st.details.name : Localization::GetText("loading");
                     ImGui::Text("%s", name.c_str());
+
+                    // Right-click context menu for name
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    {
+                        UIContextMenu::OpenContextMenu("IgnoredItemContextMenu", id, st.details.loaded ? st.details.name : "");
+                    }
 
                     ImGui::TableSetColumnIndex(2);
                     bool isIgnored = true;
@@ -67,6 +80,9 @@ void RenderIgnoredTab()
                         ImGui::SetTooltip("%s", Localization::GetText("unignore_item"));
                 }
             }
+
+            // Context menu popup (rendered once outside the loop)
+            UIContextMenu::RenderItemContextMenu("IgnoredItemContextMenu", UIContextMenu::ContextMenuType::Ignored);
 
             ImGui::EndTable();
         }
@@ -117,9 +133,21 @@ void RenderIgnoredTab()
                         iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
                     UICommon::DrawItemIconCell(id, iconUrl, static_cast<float>(g_Settings.iconSize), st.details.loaded ? st.details.rarity : "");
 
+                    // Right-click context menu
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    {
+                        UIContextMenu::OpenContextMenu("IgnoredCurrencyContextMenu", id, st.details.loaded ? st.details.name : "");
+                    }
+
                     ImGui::TableSetColumnIndex(1);
                     std::string name = st.details.loaded ? st.details.name : (id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"));
                     ImGui::Text("%s", name.c_str());
+
+                    // Right-click context menu for name
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    {
+                        UIContextMenu::OpenContextMenu("IgnoredCurrencyContextMenu", id, st.details.loaded ? st.details.name : "");
+                    }
 
                     ImGui::TableSetColumnIndex(2);
                     bool isIgnored = true;
@@ -132,6 +160,9 @@ void RenderIgnoredTab()
                         ImGui::SetTooltip("%s", Localization::GetText("unignore_currency"));
                 }
             }
+
+            // Context menu popup (rendered once outside the loop)
+            UIContextMenu::RenderCurrencyContextMenu("IgnoredCurrencyContextMenu", UIContextMenu::ContextMenuType::Ignored);
 
             ImGui::EndTable();
         }

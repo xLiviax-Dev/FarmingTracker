@@ -3,6 +3,7 @@
 #include "item_tracker.h"
 #include "ignored_items.h"
 #include "localization.h"
+#include "ui_context_menu.h"
 #include <algorithm>
 #include <cstring>
 
@@ -58,6 +59,12 @@ void RenderCurrenciesTab()
                         iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
                     UICommon::DrawItemIconCell(id, iconUrl, static_cast<float>(g_Settings.gridIconSizeCurrencies), st.details.loaded ? st.details.rarity : "");
 
+                    // Right-click context menu
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    {
+                        UIContextMenu::OpenContextMenu("CurrencyContextMenu", id, st.details.loaded ? st.details.name : "");
+                    }
+
                     // Tooltip for icon
                     if (ImGui::IsItemHovered() && st.details.loaded)
                     {
@@ -92,6 +99,9 @@ void RenderCurrenciesTab()
                     col = 0;
                 }
             }
+
+            // Context menu popup (rendered once outside the loop)
+            UIContextMenu::RenderCurrencyContextMenu("CurrencyContextMenu", UIContextMenu::ContextMenuType::General);
         }
         ImGui::EndChild();
     }
@@ -129,6 +139,13 @@ void RenderCurrenciesTab()
                 if (id == 1 && iconUrl.empty())
                     iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png"; // Copper coin icon
                 UICommon::DrawItemIconCell(id, iconUrl, static_cast<float>(g_Settings.iconSize), st.details.loaded ? st.details.rarity : "");
+
+                // Right-click context menu
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                {
+                    UIContextMenu::OpenContextMenu("CurrencyContextMenu", id, st.details.loaded ? st.details.name : "");
+                }
+
                 if (ImGui::IsItemHovered() && st.details.loaded)
                 {
                     ImGui::BeginTooltip();
@@ -163,6 +180,12 @@ void RenderCurrenciesTab()
                         ImGui::Text("%s", currencyIdLabel);
                         ImGui::EndTooltip();
                     }
+
+                    // Right-click context menu for name
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    {
+                        UIContextMenu::OpenContextMenu("CurrencyContextMenu", id, st.details.loaded ? st.details.name : "");
+                    }
                 }
                 else
                 {
@@ -171,33 +194,22 @@ void RenderCurrenciesTab()
                     if (st.isFavorite && g_Settings.enableFavoriteTextColor)
                         col = ImVec4(g_Settings.favoriteTextColor[0], g_Settings.favoriteTextColor[1], g_Settings.favoriteTextColor[2], g_Settings.favoriteTextColor[3]);
                     UICommon::TextWithTooltip(name.c_str(), 200.0f, col);
-                }
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::BeginTooltip();
-                    if (st.details.loaded)
+                    if (ImGui::IsItemHovered() && st.details.loaded)
                     {
-                        ImGui::Text("Name: %s", st.details.name.c_str());
-                        if (!st.details.description.empty())
-                            ImGui::Text("In-game description: %s", st.details.description.c_str());
-                        ImVec4 countColor = st.count > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.count < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
-                        ImGui::TextColored(countColor, "Count: %lld", st.count);
+                        ImGui::BeginTooltip();
+                        ImGui::Text("%s", st.details.name.c_str());
                         ImGui::Separator();
                         char currencyIdLabel[256];
                         snprintf(currencyIdLabel, sizeof(currencyIdLabel), Localization::GetText("currency_id_label"), id);
                         ImGui::Text("%s", currencyIdLabel);
+                        ImGui::EndTooltip();
                     }
-                    else
+
+                    // Right-click context menu for name
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
                     {
-                        ImGui::Text("Loading...");
-                        ImVec4 countColor = st.count > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.count < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
-                        ImGui::TextColored(countColor, "Count: %lld", st.count);
-                        ImGui::Separator();
-                        char currencyIdLabel[256];
-                        snprintf(currencyIdLabel, sizeof(currencyIdLabel), Localization::GetText("currency_id_label"), id);
-                        ImGui::Text("%s", currencyIdLabel);
+                        UIContextMenu::OpenContextMenu("CurrencyContextMenu", id, st.details.loaded ? st.details.name : "");
                     }
-                    ImGui::EndTooltip();
                 }
 
                 ImGui::TableSetColumnIndex(2);
@@ -237,6 +249,9 @@ void RenderCurrenciesTab()
                 if (ImGui::IsItemHovered())
                     ImGui::SetTooltip("%s", Localization::GetText("toggle_ignore_tooltip"));
             }
+
+            // Context menu popup (rendered once outside the loop)
+            UIContextMenu::RenderCurrencyContextMenu("CurrencyContextMenu", UIContextMenu::ContextMenuType::General);
 
             ImGui::EndTable();
         }

@@ -21,6 +21,12 @@ public:
     // Ignore a currency
     static void IgnoreCurrency(int apiId);
     
+    // Set ignored state for an item (alias for IgnoreItem/UnignoreItem)
+    static void SetIgnored(int apiId, bool ignored);
+    
+    // Set ignored state for a currency (alias for IgnoreCurrency/UnignoreCurrency)
+    static void SetIgnoredCurrency(int apiId, bool ignored);
+    
     // Unignore an item
     static void UnignoreItem(int apiId);
     

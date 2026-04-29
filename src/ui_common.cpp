@@ -81,8 +81,8 @@ void DrawItemIconCell(int itemId, const std::string& url, float sz, const std::s
             else if (rarity == "Ascended") borderColor = ImVec4(0.9f, 0.3f, 0.9f, 1.f);
             else if (rarity == "Legendary") borderColor = ImVec4(1.0f, 0.5f, 0.8f, 1.f);
 
-            // Draw border using foreground draw list
-            ImDrawList* drawList = ImGui::GetForegroundDrawList();
+            // Draw border using window draw list
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
             drawList->AddRect(cursorPos, ImVec2(cursorPos.x + sz, cursorPos.y + sz), 
                 ImGui::ColorConvertFloat4ToU32(borderColor), 0.0f, 0, g_Settings.rarityBorderSize);
         }

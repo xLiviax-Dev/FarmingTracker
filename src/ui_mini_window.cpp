@@ -1,4 +1,5 @@
 #include "ui_mini_window.h"
+#include "ui.h"
 #include "settings.h"
 #include "item_tracker.h"
 #include "localization.h"
@@ -11,6 +12,7 @@ void RenderMiniWindow()
 
     ImGui::SetNextWindowPos(ImVec2(g_Settings.miniWindowPosX, g_Settings.miniWindowPosY), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(g_Settings.miniWindowWidth, g_Settings.miniWindowHeight), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowBgAlpha(g_Settings.miniWindowOpacity);
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
 
@@ -19,6 +21,8 @@ void RenderMiniWindow()
 
     if (ImGui::Begin("Farming Tracker Mini##FT_Mini", &g_Settings.showMiniWindow, flags))
     {
+        PushAccentColor();
+
         // Save position
         ImVec2 pos = ImGui::GetWindowPos();
         g_Settings.miniWindowPosX = pos.x;
@@ -82,8 +86,24 @@ void RenderMiniWindow()
             auto duration = ItemTracker::GetSessionDuration();
             ImGui::Text("%s: %s", Localization::GetText("session"), UICommon::FormatDuration(duration.count()).c_str());
         }
+
+        if (g_Settings.enableBestDropInMiniWindow)
+        {
+            auto bestDrop = ItemTracker::GetBestDrop();
+            if (bestDrop.first != 0 && bestDrop.second.count > 0)
+            {
+                ImGui::Separator();
+                ImGui::Text("%s: ", Localization::GetText("best_drop"));
+                ImGui::SameLine();
+                long long bestDropProfit = ItemTracker::GetStatProfit(bestDrop.second);
+                ImVec4 bestDropColor = bestDropProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (bestDropProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                ImGui::TextColored(bestDropColor, "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : "Loading...");
+                ImGui::Text("%s: %s", Localization::GetText("value"), UICommon::FormatCoin(bestDropProfit).c_str());
+            }
+        }
     }
 
+    PopAccentColor();
     ImGui::End();
 }
 }

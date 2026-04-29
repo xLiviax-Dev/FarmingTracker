@@ -2,8 +2,10 @@
 #include "settings.h"
 #include "custom_profit.h"
 #include "item_tracker.h"
+#include "ignored_items.h"
 #include "localization.h"
 #include "ui_common.h"
+#include "ui_context_menu.h"
 #include <vector>
 
 namespace UICustomProfit
@@ -106,8 +108,20 @@ void RenderCustomProfitTab()
                 ImGui::TableSetColumnIndex(0);
                 UICommon::DrawItemIconCell(id, st.details.iconUrl, 32.0f, st.details.loaded ? st.details.rarity : "");
 
+                // Right-click context menu
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                {
+                    UIContextMenu::OpenContextMenu("CustomProfitItemContextMenu", id, st.details.loaded ? st.details.name : "");
+                }
+
                 ImGui::TableSetColumnIndex(1);
                 ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : "Loading...");
+
+                // Right-click context menu for name
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                {
+                    UIContextMenu::OpenContextMenu("CustomProfitItemContextMenu", id, st.details.loaded ? st.details.name : "");
+                }
 
                 ImGui::TableSetColumnIndex(2);
                 char profitLabel[256];
@@ -124,6 +138,10 @@ void RenderCustomProfitTab()
                 if (ImGui::IsItemHovered())
                     ImGui::SetTooltip("%s", Localization::GetText("custom_profit_remove_tooltip"));
             }
+
+            // Context menu popup (rendered once outside the loop)
+            UIContextMenu::RenderItemContextMenu("CustomProfitItemContextMenu", UIContextMenu::ContextMenuType::CustomProfit);
+
             ImGui::EndTable();
         }
     }
@@ -170,8 +188,20 @@ void RenderCustomProfitTab()
                 ImGui::TableSetColumnIndex(0);
                 UICommon::DrawItemIconCell(id, st.details.iconUrl, 32.0f, st.details.loaded ? st.details.rarity : "");
 
+                // Right-click context menu
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                {
+                    UIContextMenu::OpenContextMenu("CustomProfitCurrencyContextMenu", id, st.details.loaded ? st.details.name : "");
+                }
+
                 ImGui::TableSetColumnIndex(1);
                 ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : "Loading...");
+
+                // Right-click context menu for name
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                {
+                    UIContextMenu::OpenContextMenu("CustomProfitCurrencyContextMenu", id, st.details.loaded ? st.details.name : "");
+                }
 
                 ImGui::TableSetColumnIndex(2);
                 char profitLabel[256];
@@ -188,6 +218,10 @@ void RenderCustomProfitTab()
                 if (ImGui::IsItemHovered())
                     ImGui::SetTooltip("%s", Localization::GetText("custom_profit_remove_tooltip"));
             }
+
+            // Context menu popup (rendered once outside the loop)
+            UIContextMenu::RenderCurrencyContextMenu("CustomProfitCurrencyContextMenu", UIContextMenu::ContextMenuType::CustomProfit);
+
             ImGui::EndTable();
         }
     }

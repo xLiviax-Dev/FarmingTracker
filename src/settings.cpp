@@ -92,8 +92,14 @@ static void ClampSettings()
         std::clamp(g_Settings.minutesUntilResetAfterShutdown, 1, 24 * 60);
     g_Settings.iconSize = std::clamp(g_Settings.iconSize, 16, 128);
     g_Settings.gridIconSize = std::clamp(g_Settings.gridIconSize, 16, 128);
-    g_Settings.itemSortMode = std::clamp(g_Settings.itemSortMode, 0, 4);
+    g_Settings.itemSortMode = std::clamp(g_Settings.itemSortMode, 0, 9);
     g_Settings.itemRarityFilterMin = std::clamp(g_Settings.itemRarityFilterMin, 0, 7);
+    g_Settings.mainWindowOpacity = std::clamp(g_Settings.mainWindowOpacity, 0.0f, 1.0f);
+    g_Settings.miniWindowOpacity = std::clamp(g_Settings.miniWindowOpacity, 0.0f, 1.0f);
+    g_Settings.accentColorR = std::clamp(g_Settings.accentColorR, 0.0f, 1.0f);
+    g_Settings.accentColorG = std::clamp(g_Settings.accentColorG, 0.0f, 1.0f);
+    g_Settings.accentColorB = std::clamp(g_Settings.accentColorB, 0.0f, 1.0f);
+    g_Settings.maxSessionHistory = std::clamp(g_Settings.maxSessionHistory, 1, 50);
 
     // Clamp other settings
     g_Settings.countFontSize = std::clamp(g_Settings.countFontSize, 10, 40);
@@ -209,6 +215,7 @@ void SettingsManager::Load()
         if (j.contains("mainWindowHeight")) g_Settings.mainWindowHeight = j["mainWindowHeight"].get<float>();
         if (j.contains("activeTab")) g_Settings.activeTab = j["activeTab"].get<int>();
         if (j.contains("enableGradientBackgrounds")) g_Settings.enableGradientBackgrounds = j["enableGradientBackgrounds"].get<bool>();
+        if (j.contains("showProfitSparkline")) g_Settings.showProfitSparkline = j["showProfitSparkline"].get<bool>();
         if (j.contains("gradientTopColor"))
         {
             auto arr = j["gradientTopColor"];
@@ -233,8 +240,19 @@ void SettingsManager::Load()
         if (j.contains("itemSortMode"))       g_Settings.itemSortMode       = j["itemSortMode"].get<int>();
         if (j.contains("itemRarityFilterMin")) g_Settings.itemRarityFilterMin = j["itemRarityFilterMin"].get<int>();
         if (j.contains("showItemIcons"))      g_Settings.showItemIcons      = j["showItemIcons"].get<bool>();
+        if (j.contains("groupByRarity"))      g_Settings.groupByRarity      = j["groupByRarity"].get<bool>();
+        if (j.contains("showRarityAsTabs"))  g_Settings.showRarityAsTabs  = j["showRarityAsTabs"].get<bool>();
+        if (j.contains("mainWindowOpacity")) g_Settings.mainWindowOpacity = j["mainWindowOpacity"].get<float>();
+        if (j.contains("miniWindowOpacity")) g_Settings.miniWindowOpacity = j["miniWindowOpacity"].get<float>();
+        if (j.contains("accentColorR")) g_Settings.accentColorR = j["accentColorR"].get<float>();
+        if (j.contains("accentColorG")) g_Settings.accentColorG = j["accentColorG"].get<float>();
+        if (j.contains("accentColorB")) g_Settings.accentColorB = j["accentColorB"].get<float>();
+        if (j.contains("enableSessionHistory")) g_Settings.enableSessionHistory = j["enableSessionHistory"].get<bool>();
+        if (j.contains("maxSessionHistory")) g_Settings.maxSessionHistory = j["maxSessionHistory"].get<int>();
+        if (j.contains("saveAllItemsInHistory")) g_Settings.saveAllItemsInHistory = j["saveAllItemsInHistory"].get<bool>();
+        if (j.contains("overwriteSessionHistory")) g_Settings.overwriteSessionHistory = j["overwriteSessionHistory"].get<bool>();
         if (j.contains("lastResetTimestamp")) g_Settings.lastResetTimestamp = j["lastResetTimestamp"].get<std::string>();
-        
+
         // === Advanced Settings ===
         // Extended Filtering
         if (j.contains("filterSellableToVendor")) g_Settings.filterSellableToVendor = j["filterSellableToVendor"].get<bool>();
@@ -525,6 +543,7 @@ void SettingsManager::Save()
     j["mainWindowHeight"]       = g_Settings.mainWindowHeight;
     j["activeTab"]              = g_Settings.activeTab;
     j["enableGradientBackgrounds"] = g_Settings.enableGradientBackgrounds;
+    j["showProfitSparkline"] = g_Settings.showProfitSparkline;
     j["gradientTopColor"] = nlohmann::json::array();
     for (int i = 0; i < 4; i++)
         j["gradientTopColor"].push_back(g_Settings.gradientTopColor[i]);
@@ -537,6 +556,17 @@ void SettingsManager::Save()
     j["itemSortMode"]          = g_Settings.itemSortMode;
     j["itemRarityFilterMin"]   = g_Settings.itemRarityFilterMin;
     j["showItemIcons"]         = g_Settings.showItemIcons;
+    j["groupByRarity"]         = g_Settings.groupByRarity;
+    j["showRarityAsTabs"]      = g_Settings.showRarityAsTabs;
+    j["mainWindowOpacity"]     = g_Settings.mainWindowOpacity;
+    j["miniWindowOpacity"]     = g_Settings.miniWindowOpacity;
+    j["accentColorR"]          = g_Settings.accentColorR;
+    j["accentColorG"]          = g_Settings.accentColorG;
+    j["accentColorB"]          = g_Settings.accentColorB;
+    j["enableSessionHistory"]  = g_Settings.enableSessionHistory;
+    j["maxSessionHistory"]     = g_Settings.maxSessionHistory;
+    j["saveAllItemsInHistory"] = g_Settings.saveAllItemsInHistory;
+    j["overwriteSessionHistory"] = g_Settings.overwriteSessionHistory;
     j["lastResetTimestamp"]    = g_Settings.lastResetTimestamp;
     
     // === Advanced Settings ===
@@ -832,6 +862,7 @@ void SettingsManager::ExportToFile(const std::string& filePath)
     j["mainWindowHeight"]       = g_Settings.mainWindowHeight;
     j["activeTab"]              = g_Settings.activeTab;
     j["enableGradientBackgrounds"] = g_Settings.enableGradientBackgrounds;
+    j["showProfitSparkline"] = g_Settings.showProfitSparkline;
     j["gradientTopColor"] = nlohmann::json::array();
     for (int i = 0; i < 4; i++)
         j["gradientTopColor"].push_back(g_Settings.gradientTopColor[i]);
@@ -844,6 +875,17 @@ void SettingsManager::ExportToFile(const std::string& filePath)
     j["itemSortMode"]          = g_Settings.itemSortMode;
     j["itemRarityFilterMin"]   = g_Settings.itemRarityFilterMin;
     j["showItemIcons"]         = g_Settings.showItemIcons;
+    j["groupByRarity"]         = g_Settings.groupByRarity;
+    j["showRarityAsTabs"]      = g_Settings.showRarityAsTabs;
+    j["mainWindowOpacity"]     = g_Settings.mainWindowOpacity;
+    j["miniWindowOpacity"]     = g_Settings.miniWindowOpacity;
+    j["accentColorR"]          = g_Settings.accentColorR;
+    j["accentColorG"]          = g_Settings.accentColorG;
+    j["accentColorB"]          = g_Settings.accentColorB;
+    j["enableSessionHistory"]  = g_Settings.enableSessionHistory;
+    j["maxSessionHistory"]     = g_Settings.maxSessionHistory;
+    j["saveAllItemsInHistory"] = g_Settings.saveAllItemsInHistory;
+    j["overwriteSessionHistory"] = g_Settings.overwriteSessionHistory;
     j["lastResetTimestamp"]    = g_Settings.lastResetTimestamp;
     j["filterSellableToVendor"] = g_Settings.filterSellableToVendor;
     j["filterSellableOnTp"]    = g_Settings.filterSellableOnTp;
@@ -1083,6 +1125,7 @@ void SettingsManager::ImportFromFile(const std::string& filePath)
         if (j.contains("mainWindowHeight")) g_Settings.mainWindowHeight = j["mainWindowHeight"].get<float>();
         if (j.contains("activeTab")) g_Settings.activeTab = j["activeTab"].get<int>();
         if (j.contains("enableGradientBackgrounds")) g_Settings.enableGradientBackgrounds = j["enableGradientBackgrounds"].get<bool>();
+        if (j.contains("showProfitSparkline")) g_Settings.showProfitSparkline = j["showProfitSparkline"].get<bool>();
         if (j.contains("gradientTopColor"))
         {
             auto arr = j["gradientTopColor"];
@@ -1107,6 +1150,17 @@ void SettingsManager::ImportFromFile(const std::string& filePath)
         if (j.contains("itemSortMode"))       g_Settings.itemSortMode       = j["itemSortMode"].get<int>();
         if (j.contains("itemRarityFilterMin")) g_Settings.itemRarityFilterMin = j["itemRarityFilterMin"].get<int>();
         if (j.contains("showItemIcons"))      g_Settings.showItemIcons      = j["showItemIcons"].get<bool>();
+        if (j.contains("groupByRarity"))      g_Settings.groupByRarity      = j["groupByRarity"].get<bool>();
+        if (j.contains("showRarityAsTabs"))  g_Settings.showRarityAsTabs  = j["showRarityAsTabs"].get<bool>();
+        if (j.contains("mainWindowOpacity")) g_Settings.mainWindowOpacity = j["mainWindowOpacity"].get<float>();
+        if (j.contains("miniWindowOpacity")) g_Settings.miniWindowOpacity = j["miniWindowOpacity"].get<float>();
+        if (j.contains("accentColorR")) g_Settings.accentColorR = j["accentColorR"].get<float>();
+        if (j.contains("accentColorG")) g_Settings.accentColorG = j["accentColorG"].get<float>();
+        if (j.contains("accentColorB")) g_Settings.accentColorB = j["accentColorB"].get<float>();
+        if (j.contains("enableSessionHistory")) g_Settings.enableSessionHistory = j["enableSessionHistory"].get<bool>();
+        if (j.contains("maxSessionHistory")) g_Settings.maxSessionHistory = j["maxSessionHistory"].get<int>();
+        if (j.contains("saveAllItemsInHistory")) g_Settings.saveAllItemsInHistory = j["saveAllItemsInHistory"].get<bool>();
+        if (j.contains("overwriteSessionHistory")) g_Settings.overwriteSessionHistory = j["overwriteSessionHistory"].get<bool>();
         if (j.contains("lastResetTimestamp")) g_Settings.lastResetTimestamp = j["lastResetTimestamp"].get<std::string>();
         if (j.contains("filterSellableToVendor")) g_Settings.filterSellableToVendor = j["filterSellableToVendor"].get<bool>();
         if (j.contains("filterSellableOnTp")) g_Settings.filterSellableOnTp = j["filterSellableOnTp"].get<bool>();
@@ -1463,6 +1517,7 @@ void SettingsManager::CreateProfile(const std::string& name)
     j["itemRarityFilterMin"] = g_Settings.itemRarityFilterMin;
     j["showItemIcons"] = g_Settings.showItemIcons;
     j["enableGradientBackgrounds"] = g_Settings.enableGradientBackgrounds;
+    j["showProfitSparkline"] = g_Settings.showProfitSparkline;
     j["gradientTopColor"] = nlohmann::json::array();
     for (int i = 0; i < 4; i++)
         j["gradientTopColor"].push_back(g_Settings.gradientTopColor[i]);
@@ -1533,6 +1588,7 @@ void SettingsManager::ApplyProfile(int index)
         if (j.contains("itemRarityFilterMin")) g_Settings.itemRarityFilterMin = j["itemRarityFilterMin"].get<int>();
         if (j.contains("showItemIcons")) g_Settings.showItemIcons = j["showItemIcons"].get<bool>();
         if (j.contains("enableGradientBackgrounds")) g_Settings.enableGradientBackgrounds = j["enableGradientBackgrounds"].get<bool>();
+        if (j.contains("showProfitSparkline")) g_Settings.showProfitSparkline = j["showProfitSparkline"].get<bool>();
         if (j.contains("gradientTopColor") && j["gradientTopColor"].is_array() && j["gradientTopColor"].size() == 4)
         {
             for (int i = 0; i < 4; i++)
@@ -1633,6 +1689,7 @@ void SettingsManager::UpdateProfile(int index)
     j["itemRarityFilterMin"] = g_Settings.itemRarityFilterMin;
     j["showItemIcons"] = g_Settings.showItemIcons;
     j["enableGradientBackgrounds"] = g_Settings.enableGradientBackgrounds;
+    j["showProfitSparkline"] = g_Settings.showProfitSparkline;
     j["gradientTopColor"] = nlohmann::json::array();
     for (int i = 0; i < 4; i++)
         j["gradientTopColor"].push_back(g_Settings.gradientTopColor[i]);

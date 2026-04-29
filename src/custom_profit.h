@@ -35,4 +35,7 @@ public:
     
     // Clear all custom profits
     static void ClearAll();
+    
+    // Get all custom profits
+    static std::map<int, long long> GetAllCustomProfits();
 };

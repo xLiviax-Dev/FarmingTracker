@@ -3,10 +3,88 @@
 #include "item_tracker.h"
 #include "drf_client.h"
 #include "shared.h"
+#include "localization.h"
+#include "ignored_items.h"
+#include "ui_context_menu.h"
 #include <chrono>
 
 namespace UISummary
 {
+static void RenderProfitSparkline()
+{
+    if (!g_Settings.showProfitSparkline) return;
+
+    auto history = ItemTracker::GetProfitHistory();
+    if (history.size() < 2) return;
+
+    // Extract profit values for plotting
+    std::vector<float> values;
+    for (const auto& entry : history)
+    {
+        values.push_back(static_cast<float>(entry.second));
+    }
+
+    if (values.empty()) return;
+
+    // Calculate min/max for scaling
+    float minVal = *std::min_element(values.begin(), values.end());
+    float maxVal = *std::max_element(values.begin(), values.end());
+
+    // Draw sparkline
+    ImGui::SameLine();
+    float sparklineWidth = 100.0f;
+    float sparklineHeight = 20.0f;
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImVec2 cursor = ImGui::GetCursorScreenPos();
+    ImVec2 p_min = cursor;
+    ImVec2 p_max = ImVec2(cursor.x + sparklineWidth, cursor.y + sparklineHeight);
+
+    // Draw background
+    drawList->AddRectFilled(p_min, p_max, IM_COL32(50, 50, 50, 100));
+
+    // Draw line
+    if (values.size() > 1)
+    {
+        for (size_t i = 0; i < values.size() - 1; i++)
+        {
+            float x1 = p_min.x + (static_cast<float>(i) / (values.size() - 1)) * sparklineWidth;
+            float x2 = p_min.x + (static_cast<float>(i + 1) / (values.size() - 1)) * sparklineWidth;
+            
+            float y1, y2;
+            if (maxVal != minVal)
+            {
+                y1 = p_max.y - ((values[i] - minVal) / (maxVal - minVal)) * sparklineHeight;
+                y2 = p_max.y - ((values[i + 1] - minVal) / (maxVal - minVal)) * sparklineHeight;
+            }
+            else
+            {
+                y1 = p_min.y + sparklineHeight / 2;
+                y2 = p_min.y + sparklineHeight / 2;
+            }
+
+            ImVec4 color = values[i] > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (values[i] < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+            drawList->AddLine(ImVec2(x1, y1), ImVec2(x2, y2), ImGui::ColorConvertFloat4ToU32(color), 2.0f);
+        }
+    }
+
+    // Hover tooltip
+    ImGui::SetCursorScreenPos(p_min);
+    ImGui::InvisibleButton("Sparkline", ImVec2(sparklineWidth, sparklineHeight));
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::BeginTooltip();
+        ImGui::Text("%s", Localization::GetText("profit_per_hour_label_simple"));
+        for (size_t i = 0; i < history.size(); i++)
+        {
+            auto timeSince = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - history[i].first);
+            ImGui::Text("%lld ago: %s", timeSince.count(), UICommon::FormatCoin(history[i].second).c_str());
+        }
+        ImGui::EndTooltip();
+    }
+
+    ImGui::SetCursorScreenPos(ImVec2(p_max.x, cursor.y));
+}
+
 void RenderSummaryTab()
 {
     // DRF Status Warning
@@ -97,6 +175,7 @@ void RenderSummaryTab()
         ImGui::TextColored(profitPerHourColor, "%s", UICommon::FormatCoin(profitPerHour).c_str());
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("%s", Localization::GetText("profit_per_hour_tooltip"));
+        RenderProfitSparkline();
 
         // Session Duration
         ImGui::TableNextRow();
@@ -141,12 +220,23 @@ void RenderSummaryTab()
                 ImGui::TableSetColumnIndex(0);
                 std::string name = st.details.loaded ? st.details.name : Localization::GetText("loading");
                 ImGui::Text("%s", name.c_str());
+
+                // Right-click context menu for top items
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                {
+                    UIContextMenu::OpenContextMenu("TopItemContextMenu", id, st.details.loaded ? st.details.name : "");
+                }
+
                 ImGui::TableSetColumnIndex(1);
                 ImGui::Text("%lld", st.count);
                 ImGui::TableSetColumnIndex(2);
                 ImGui::TextColored(ImVec4(1.f, 0.84f, 0.f, 1.f), "%s", UICommon::FormatCoin(profit).c_str());
                 count++;
             }
+
+            // Context menu popup (rendered once outside the loop)
+            UIContextMenu::RenderItemContextMenu("TopItemContextMenu", UIContextMenu::ContextMenuType::General);
+
             ImGui::EndTable();
         }
     }

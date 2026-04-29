@@ -8,3 +8,7 @@ namespace UI
     // Unregister all render callbacks
     void Shutdown();
 }
+
+// Helper functions for accent color (used by main window and mini window)
+void PushAccentColor();
+void PopAccentColor();

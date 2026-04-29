@@ -55,6 +55,16 @@ struct Settings
     float gradientTopColor[4] = {0.95f, 0.95f, 1.0f, 1.0f};
     float gradientBottomColor[4] = {0.85f, 0.85f, 0.95f, 1.0f};
 
+    // Sparkline Settings
+    bool showProfitSparkline = true;
+
+    // Summaries Settings
+    bool enableSummariesInProfitTab = true;
+
+    // Best Drop Highlight Settings
+    bool enableBestDropHighlight = true;
+    bool enableBestDropInMiniWindow = false;
+
     // Mini Window (Overlay Widget) Settings
     bool showMiniWindow = false;
     bool miniWindowShowProfit = true;
@@ -87,6 +97,25 @@ struct Settings
     int itemRarityFilterMin = 0;
 
     bool showItemIcons = true;
+
+    // Group by Rarity
+    bool groupByRarity = false;
+    bool showRarityAsTabs = false;
+
+    // Window Opacity
+    float mainWindowOpacity = 1.0f;  // 0.0 to 1.0
+    float miniWindowOpacity = 1.0f;   // 0.0 to 1.0
+
+    // Custom Accent Color (RGB, 0.0 to 1.0)
+    float accentColorR = 0.5f;
+    float accentColorG = 0.5f;
+    float accentColorB = 0.5f;
+
+    // Session History
+    bool enableSessionHistory = false;
+    int maxSessionHistory = 20;  // 1 to 50
+    bool saveAllItemsInHistory = false;
+    bool overwriteSessionHistory = true;  // If true, oldest session is deleted when limit is reached
 
     std::string lastResetTimestamp;
 

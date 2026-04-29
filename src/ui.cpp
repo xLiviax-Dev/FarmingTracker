@@ -14,10 +14,12 @@
 #include "ui_custom_profit.h"
 #include "ui_debug.h"
 #include "ui_settings.h"
+#include "ui_session_history.h"
 #include "ui_mini_window.h"
 #include "shared.h"
 #include "settings.h"
 #include "item_tracker.h"
+#include "session_history.h"
 #include "drf_client.h"
 #include "gw2_fetcher.h"
 #include "auto_reset.h"
@@ -25,6 +27,31 @@
 #include "resource.h"
 #include "../include/nexus/Nexus.h"
 #include "../include/imgui/imgui.h"
+
+void PushAccentColor()
+{
+    ImVec4 accentColor(g_Settings.accentColorR, g_Settings.accentColorG, g_Settings.accentColorB, 1.0f);
+    ImGui::PushStyleColor(ImGuiCol_Button, accentColor);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(accentColor.x * 1.1f, accentColor.y * 1.1f, accentColor.z * 1.1f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(accentColor.x * 0.9f, accentColor.y * 0.9f, accentColor.z * 0.9f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Header, accentColor);
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(accentColor.x * 1.1f, accentColor.y * 1.1f, accentColor.z * 1.1f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(accentColor.x * 0.9f, accentColor.y * 0.9f, accentColor.z * 0.9f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Tab, accentColor);
+    ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(accentColor.x * 1.1f, accentColor.y * 1.1f, accentColor.z * 1.1f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(accentColor.x * 0.9f, accentColor.y * 0.9f, accentColor.z * 0.9f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, accentColor);
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(accentColor.x * 1.1f, accentColor.y * 1.1f, accentColor.z * 1.1f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(accentColor.x * 0.9f, accentColor.y * 0.9f, accentColor.z * 0.9f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ResizeGrip, accentColor);
+    ImGui::PushStyleColor(ImGuiCol_ResizeGripHovered, ImVec4(accentColor.x * 1.1f, accentColor.y * 1.1f, accentColor.z * 1.1f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ResizeGripActive, ImVec4(accentColor.x * 0.9f, accentColor.y * 0.9f, accentColor.z * 0.9f, 1.0f));
+}
+
+void PopAccentColor()
+{
+    ImGui::PopStyleColor(15);
+}
 
 #include <string>
 #include <algorithm>
@@ -69,6 +96,7 @@ static void RenderMainWindow()
     ImGui::SetNextWindowPos(ImVec2(g_Settings.mainWindowPosX, g_Settings.mainWindowPosY), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(g_Settings.mainWindowWidth, g_Settings.mainWindowHeight), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSizeConstraints(ImVec2(320, 220), ImVec2(3840, 2160));
+    ImGui::SetNextWindowBgAlpha(g_Settings.mainWindowOpacity);
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
     if (g_Settings.mainWindowClickThrough)
@@ -76,6 +104,8 @@ static void RenderMainWindow()
 
     if (ImGui::Begin("Farming Tracker##FT_Main", &g_Settings.showMainWindow, flags))
     {
+        PushAccentColor();
+
         // Gradient background if enabled
         if (g_Settings.enableGradientBackgrounds)
         {
@@ -148,58 +178,51 @@ static void RenderMainWindow()
                 ImGui::EndTabItem();
             }
 
-            if (ImGui::BeginTabItem(Localization::GetText("tab_items")))
+            if (ImGui::BeginTabItem(Localization::GetText("tab_profit")))
             {
                 g_Settings.activeTab = 1;
+                UIProfit::RenderProfitTab();
+                ImGui::EndTabItem();
+            }
+
+            if (g_Settings.enableCustomProfit && ImGui::BeginTabItem(Localization::GetText("tab_custom_profit")))
+            {
+                g_Settings.activeTab = 2;
+                UICustomProfit::RenderCustomProfitTab();
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem(Localization::GetText("tab_items")))
+            {
+                g_Settings.activeTab = 3;
                 UIItems::RenderItemsTab();
                 ImGui::EndTabItem();
             }
 
             if (ImGui::BeginTabItem(Localization::GetText("tab_currencies")))
             {
-                g_Settings.activeTab = 2;
+                g_Settings.activeTab = 4;
                 UICurrencies::RenderCurrenciesTab();
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem(Localization::GetText("tab_profit")))
-            {
-                g_Settings.activeTab = 3;
-                UIProfit::RenderProfitTab();
                 ImGui::EndTabItem();
             }
 
             if (g_Settings.enableFavoritesTab && ImGui::BeginTabItem(Localization::GetText("tab_favorites")))
             {
-                g_Settings.activeTab = 4;
+                g_Settings.activeTab = 5;
                 UIFavorites::RenderFavoritesTab();
                 ImGui::EndTabItem();
             }
 
-            if (g_Settings.enableIgnoredTab && ImGui::BeginTabItem(Localization::GetText("tab_ignored")))
-            {
-                g_Settings.activeTab = 5;
-                UIIgnored::RenderIgnoredTab();
-                ImGui::EndTabItem();
-            }
-
-            if (g_Settings.enableCustomProfit && ImGui::BeginTabItem(Localization::GetText("tab_custom_profit")))
+            if (g_Settings.enableSessionHistory && ImGui::BeginTabItem(Localization::GetText("tab_session_history")))
             {
                 g_Settings.activeTab = 6;
-                UICustomProfit::RenderCustomProfitTab();
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem(Localization::GetText("tab_filter")))
-            {
-                g_Settings.activeTab = 7;
-                UIFilter::RenderFilterTab();
+                UISessionHistory::RenderSessionHistoryTab();
                 ImGui::EndTabItem();
             }
 
             if (g_Settings.enableDebugTab && ImGui::BeginTabItem(Localization::GetText("tab_debug")))
             {
-                g_Settings.activeTab = 8;
+                g_Settings.activeTab = 7;
                 UIDebug::RenderDebugTab();
                 ImGui::EndTabItem();
             }
@@ -207,6 +230,7 @@ static void RenderMainWindow()
             ImGui::EndTabBar();
         }
 
+        PopAccentColor();
         ImGui::End();
     }
 }
