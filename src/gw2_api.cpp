@@ -116,6 +116,21 @@ namespace
         }
         return oss.str();
     }
+
+    std::string GetLanguageCode()
+    {
+        // Convert UI language to GW2 API language code
+        if (g_Settings.language == "German") return "de";
+        if (g_Settings.language == "French") return "fr";
+        if (g_Settings.language == "Spanish") return "es";
+        if (g_Settings.language == "Chinese") return "zh";
+        if (g_Settings.language == "Czech") return "cs";
+        if (g_Settings.language == "Italian") return "it";
+        if (g_Settings.language == "Polish") return "pl";
+        if (g_Settings.language == "Portuguese") return "pt";
+        if (g_Settings.language == "Russian") return "ru";
+        return "en"; // Default to English
+    }
 }
 
 bool Gw2Api::GetJson(const std::string& pathAndQuery, const std::string& accessToken,
@@ -155,6 +170,8 @@ bool Gw2Api::FetchItemsMany(const std::vector<int>& ids, const std::string& toke
 
     Log("Fetching " + std::to_string(ids.size()) + " items", "request");
 
+    std::string langCode = GetLanguageCode();
+
     constexpr size_t kBatch = 200;
     constexpr int kRateLimitDelayMs = 100; // 100ms delay between batches to avoid rate limits
     for (size_t i = 0; i < ids.size(); i += kBatch)
@@ -163,7 +180,7 @@ bool Gw2Api::FetchItemsMany(const std::vector<int>& ids, const std::string& toke
         std::string idlist = JoinIds(ids, i, j);
         nlohmann::json jItems, jPrices;
 
-        std::string q = "/v2/items?ids=" + idlist;
+        std::string q = "/v2/items?ids=" + idlist + "&lang=" + langCode;
         if (!GetJson(q, token, jItems, error))
         {
             Log("Failed to fetch items: " + error, "error");
@@ -193,7 +210,8 @@ bool Gw2Api::FetchItemsMany(const std::vector<int>& ids, const std::string& toke
 
 bool Gw2Api::FetchCurrenciesAll(const std::string& token, nlohmann::json& currenciesOut, std::string& error)
 {
-    return GetJson("/v2/currencies?ids=all", token, currenciesOut, error);
+    std::string langCode = GetLanguageCode();
+    return GetJson("/v2/currencies?ids=all&lang=" + langCode, token, currenciesOut, error);
 }
 
 // Debug logging implementation

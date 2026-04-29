@@ -23,8 +23,9 @@ static Gw2Fetcher::Gw2Status s_LastLoggedStatus{ Gw2Fetcher::Gw2Status::Disconne
 
 static void WorkerLoop()
 {
-    static nlohmann::json s_CurrencyJsonCache;
+    static std::map<std::string, nlohmann::json> s_CurrencyJsonCache; // Cache per language
     static std::string    s_LastApiKey;
+    static std::string    s_LastLanguage;
 
     while (!s_Shutdown.load())
     {
@@ -52,9 +53,19 @@ static void WorkerLoop()
         if (token != s_LastApiKey)
         {
             s_LastApiKey     = token;
-            s_CurrencyJsonCache = nlohmann::json();
+            s_CurrencyJsonCache.clear(); // Clear cache on API key change
+            s_LastLanguage.clear();
             s_ReconnectCount.store(0);
             Gw2Api::Log("Connecting to GW2 API with new API key", "info");
+        }
+
+        // Check if language changed
+        std::string currentLanguage = g_Settings.language;
+        if (currentLanguage != s_LastLanguage)
+        {
+            s_LastLanguage = currentLanguage;
+            s_CurrencyJsonCache.clear(); // Clear cache on language change
+            Gw2Api::Log("Language changed, clearing currency cache", "info");
         }
 
         // Set status to Connected if we have a valid API key
@@ -67,13 +78,14 @@ static void WorkerLoop()
 
         if (ItemTracker::NeedCurrencyTable())
         {
-            if (!s_CurrencyJsonCache.is_array())
+            auto& cache = s_CurrencyJsonCache[currentLanguage];
+            if (!cache.is_array())
             {
                 std::string err;
-                if (Gw2Api::FetchCurrenciesAll(token, s_CurrencyJsonCache, err))
+                if (Gw2Api::FetchCurrenciesAll(token, cache, err))
                 {
-                    if (!s_CurrencyJsonCache.is_array())
-                        s_CurrencyJsonCache = nlohmann::json::array();
+                    if (!cache.is_array())
+                        cache = nlohmann::json::array();
                     s_Status.store(Gw2Fetcher::Gw2Status::Connected);
                     s_ReconnectCount.store(0);
                     Gw2Api::Log("Connected - Currency data fetched successfully", "data");
@@ -81,7 +93,7 @@ static void WorkerLoop()
                 else
                 {
                     Gw2Api::Log("Failed to fetch currency data: " + err, "error");
-                    s_CurrencyJsonCache = nlohmann::json();
+                    cache = nlohmann::json();
                     s_Status.store(Gw2Fetcher::Gw2Status::Error);
                     s_ReconnectCount.fetch_add(1);
                     if (s_LastLoggedStatus != Gw2Fetcher::Gw2Status::Error)
@@ -91,8 +103,8 @@ static void WorkerLoop()
                     }
                 }
             }
-            if (s_CurrencyJsonCache.is_array())
-                ItemTracker::ApplyCurrencyTable(s_CurrencyJsonCache);
+            if (cache.is_array())
+                ItemTracker::ApplyCurrencyTable(cache);
         }
 
         std::vector<int> pending = ItemTracker::CollectPendingItemIds();

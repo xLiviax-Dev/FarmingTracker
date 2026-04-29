@@ -248,6 +248,8 @@ void RenderOptions()
                 case 9: g_Settings.language = "Russian"; break;
             }
             Localization::SetLanguage(Localization::StringToLanguage(g_Settings.language));
+            // Clear item details to force reload in new language
+            ItemTracker::ClearItemDetails();
             SettingsManager::Save();
         }
     }

@@ -39,7 +39,7 @@ void PushAccentColor()
     ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(accentColor.x * 0.9f, accentColor.y * 0.9f, accentColor.z * 0.9f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_Tab, accentColor);
     ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(accentColor.x * 1.1f, accentColor.y * 1.1f, accentColor.z * 1.1f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(accentColor.x * 0.9f, accentColor.y * 0.9f, accentColor.z * 0.9f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(accentColor.x * 0.6f, accentColor.y * 0.6f, accentColor.z * 0.6f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_FrameBg, accentColor);
     ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(accentColor.x * 1.1f, accentColor.y * 1.1f, accentColor.z * 1.1f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(accentColor.x * 0.9f, accentColor.y * 0.9f, accentColor.z * 0.9f, 1.0f));
@@ -185,31 +185,31 @@ static void RenderMainWindow()
                 ImGui::EndTabItem();
             }
 
-            if (g_Settings.enableCustomProfit && ImGui::BeginTabItem(Localization::GetText("tab_custom_profit")))
-            {
-                g_Settings.activeTab = 2;
-                UICustomProfit::RenderCustomProfitTab();
-                ImGui::EndTabItem();
-            }
-
             if (ImGui::BeginTabItem(Localization::GetText("tab_items")))
             {
-                g_Settings.activeTab = 3;
+                g_Settings.activeTab = 2;
                 UIItems::RenderItemsTab();
                 ImGui::EndTabItem();
             }
 
             if (ImGui::BeginTabItem(Localization::GetText("tab_currencies")))
             {
-                g_Settings.activeTab = 4;
+                g_Settings.activeTab = 3;
                 UICurrencies::RenderCurrenciesTab();
                 ImGui::EndTabItem();
             }
 
             if (g_Settings.enableFavoritesTab && ImGui::BeginTabItem(Localization::GetText("tab_favorites")))
             {
-                g_Settings.activeTab = 5;
+                g_Settings.activeTab = 4;
                 UIFavorites::RenderFavoritesTab();
+                ImGui::EndTabItem();
+            }
+
+            if (g_Settings.enableIgnoredTab && ImGui::BeginTabItem(Localization::GetText("tab_ignored")))
+            {
+                g_Settings.activeTab = 5;
+                UIIgnored::RenderIgnoredTab();
                 ImGui::EndTabItem();
             }
 
@@ -220,9 +220,16 @@ static void RenderMainWindow()
                 ImGui::EndTabItem();
             }
 
-            if (g_Settings.enableDebugTab && ImGui::BeginTabItem(Localization::GetText("tab_debug")))
+            if (g_Settings.enableCustomProfit && ImGui::BeginTabItem(Localization::GetText("tab_custom_profit")))
             {
                 g_Settings.activeTab = 7;
+                UICustomProfit::RenderCustomProfitTab();
+                ImGui::EndTabItem();
+            }
+
+            if (g_Settings.enableDebugTab && ImGui::BeginTabItem(Localization::GetText("tab_debug")))
+            {
+                g_Settings.activeTab = 8;
                 UIDebug::RenderDebugTab();
                 ImGui::EndTabItem();
             }

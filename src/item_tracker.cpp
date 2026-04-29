@@ -1288,6 +1288,45 @@ void ItemTracker::ApplyItemsFromApi(const json& itemsArray, const json& pricesAr
     // This preserves details for items that are no longer in inventory (salvaged/destroyed)
 }
 
+void ItemTracker::ClearItemDetails()
+{
+    std::lock_guard<std::mutex> lock(s_Mutex);
+
+    // Clear all item details
+    for (auto& [id, st] : s_Items)
+    {
+        st.details.loaded = false;
+        st.details.name.clear();
+        st.details.description.clear();
+        st.details.iconUrl.clear();
+        st.details.vendorValue = 0;
+        st.details.tpBuyPrice = 0;
+        st.details.tpSellPrice = 0;
+        st.details.noSell = false;
+        st.details.accountBound = false;
+        st.details.rarity.clear();
+        st.details.itemType = ItemType::Unknown;
+        st.details.knownByApi = false;
+    }
+
+    // Clear all currency details
+    for (auto& [id, st] : s_Currencies)
+    {
+        st.details.loaded = false;
+        st.details.name.clear();
+        st.details.description.clear();
+        st.details.iconUrl.clear();
+        st.details.vendorValue = 0;
+        st.details.tpBuyPrice = 0;
+        st.details.tpSellPrice = 0;
+        st.details.noSell = false;
+        st.details.accountBound = false;
+        st.details.rarity.clear();
+        st.details.itemType = ItemType::Unknown;
+        st.details.knownByApi = false;
+    }
+}
+
 void ItemTracker::ApplyCurrencyTable(const json& currenciesArray)
 {
     if (!currenciesArray.is_array()) return;

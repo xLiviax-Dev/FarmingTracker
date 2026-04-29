@@ -82,6 +82,7 @@ namespace ItemTracker
 
     void ApplyItemsFromApi(const nlohmann::json& itemsArray, const nlohmann::json& pricesArray);
     void ApplyCurrencyTable(const nlohmann::json& currenciesArray);
+    void ClearItemDetails(); // Clear all item details to force reload on language change
 
     struct CoinSplit { int gold; int silver; int copper; bool negative; };
     CoinSplit SplitCoin(long long copperValue);
