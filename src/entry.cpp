@@ -132,10 +132,10 @@ extern "C" __declspec(dllexport) AddonDefinition_t* GetAddonDef()
     s_AddonDef.Signature        = 0x0134D681;  // Positive signature for non-Raidcore addons
     s_AddonDef.APIVersion       = NEXUS_API_VERSION;
     s_AddonDef.Name             = "Farming Tracker";
-    s_AddonDef.Version.Major    = 1;
-    s_AddonDef.Version.Minor    = 9;
-    s_AddonDef.Version.Build    = 9;
-    s_AddonDef.Version.Revision = 9;
+    s_AddonDef.Version.Major    = 2;
+    s_AddonDef.Version.Minor    = 0;
+    s_AddonDef.Version.Build    = 0;
+    s_AddonDef.Version.Revision = 0;
     s_AddonDef.Author           = "Livia.3928";
     s_AddonDef.Description      = "Tracks farmed items and currencies in real-time via DRF (drf.rs).";
     s_AddonDef.Load             = AddonLoad;
