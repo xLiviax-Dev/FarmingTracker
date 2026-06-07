@@ -1,0 +1,168 @@
+#include "ui_context_menu.h"
+#include "item_tracker.h"
+#include "ignored_items.h"
+#include "localization.h"
+#include "imgui/imgui.h"
+#include <cstdio>
+#include <map>
+#include <string>
+
+namespace UIContextMenu
+{
+    // Static variables to store context for each popup
+    static std::map<std::string, int> s_ContextItemIds;
+    static std::map<std::string, std::string> s_ContextItemNames;
+
+    void OpenContextMenu(const char* popupName, int itemId, const std::string& itemName)
+    {
+        ImGui::OpenPopup(popupName);
+        s_ContextItemIds[popupName] = itemId;
+        s_ContextItemNames[popupName] = itemName;
+    }
+
+    void RenderItemContextMenu(const char* popupName, ContextMenuType type)
+    {
+        if (ImGui::BeginPopup(popupName))
+        {
+            int contextItemId = s_ContextItemIds[popupName];
+            std::string contextItemName = s_ContextItemNames[popupName];
+            
+            bool isFavorite = ItemTracker::IsFavorite(contextItemId);
+            bool isIgnored = IgnoredItemsManager::IsItemIgnored(contextItemId);
+
+            // Favorites options
+            if (type != ContextMenuType::CopyOnly)
+            {
+            if (type == ContextMenuType::General || type == ContextMenuType::CustomProfit || type == ContextMenuType::Favorites || type == ContextMenuType::Ignored)
+            {
+                if (!isFavorite)
+                {
+                    if (ImGui::MenuItem(Localization::GetText("context_menu_add_favorites")))
+                    {
+                        ItemTracker::SetFavorite(contextItemId, true);
+                    }
+                }
+                else
+                {
+                    if (ImGui::MenuItem(Localization::GetText("context_menu_remove_favorites")))
+                    {
+                        ItemTracker::SetFavorite(contextItemId, false);
+                    }
+                }
+            }
+
+            ImGui::Separator();
+
+            // Ignore options
+            if (type == ContextMenuType::General || type == ContextMenuType::CustomProfit || type == ContextMenuType::Favorites || type == ContextMenuType::Ignored)
+            {
+                if (!isIgnored)
+                {
+                    if (ImGui::MenuItem(Localization::GetText("context_menu_ignore")))
+                    {
+                        // Remove from favorites first (UI layer enforces mutual exclusivity)
+                        ItemTracker::SetFavorite(contextItemId, false);
+                        IgnoredItemsManager::IgnoreItem(contextItemId);
+                    }
+                }
+                else
+                {
+                    if (ImGui::MenuItem(Localization::GetText("context_menu_unignore")))
+                    {
+                        IgnoredItemsManager::UnignoreItem(contextItemId);
+                    }
+                }
+            }
+
+            ImGui::Separator();
+            }
+
+            // Copy options
+            if (ImGui::MenuItem(Localization::GetText("context_menu_copy_name")))
+            {
+                ImGui::SetClipboardText(contextItemName.c_str());
+            }
+            if (ImGui::MenuItem(Localization::GetText("context_menu_copy_id")))
+            {
+                char idStr[32];
+                snprintf(idStr, sizeof(idStr), "%d", contextItemId);
+                ImGui::SetClipboardText(idStr);
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+
+    void RenderCurrencyContextMenu(const char* popupName, ContextMenuType type)
+    {
+        if (ImGui::BeginPopup(popupName))
+        {
+            int contextItemId = s_ContextItemIds[popupName];
+            std::string contextItemName = s_ContextItemNames[popupName];
+            
+            bool isFavorite = ItemTracker::IsFavorite(contextItemId);
+            bool isIgnored = IgnoredItemsManager::IsCurrencyIgnored(contextItemId);
+
+            // Favorites options
+            if (type != ContextMenuType::CopyOnly)
+            {
+            if (type == ContextMenuType::General || type == ContextMenuType::CustomProfit || type == ContextMenuType::Favorites || type == ContextMenuType::Ignored)
+            {
+                if (!isFavorite)
+                {
+                    if (ImGui::MenuItem(Localization::GetText("context_menu_add_favorites")))
+                    {
+                        ItemTracker::SetFavorite(contextItemId, true);
+                    }
+                }
+                else
+                {
+                    if (ImGui::MenuItem(Localization::GetText("context_menu_remove_favorites")))
+                    {
+                        ItemTracker::SetFavorite(contextItemId, false);
+                    }
+                }
+            }
+
+            ImGui::Separator();
+
+            // Ignore options
+            if (type == ContextMenuType::General || type == ContextMenuType::CustomProfit || type == ContextMenuType::Favorites || type == ContextMenuType::Ignored)
+            {
+                if (!isIgnored)
+                {
+                    if (ImGui::MenuItem(Localization::GetText("context_menu_ignore")))
+                    {
+                        // Remove from favorites first (UI layer enforces mutual exclusivity)
+                        ItemTracker::SetFavorite(contextItemId, false);
+                        IgnoredItemsManager::IgnoreCurrency(contextItemId);
+                    }
+                }
+                else
+                {
+                    if (ImGui::MenuItem(Localization::GetText("context_menu_unignore")))
+                    {
+                        IgnoredItemsManager::UnignoreCurrency(contextItemId);
+                    }
+                }
+            }
+
+            ImGui::Separator();
+            }
+
+            // Copy options
+            if (ImGui::MenuItem(Localization::GetText("context_menu_copy_name")))
+            {
+                ImGui::SetClipboardText(contextItemName.c_str());
+            }
+            if (ImGui::MenuItem(Localization::GetText("context_menu_copy_id")))
+            {
+                char idStr[32];
+                snprintf(idStr, sizeof(idStr), "%d", contextItemId);
+                ImGui::SetClipboardText(idStr);
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+}

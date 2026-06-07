@@ -1,0 +1,1299 @@
+// ---------------------------------------------------------------------------
+// localization_sv.cpp – Swedish translations for Farming Tracker
+// ---------------------------------------------------------------------------
+
+#include "localization.h"
+#include <unordered_map>
+
+namespace Localization
+{
+    const std::unordered_map<std::string, const char*> GetSwedishTranslations()
+    {
+        static const std::unordered_map<std::string, const char*> translations = {
+            // Status texts
+            {"status_disconnected", "Frånkopplad"},
+            {"status_connecting", "Ansluter..."},
+            {"status_connected", "Ansluten"},
+            {"status_auth_failed", "Autentisering misslyckades – kontrollera token"},
+            {"status_reconnecting", "Återansluter..."},
+            {"status_error", "Fel"},
+            {"status_unknown", "Okänd"},
+
+            // Mini Window
+            {"mini_window_title", "Farming Tracker Mini"},
+            {"profit", "Vinst"},
+            {"profit_per_hour", "Vinst/Timme"},
+            {"tp_sell", "TP Sälj"},
+            {"tp_instant", "TP Direkt"},
+            {"total_items", "Totalt antal föremål"},
+            {"session", "Session"},
+
+            // Main Window
+            {"main_window_title", "Farming Tracker"},
+            {"drf_label", "DRF"},
+            {"gw2_api_label", "GW2 API"},
+            {"session_time_label", "Sessionstid"},
+            {"reset_button", "Återställ"},
+            {"reset_tooltip", "Återställ alla farming-räknare (manuell återställning)"},
+
+            // Tabs
+            {"tab_summary", "Dashboard"},
+            {"tab_drops", "Droppar"},
+            {"tab_loot_filter", "Loot Filter"},
+            {"tab_items", "Föremål"},
+            {"tab_currencies", "Valutor"},
+            {"tab_dashboard", "Instrumentpanel"},
+            {"tab_favorites", "Favoriter"},
+            {"tab_ignored", "Ignorerade"},
+            {"tab_timeline", "Tidslinje"},
+            {"timeline_profit_hour_listings", "Ungefärliga handelsvinster per timme (Listningar)"},
+            {"timeline_profit_hour_instant", "Ungefärliga handelsvinster per timme (Direktförsäljning)"},
+            {"timeline_no_drops", "Inga droppar registrerade i denna session än."},
+            {"timeline_item_drops", "Föremålsdroppar"},
+            {"timeline_currencies", "Valutor"},
+            {"tab_filter", "Filter"},
+            {"tab_custom_profit", "Anpassad vinst"},
+            {"tab_debug", "Felsök"},
+
+            // Summary Tab
+            {"warning_drf_not_connected", "⚠️ DRF inte ansluten"},
+            {"warning_drf_not_connected_desc", "Denna plugin kräver DRF för dataöverföring."},
+            {"warning_drf_install", "Installera DRF via Nexus Addon Manager eller https://drf.rs/"},
+            {"warning_drf_token_invalid", "⚠️ DRF Token ogiltig"},
+            {"warning_drf_token_invalid_desc", "Kontrollera din DRF Token i Inställningar."},
+            {"warning_gw2_api_key_not_set", "⚠️ GW2 API-nyckel inte inställd"},
+            {"warning_gw2_api_key_not_set_desc", "Ställ in din GW2 API-nyckel i Inställningar för föremålsdetaljer."},
+            {"gold", "Guld"},
+            {"silver", "Silver"},
+            {"copper", "Koppar"},
+            {"total_profit", "Total vinst"},
+            {"total_profit_tooltip", "Total anpassad vinst från alla föremål"},
+            {"total_items_count", "Totalt antal föremål"},
+            {"total_items_tooltip", "Totalt antal unika föremål som spåras"},
+            {"total_currencies", "Totalt antal valutor"},
+            {"total_currencies_tooltip", "Totalt antal unika valutor som spåras"},
+            {"profit_per_hour_label", "Vinst per timme"},
+            {"profit_per_hour_tooltip", "Vinst per timme baserat på sessionstid"},
+            {"magic_find", "Magic Find"},
+            {"magic_find_tooltip", "Nuvarande eller senast registrerad Magic Find från DRF"},
+            {"session_duration", "Sessionstid"},
+            {"session_duration_tooltip", "Aktuell farming-sessionstid"},
+            {"date_tooltip", "Sessionens starttid"},
+            {"duration_tooltip", "Sessionstid"},
+            {"profit_tooltip", "Total sessionvinst"},
+            {"profit_per_hour_tooltip", "Vinst per timme"},
+            {"drops_tooltip", "Antal droppar"},
+            {"best_drop_tooltip", "Mest värdefulla droppet i sessionen"},
+            {"top_items_profit", "Topp föremål (Vinst)"},
+            {"top_items_profit_tooltip", "Topp 5 föremål efter vinstvärde"},
+            {"loading", "Laddar..."},
+            {"coin", "Mynt"},
+            {"top_items_count", "Topp föremål (Antal)"},
+            {"top_items_count_tooltip", "Topp 5 föremål efter antal"},
+            {"top_currencies", "Topp valutor"},
+            {"top_currencies_tooltip", "Topp 5 valutor efter antal"},
+            {"quick_statistics", "Snabb statistik"},
+            {"quick_statistics_tooltip", "Översikt över farming-statistik"},
+            {"average_item_value", "Genomsnittligt föremålsvärde"},
+            {"average_item_value_na", "Ej tillgängligt"},
+            {"total_unique_items", "Totalt antal unika föremål"},
+            {"warning_no_data", "⚠️ Ingen data laddad"},
+            {"warning_no_data_desc", "Väntar på DRF-data..."},
+            {"export", "Exportera"},
+            {"export_tooltip", "Exportera farming-data till fil"},
+            {"export_json", "Exportera som JSON"},
+            {"export_csv", "Exportera som CSV"},
+            {"import_json", "Importera från JSON"},
+
+            // Items Tab
+            {"search_hint", "Sök föremål..."},
+            {"clear", "Rensa"},
+            {"sort_count_high", "Sortera: |Antal| högt"},
+            {"sort_count_low", "Sortera: |Antal| lågt"},
+            {"sort_id_up", "Sortera: Föremåls-ID upp"},
+            {"sort_id_down", "Sortera: Föremåls-ID ner"},
+            {"sort_name_az", "Sortera: Namn A–Ö"},
+            {"sort_tooltip", "Sortera föremål efter antal, ID eller namn"},
+            {"rarity_all", "Sällsynthet: alla"},
+            {"rarity_basic", "Sällsynthet: Basic+"},
+            {"rarity_fine", "Sällsynthet: Fine+"},
+            {"rarity_masterwork", "Sällsynthet: Masterwork+"},
+            {"rarity_rare", "Sällsynthet: Rare+"},
+            {"rarity_exotic", "Sällsynthet: Exotic+"},
+            {"rarity_ascended", "Sällsynthet: Ascended+"},
+            {"rarity_legendary", "Sällsynthet: Endast Legendary"},
+            {"rarity_tooltip", "Filtrera föremål efter minsta sällsynthet"},
+            {"rarity", "Sällsynthet"},
+            {"type", "Typ"},
+            {"vendor_value", "Säljarvärde"},
+            {"tp_buy_net", "TP Köp (Netto)"},
+            {"account_bound", "Kontobunden"},
+            {"yes", "Ja"},
+            {"no", "Nej"},
+            {"nosell", "NoSell"},
+            {"favorite", "Favorit"},
+            {"ignore", "Ignorera"},
+
+            // Currencies Tab
+            {"search_currencies_hint", "Sök valutor..."},
+            {"api_id", "API-ID"},
+            {"currency_name", "Valutanamn"},
+            {"count", "Antal"},
+
+            // Profit Tab
+            {"profits", "Vinster"},
+            {"profits_tooltip", "Totala vinster från farming"},
+            {"approx_profits", "Ungefärliga vinster"},
+            {"approx_gold_per_hour", "Ungefärligt guld per timme"},
+            {"trading_profits", "Handelsvinster"},
+            {"trading_profits_tooltip", "Vinster från Trading Post"},
+            {"approx_trading_profits_listings", "Ungefärliga handelsvinster (Listningar)"},
+            {"approx_trading_profits_instant", "Ungefärliga handelsvinster (Direktförsäljning)"},
+            {"trading_details", "Handelsdetaljer (Möjlighetskostnad)"},
+            {"trading_details_tooltip", "Möjlighetskostnad för att använda föremål istället för att sälja"},
+            {"lost_profit_vs_tp_sell", "Förlorad vinst (vs TP Sälj)"},
+            {"lost_profit_per_hour_vs_tp_sell", "Förlorad vinst per timme (vs TP Sälj)"},
+            {"efficiency_score", "Effektivitetspoäng"},
+            {"efficiency_score_label", "Effektivitetspoäng:"},
+            {"efficiency_score_tooltip", "Hur mycket av den maximala möjliga vinsten du uppnådde (Direktförsäljning vs TP Listningar)."},
+            {"efficiency_score_desc", "Du uppnådde %.1f%% av den maximala vinsten!"},
+            {"session_duration_label", "Sessionstid"},
+            {"session_duration_tooltip", "Aktuell farming-sessionstid"},
+
+            // Filter Tab
+            {"sell_method_filters", "Säljmetod-filter"},
+            {"sellable_to_vendor", "Säljbar till säljare"},
+            {"sellable_to_vendor_tooltip", "Visa föremål som kan säljas till säljare"},
+            {"sellable_on_tp", "Säljbar på TP"},
+            {"sellable_on_tp_tooltip", "Visa föremål som kan säljas på Trading Post"},
+            {"has_custom_profit", "Har anpassad vinst"},
+            {"has_custom_profit_tooltip", "Visa föremål med anpassade vinstvärden"},
+            {"api_knowledge_filters", "API-kunskaps-filter"},
+            {"known_by_api", "Känd av API"},
+            {"known_by_api_tooltip", "Visa föremål som är kända av GW2 API"},
+            {"unknown_by_api", "Okänd av API"},
+            {"unknown_by_api_tooltip", "Visa föremål som inte är kända av GW2 API"},
+            {"item_type_filters", "Föremålstyp-filter"},
+            {"type_armor", "Rustning"},
+            {"type_armor_tooltip", "Visa rustningsföremål"},
+            {"type_weapon", "Vapen"},
+            {"type_weapon_tooltip", "Visa vapenföremål"},
+            {"type_trinket", "Smycke"},
+            {"type_trinket_tooltip", "Visa smyckenföremål"},
+            {"type_gizmo", "Gizmo"},
+            {"type_gizmo_tooltip", "Visa gizmo-föremål"},
+            {"type_crafting_material", "Hantverksmaterial"},
+            {"type_crafting_material_tooltip", "Visa hantverksmaterial"},
+            {"type_consumable", "Förbrukningsvara"},
+            {"type_consumable_tooltip", "Visa förbrukningsvaror"},
+            {"type_gathering_tool", "Samla-redskap"},
+            {"type_gathering_tool_tooltip", "Visa samla-redskap"},
+            {"type_bag", "Väska"},
+            {"type_bag_tooltip", "Visa väskor"},
+            {"type_container", "Behållare"},
+            {"type_container_tooltip", "Visa behållare"},
+            {"type_mini_pet", "Minidjur"},
+            {"type_mini_pet_tooltip", "Visa minidjur"},
+            {"currency_filters_label", "Valuta-filter"},
+            {"currency_general", "Allmänt"},
+            {"currency_main", "Huvudvalutor"},
+            {"currency_fractal", "Fractal/Raid/Dungeon-valutor"},
+            {"currency_wvw_pvp", "WvW/PvP-valutor"},
+            {"currency_map", "Kartspecifika valutor"},
+            {"filter_karma", "Karma"},
+            {"currency_karma_tooltip", "Visa karma-valuta"},
+            {"currency_laurel", "Lagerblad"},
+            {"currency_laurel_tooltip", "Visa lagerblad-valuta"},
+            {"currency_gem", "Ädelsten"},
+            {"currency_gem_tooltip", "Visa ädelsten-valuta"},
+            {"currency_fractal_relic", "Fractal-relik"},
+            {"currency_fractal_relic_tooltip", "Visa fractal-relik-valuta"},
+            {"currency_badge_of_honor", "Hederstecken"},
+            {"currency_badge_of_honor_tooltip", "Visa hederstecken-valuta"},
+            {"currency_guild_commendation", "Gilletsrekommendation"},
+            {"currency_guild_commendation_tooltip", "Visa gilletsrekommendation-valuta"},
+            {"currency_transmutation_charge", "Transmutationsladd"},
+            {"currency_transmutation_charge_tooltip", "Visa transmutationsladd-valuta"},
+            {"currency_spirit_shards", "Andesplitter"},
+            {"currency_spirit_shards_tooltip", "Visa andesplitter-valuta"},
+            {"currency_unbound_magic", "Obunden magi"},
+            {"currency_unbound_magic_tooltip", "Visa obunden magi-valuta"},
+            {"currency_volatile_magic", "Flyktig magi"},
+            {"currency_volatile_magic_tooltip", "Visa flyktig magi-valuta"},
+            {"currency_airship_parts", "Luftskepp-delar"},
+            {"currency_airship_parts_tooltip", "Visa luftskepp-delar-valuta"},
+            {"currency_geode", "Geod"},
+            {"currency_geode_tooltip", "Visa geod-valuta"},
+            {"currency_ley_line_crystals", "Ley-linjekristaller"},
+            {"currency_ley_line_crystals_tooltip", "Visa ley-linjekristaller-valuta"},
+            {"currency_trade_contracts", "Handelskontrakt"},
+            {"currency_trade_contracts_tooltip", "Visa handelskontrakt-valuta"},
+            {"currency_elegy_mosaic", "Elegy-mosaik"},
+            {"currency_elegy_mosaic_tooltip", "Visa elegy-mosaik-valuta"},
+            {"currency_uncommon_coins", "Ovanliga mynt"},
+            {"currency_uncommon_coins_tooltip", "Visa ovanliga mynt-valuta"},
+            {"currency_astral_acclaim", "Astral-acclaim"},
+            {"currency_astral_acclaim_tooltip", "Visa astral-acclaim-valuta"},
+            {"currency_pristine_fractal_relics", "Prisvärdiga fractal-reliker"},
+            {"currency_pristine_fractal_relics_tooltip", "Visa prisvärdiga fractal-reliker-valuta"},
+            {"currency_unstable_fractal_essence", "Ostabil fractal-essens"},
+            {"currency_unstable_fractal_essence_tooltip", "Visa ostabil fractal-essens-valuta"},
+            {"currency_magnetite_shards", "Magnetitsplitter"},
+            {"currency_magnetite_shards_tooltip", "Visa magnetitsplitter-valuta"},
+            {"currency_gaeting_crystals", "Gaeting-kristaller"},
+            {"currency_gaeting_crystals_tooltip", "Visa gaeting-kristaller-valuta"},
+            {"currency_prophet_shards", "Profetsplitter"},
+            {"currency_prophet_shards_tooltip", "Visa profetsplitter-valuta"},
+            {"currency_green_prophet_shards", "Gröna profetsplitter"},
+            {"currency_green_prophet_shards_tooltip", "Visa gröna profetsplitter-valuta"},
+            {"currency_wvw_skirmish_tickets", "WvW-skirmish-biljetter"},
+            {"currency_wvw_skirmish_tickets_tooltip", "Visa WvW-skirmish-biljetter-valuta"},
+            {"currency_proofs_of_heroics", "Bevis på hjältemod"},
+            {"currency_proofs_of_heroics_tooltip", "Visa bevis på hjältemod-valuta"},
+            {"currency_pvp_league_tickets", "PvP-ligabiljetter"},
+            {"currency_pvp_league_tickets_tooltip", "Visa PvP-ligabiljetter-valuta"},
+            {"currency_ascended_shards_of_glory", "Ascended-glory-splitter"},
+            {"currency_ascended_shards_of_glory_tooltip", "Visa ascended-glory-splitter-valuta"},
+            {"currency_research_notes", "Forskningsanteckningar"},
+            {"currency_research_notes_tooltip", "Visa forskningsanteckningar-valuta"},
+            {"currency_tyrian_defense_seal", "Tyrian-försvarssigill"},
+            {"currency_tyrian_defense_seal_tooltip", "Visa tyrian-försvarssigill-valuta"},
+            {"currency_testimony_of_desert_heroics", "Vittnesbörd om ökenhjältedåd"},
+            {"currency_testimony_of_desert_heroics_tooltip", "Visa vittnesbörd om ökenhjältedåd-valuta"},
+            {"currency_testimony_of_jade_heroics", "Vittnesbörd om jadehjältedåd"},
+            {"currency_testimony_of_jade_heroics_tooltip", "Visa vittnesbörd om jadehjältedåd-valuta"},
+            {"currency_testimony_of_castoran_heroics", "Vittnesbörd om castoranhjältedåd"},
+            {"currency_testimony_of_castoran_heroics_tooltip", "Visa vittnesbörd om castoranhjältedåd-valuta"},
+            {"currency_legendary_insight", "Legendarisk insikt"},
+            {"currency_legendary_insight_tooltip", "Visa legendarisk insikt-valuta"},
+            {"currency_tales_of_dungeon_delving", "Berättelser om dungeon-utforskning"},
+            {"currency_tales_of_dungeon_delving_tooltip", "Visa berättelser om dungeon-utforskning-valuta"},
+            {"currency_imperial_favor", "Imperial gunst"},
+            {"currency_imperial_favor_tooltip", "Visa imperial gunst-valuta"},
+            {"currency_canach_coins", "Canach-mynt"},
+            {"currency_canach_coins_tooltip", "Visa canach-mynt-valuta"},
+            {"currency_ancient_coin", "Antikt mynt"},
+            {"currency_ancient_coin_tooltip", "Visa antikt mynt-valuta"},
+            {"currency_unusual_coin", "Ovanligt mynt"},
+            {"currency_unusual_coin_tooltip", "Visa ovanligt mynt-valuta"},
+            {"currency_jade_sliver", "Jade-splint"},
+            {"currency_jade_sliver_tooltip", "Visa jade-splint-valuta"},
+            {"currency_static_charge", "Statisk laddning"},
+            {"currency_static_charge_tooltip", "Visa statisk laddning-valuta"},
+            {"currency_pinch_of_stardust", "Nypa stjärnstoft"},
+            {"currency_pinch_of_stardust_tooltip", "Visa nypa stjärnstoft-valuta"},
+            {"currency_calcified_gasp", "Kalcifierad flämtning"},
+            {"currency_calcified_gasp_tooltip", "Visa kalcifierad flämtning-valuta"},
+            {"currency_ursus_oblige", "Ursus Oblige"},
+            {"currency_ursus_oblige_tooltip", "Visa ursus oblige-valuta"},
+            {"currency_gaeting_crystal_janthir", "Gaeting-kristall (Janthir)"},
+            {"currency_gaeting_crystal_janthir_tooltip", "Visa gaeting-kristall (janthir)-valuta"},
+            {"currency_antiquated_ducat", "Antik ducat"},
+            {"currency_antiquated_ducat_tooltip", "Visa antik ducat-valuta"},
+            {"currency_aether_rich_sap", "Aether-rik sav"},
+            {"currency_aether_rich_sap_tooltip", "Visa aether-rik sav-valuta"},
+
+            // Additional Filters
+            {"additional_filters", "Ytterligare filter"},
+            {"account_bound", "Kontobunden"},
+            {"account_bound_tooltip", "Visa kontobundna föremål"},
+            {"not_account_bound", "Inte kontobunden"},
+            {"not_account_bound_tooltip", "Visa icke-kontobundna föremål"},
+            {"nosell_items", "NoSell"},
+            {"nosell_items_tooltip", "Visa NoSell-föremål"},
+            {"not_nosell", "Inte NoSell"},
+            {"not_nosell_tooltip", "Visa säljbara föremål"},
+            {"favorite_items", "Favorit"},
+            {"favorite_items_tooltip", "Visa favoritföremål"},
+            {"not_favorite", "Inte favorit"},
+            {"not_favorite_tooltip", "Visa icke-favoritföremål"},
+            {"ignored_items", "Ignorerade"},
+            {"ignored_items_tooltip", "Visa ignorerade föremål"},
+            {"not_ignored", "Inte ignorerade"},
+            {"not_ignored_tooltip", "Visa icke-ignorerade föremål"},
+
+            // Range Filters
+            {"range_filters", "Intervall-filter"},
+            {"show_range_filters", "Visa intervall-filter"},
+            {"filter_min_price", "Filter minsta pris"},
+            {"filter_max_price", "Filter högsta pris"},
+            {"filter_min_quantity", "Filter minsta kvantitet"},
+            {"filter_max_quantity", "Filter högsta kvantitet"},
+
+            // Mini Window Settings
+            {"mini_window_settings", "Minifönster"},
+            {"show_profit", "Visa vinst"},
+            {"show_profit_tooltip", "Visa total vinst i minifönstret"},
+            {"show_profit_per_hour", "Visa vinst/timme"},
+            {"show_profit_per_hour_tooltip", "Visa vinst per timme i minifönstret"},
+            {"show_tp_sell", "Visa TP Sälj (Listningar)"},
+            {"show_tp_sell_tooltip", "Visa TP-säljvinst (listningar) i minifönstret"},
+            {"show_tp_instant", "Visa TP Direkt (Direktförsäljning)"},
+            {"show_tp_instant_tooltip", "Visa TP-direktförsäljningsvinst i minifönstret"},
+            {"show_total_items", "Visa totalt antal föremål"},
+            {"show_total_items_tooltip", "Visa totalt antal föremål i minifönstret"},
+            {"show_session_duration", "Visa sessionstid"},
+            {"show_session_duration_tooltip", "Visa sessionstid i minifönstret"},
+            {"window_click_through", "Klicka genom fönstret"},
+            {"window_click_through_tooltip", "Tillåter klicka genom minifönstret till spelet"},
+
+            // Main Window Settings
+            {"main_window", "Huvudfönster"},
+            {"click_through", "Klicka genom"},
+            {"click_through_tooltip", "Tillåter klicka genom huvudfönstret till spelet"},
+
+            // Advanced UI Settings
+            {"advanced_ui_settings", "Avancerade UI-inställningar"},
+            {"no_advanced_ui_settings", "(Inga avancerade UI-inställningar tillgängliga)"},
+
+            // Display Settings
+            {"display_settings", "Visningsinställningar"},
+            {"show_item_icons", "Visa föremålsikoner"},
+            {"show_item_icons_tooltip", "Visa föremålsikoner i listan"},
+            {"show_rarity_borders", "Visa sällsynthetskanter"},
+            {"show_rarity_borders_tooltip", "Visar färgade kanter runt ikoner baserat på sällsynthet"},
+            {"enable_grid_view", "Aktivera rutnätsvy"},
+            {"enable_grid_view_tooltip", "Visa föremål i ett rutnätslayout istället för lista"},
+            {"grid_icon_size", "Rutnätsikonstorlek"},
+            {"grid_icon_size_tooltip", "Storlek på ikoner i rutnätsvy"},
+
+            // Count Display Settings
+            {"count_display_settings", "Antalsvisningsinställningar"},
+            {"count_text_color", "Antalstextfärg"},
+            {"count_text_color_tooltip", "Färg på antalstext"},
+            {"count_background_color", "Antalsbakgrundsfärg"},
+            {"count_background_color_tooltip", "Färg på antalsbakgrund"},
+            {"count_font_size", "Antalsteckensnittsstorlek"},
+            {"count_font_size_tooltip", "Storlek på antalsteckensnitt"},
+            {"count_horizontal_alignment", "Antal horisontell justering"},
+            {"count_horizontal_alignment_tooltip", "Horisontell justering av antalstext"},
+
+            // Gradient Background Settings
+            {"gradient_background_settings", "Gradientbakgrundsinställningar"},
+            {"enable_gradient_backgrounds", "Aktivera gradientbakgrunder"},
+            {"enable_gradient_backgrounds_tooltip", "Aktivera gradientbakgrund för fönster"},
+            {"gradient_top_color", "Gradient övre färg"},
+            {"gradient_top_color_tooltip", "Övre färg på gradientbakgrunden"},
+            {"gradient_bottom_color", "Gradient nedre färg"},
+            {"gradient_bottom_color_tooltip", "Nedre färg på gradientbakgrunden"},
+
+            // Custom Profit System
+            {"custom_profit_system", "Anpassat vinstsystem"},
+            {"enable_custom_profit", "Aktivera anpassad vinst"},
+            {"enable_custom_profit_tooltip", "Aktivera anpassade vinstvärden för föremål"},
+
+            // Search
+            {"search_settings", "Sök"},
+            {"enable_search", "Aktivera sök"},
+            {"enable_search_tooltip", "Aktivera sökfunktionalitet"},
+
+            // Ignored Items
+            {"ignored_items_settings", "Ignorerade föremål"},
+            {"enable_ignored_items", "Aktivera ignorerade föremål"},
+            {"enable_ignored_items_tooltip", "Aktivera funktionalitet för ignorerade föremål"},
+
+            // Auto Reset
+            {"auto_reset_settings", "Automatisk återställning"},
+            {"enable_auto_reset", "Aktivera automatisk återställning"},
+            {"enable_auto_reset_tooltip", "Återställ farming-session automatiskt efter en viss tid"},
+            {"auto_reset_duration", "Automatisk återställningstid (minuter)"},
+            {"auto_reset_duration_tooltip", "Tid i minuter innan automatisk återställning"},
+
+            // DRF Settings
+            {"drf_settings", "DRF-inställningar"},
+            {"drf_token", "DRF Token"},
+            {"drf_token_label", "DRF Token:"},
+            {"drf_token_tooltip", "Din DRF-autentiseringstoken"},
+            {"edit_token", "Redigera token"},
+            {"save_token", "Spara token"},
+
+            // GW2 API Settings
+            {"gw2_api_settings", "GW2 API-inställningar"},
+            {"gw2_api_key", "GW2 API-nyckel"},
+            {"gw2_api_key_tooltip", "Din GW2 API-nyckel för föremålsdetaljer"},
+            {"edit_key", "Redigera nyckel"},
+            {"save_key", "Spara nyckel"},
+
+            // Language Settings
+            {"language_settings", "Språk"},
+            {"language_tooltip", "Välj gränssnittsspråk"},
+            {"language_english", "Engelska"},
+            {"language_german", "Tyska"},
+            {"language_french", "Franska"},
+            {"language_spanish", "Spanska"},
+            {"language_chinese", "Kinesiska"},
+            {"language_czech", "Tjeckiska"},
+            {"language_italian", "Italienska"},
+            {"language_polish", "Polska"},
+            {"language_portuguese", "Portugisiska"},
+            {"language_russian", "Ryska"},
+
+            // Additional hardcoded strings found in UI
+            {"farming_tracker_title", "Farming Tracker"},
+            {"no_accounts_configured", "Inga konton konfigurerade"},
+            {"no_profiles_created", "Inga profiler skapade än"},
+            {"count_label", "Antal:"},
+            {"profit_label", "Vinst:"},
+            {"no_profit", "Ingen vinst"},
+            {"vendor_value_label", "Säljarvärde:"},
+            {"tp_sell_gross_label", "TP Sälj (Brutto):"},
+            {"tp_sell_net_label", "TP Sälj (Netto):"},
+            {"tp_buy_gross_label", "TP Köp (Brutto):"},
+            {"tp_buy_net_label", "TP Köp (Netto):"},
+            {"ignored_items_label", "Ignorerade föremål:"},
+            {"ignored_currencies_label", "Ignorerade valutor:"},
+            {"total_items_label", "Totalt antal föremål:"},
+            {"total_currencies_label", "Totalt antal valutor:"},
+            {"total_profit_label", "Total vinst:"},
+            {"tp_sell_profit_label", "TP-säljvinst:"},
+            {"tp_sell_profit_tooltip", "Total vinst om alla föremål såldes till aktuella TP-listningspriser (minus 15% avgift)"},
+            {"vendor_profit_label", "Säljarvinst:"},
+            {"profit_per_hour_label", "Vinst per timme:"},
+            {"opportunity_cost_profit_label", "Möjlighetskostnadsvinst:"},
+            {"opportunity_cost_profit_per_hour_label", "Möjlighetskostnadsvinst/timme:"},
+            {"custom_profit_feature_placeholder", "Funktion implementerad - UI följer"},
+            {"custom_profit_items_header", "Föremål med anpassad vinst"},
+            {"custom_profit_currencies_header", "Valutor med anpassad vinst"},
+            {"add_custom_profit_item", "Lägg till anpassad vinst för föremål"},
+            {"add_custom_profit_currency", "Lägg till anpassad vinst för valuta"},
+            {"custom_profit_set_profit", "Ställ in vinst"},
+            {"custom_profit_remove", "Ta bort"},
+            {"custom_profit_value", "Vinstvärde (Koppar)"},
+            {"custom_profit_set_tooltip", "Ställ in anpassat vinstvärde för detta föremål"},
+            {"custom_profit_remove_tooltip", "Ta bort anpassat vinstvärde för detta föremål"},
+            {"no_custom_profit_items", "(Inga föremål med anpassad vinst)"},
+            {"no_custom_profit_currencies", "(Inga valutor med anpassad vinst)"},
+            {"clear_all_custom_profits", "Rensa alla anpassade vinster"},
+            {"clear_all_custom_profits_tooltip", "Rensa alla anpassade vinstvärden"},
+            {"tabs_settings", "Andra flikar"},
+            {"tabs_description", "Visa eller dölj andra flikar"},
+            {"tab_settings", "Flikinställningar"},
+            {"tab_settings_description", "Flikordning och beteende"},
+            {"enable_dashboard_tab", "Aktivera instrumentpanelsfliken"},
+            {"enable_dashboard_tab_tooltip", "Visa instrumentpanelsfliken"},
+            {"enable_items_tab", "Aktivera föremålsfliken"},
+            {"enable_items_tab_tooltip", "Visa föremålsfliken"},
+            {"enable_currencies_tab", "Aktivera valutafliken"},
+            {"enable_currencies_tab_tooltip", "Visa valutafliken"},
+            {"enable_ignored_tab", "Aktivera ignorerade-fliken"},
+            {"enable_ignored_tab_tooltip", "Visa fliken för ignorerade föremål"},
+            {"enable_session_history_tab", "Aktivera sessionshistorikfliken"},
+            {"enable_session_history_tab_tooltip", "Visa sessionshistorikfliken"},
+            {"enable_timeline_tab", "Aktivera tidslinjefliken"},
+            {"enable_timeline_tab_tooltip", "Visa tidslinjefliken med detaljerad dropp-historik"},
+            {"enable_loot_log_tab", "Aktivera Loot Log-fliken"},
+            {"enable_loot_log_tab_tooltip", "Visa Loot Log-fliken"},
+            {"enable_filter_tab", "Aktivera filterfliken"},
+            {"enable_filter_tab_tooltip", "Visa filterfliken"},
+            {"lock_tab_order", "Lås flikordning"},
+            {"lock_tab_order_tooltip", "Inaktivera omordning av flikar i huvudfönstret"},
+            {"enable_summaries_tab", "Aktivera sammanfattningsfliken"},
+            {"enable_summaries_tab_tooltip", "Visa fliken för dagliga/veckovisa/månatliga sammanfattningar i sessionshistorik"},
+            {"custom_profit_settings", "Anpassad vinst"},
+            {"total_profit_label_simple", "Total vinst"},
+            {"total_items_label_simple", "Totalt antal föremål"},
+            {"total_currencies_label_simple", "Totalt antal valutor"},
+            {"profit_per_hour_label_simple", "Vinst per timme"},
+            {"session_duration_label_simple", "Sessionstid"},
+            {"next_reset_label_simple", "Nästa återställning"},
+            {"export_label", "Exportera:"},
+            {"quick_actions", "Snabbåtgärder:"},
+            {"reset_confirm", "Är du säker på att du vill återställa alla inställningar till standard?"},
+            {"reset_warning", "Denna åtgärd kan inte ångras."},
+            {"hotkeys", "Snabbtangenter"},
+            {"mini_window_toggle_hotkey", "Växla minifönster snabbtangent"},
+            {"backup_restore", "Säkerhetskopiera & Återställ"},
+            {"appearance_settings", "Utseende"},
+            {"enable_tooltips", "Aktivera verktygstips"},
+            {"enable_tooltips_tooltip", "Visa verktygstips när du hovrar över UI-element"},
+            {"enable_grid_view_tooltip", "Visa objekt i rutnät istället för lista"},
+            {"favorites_first_tooltip", "Visa favoritobjekt högst upp i listan"},
+            {"group_by_rarity_tooltip", "Gruppera objekt efter deras sällsynthet"},
+            {"show_rarity_as_tabs_tooltip", "Visa varje sällsynthet som en separat flik"},
+            {"group_by_category_tooltip", "Gruppera objekt efter deras kategori"},
+            {"show_group_as_tabs_tooltip", "Visa varje kategori som en separat flik"},
+            {"mass_ignore_rarity_tooltip", "Ignorera alla objekt av denna sällsynthet"},
+            {"icons_borders", "Ikoner & Kanter"},
+            {"colors_gradients", "Färger & Gradienter"},
+            {"window_opacity", "Fönsteropacitet"},
+            {"windows_settings", "Fönster"},
+            {"advanced_settings", "Avancerat"},
+            {"export_settings", "Exportera inställningar till fil:"},
+            {"import_settings", "Importera inställningar från fil:"},
+            {"edit_account", "Redigera konto: %s"},
+            {"account_name", "Kontonamn:"},
+            {"gw2_api_key_label", "GW2 API-nyckel:"},
+            {"reload_config", "Ladda om konfiguration:"},
+            {"auto_reset_label", "Automatisk återställning:"},
+            {"next_reset_utc", "Nästa schemalagda återställning (UTC): %s"},
+            {"favorites_ui", "Favoriter UI:"},
+            {"favorites_colors", "Favoritfärger:"},
+            {"visual_enhancements", "Visuella förbättringar:"},
+            {"show_profit_sparkline", "Visa vinstlinjediagram"},
+            {"show_profit_sparkline_tooltip", "Visa ett litet linjediagram som visar vinst per timme-trend"},
+            {"mini_window_widget", "Minifönster (Overlay-widget):"},
+            {"main_window_label", "Huvudfönster:"},
+            {"profiles_description", "Profiler låter dig spara olika konfigurationer och snabbt växla mellan dem."},
+            {"create_new_profile", "Skapa Ny Profil:"},
+            {"create", "Skapa"},
+            {"create_tooltip", "Skapa a new profile with current settings"},
+            {"create_new_profile_tooltip", "Skapa a new profile with current settings"},
+            {"current_profile", "Aktuell profil: %s"},
+            {"auto_backup", "Säkerhetskopiera automatiskt dina inställningar innan större ändringar"},
+            {"notifications", "Konfigurera in-game-notifikationer för viktiga händelser"},
+            {"profit_goal", "Vinstmål:"},
+            {"reset_warning_label", "Återställningsvarning:"},
+            {"session_complete", "Session slutförd:"},
+            {"manage_ignored_items", "Hantera ignorerade föremål"},
+            {"manage_ignored_currencies", "Hantera ignorerade valutor"},
+            {"rarity_label", "Sällsynthet: %s"},
+            {"type_label", "Typ: %d"},
+            {"account_bound_label", "Kontobunden: %s"},
+            {"nosell_label", "NoSell: %s"},
+            {"item_id_label", "Föremåls-ID: %d"},
+            {"currency_id_label", "Valuta-ID: %d"},
+            {"context_menu_add_favorites", "Lägg till favoriter"},
+            {"context_menu_remove_favorites", "Ta bort från favoriter"},
+            {"context_menu_ignore", "Ignorera föremål"},
+            {"context_menu_unignore", "Ta bort från ignorerade"},
+            {"context_menu_copy_name", "Kopiera namn"},
+            {"context_menu_copy_id", "Kopiera ID"},
+            
+            // Summary Tab - Table Columns
+            {"count_format", "Antal: %lld"},
+            {"column_label", "Etikett"},
+            {"column_value", "Värde"},
+            {"column_item", "Föremål"},
+            {"column_count", "Antal"},
+            {"column_currency", "Valuta"},
+            {"column_favorite", "Favorit"},
+            {"column_icon", "Ikon"},
+            {"column_name", "Namn"},
+            {"column_profit", "Vinst"},
+            
+            // Summary Tab - Headers
+            {"top_items_profit_header", "Topp 5 Föremål efter Vinst"},
+            {"top_items_count_header", "Topp 5 Föremål (Antal)"},
+            {"top_currencies_count_header", "Topp 5 Valutor (Antal)"},
+            {"favorite_items_header", "Favoritföremål"},
+            {"currencies_header", "Valutor"},
+            {"items_header", "Föremål"},
+            
+            // Favorites Tab
+            {"unfavorite_item", "Avfavorisera"},
+            {"unfavorite_selected", "Avfavorisera markerade"},
+            {"no_favorites_yet", "Inga favoriter än. Högerklicka på ett föremål för att lägga till det."},
+            {"toggle_favorite_tooltip", "Växla favorit"},
+            
+            {"sell_method_filters_label", "Säljmetod-filter:"},
+            {"api_knowledge_filters_label", "API-kunskaps-filter:"},
+            {"additional_filters_label", "Ytterligare filter:"},
+            {"item_type_filters_label", "Föremålstyp-filter:"},
+            {"currency_filters_label", "Valuta-filter:"},
+            {"price_range", "Prisintervall (Koppar):"},
+            {"quantity_range", "Kvantitetsintervall:"},
+            {"debug_info", "Felsökningsinformation"},
+            {"drf_status", "DRF-status: %s"},
+            {"drf_reconnect_count", "DRF-återanslutningsantal: %d"},
+            {"gw2_api_status", "GW2 API-status: %s"},
+            {"gw2_api_reconnect_count", "GW2 API-återanslutningsantal: %d"},
+            {"session_duration_debug", "Sessionstid"},
+            {"gw2_memory", "GW2-processminne: %zu MB"},
+            {"gw2_api_request_count", "GW2 API-förfrågningsantal: %d"},
+            {"ignored_items_count", "Ignorerade föremål: %d"},
+            {"ignored_currencies_count", "Ignorerade valutor: %d"},
+            {"drf_logs", "DRF-loggar:"},
+            {"last_100_entries", "(Sista 100 posterna)"},
+            {"gw2_api_logs", "GW2 API-loggar:"},
+            {"item_currency_details", "Föremåls/Valuta-detaljer (Första 5):"},
+            {"item_label", "Föremål %d: %s (Antal: "},
+            {"loaded_label", ", Laddad: %s)"},
+            {"currency_label", "Valuta %d: %s (Antal: "},
+            {"custom_profit_items", "Föremål med anpassad vinst (Första 5):"},
+            {"custom_profit_item", "Föremål %d: %s (Anpassad vinst: "},
+            {"no_custom_profit_items", "(Inga föremål med anpassad vinst)"},
+            {"ignored_items_debug", "Ignorerade föremål (Första 5):"},
+            {"yes_label", "Ja"},
+            {"no_label", "Nej"},
+            {"profits_label", "Vinster:"},
+            {"profits_tooltip", "Totala vinster från farming"},
+            {"approx_profits_label", "Ungefärliga vinster:"},
+            {"approx_profits_tooltip", "Total vinst från MAX(Säljare, TP Sälj med 15% avgift) eller Anpassad vinst"},
+            {"approx_gold_per_hour_label", "Ungefärligt guld per timme:"},
+            {"approx_gold_per_hour_tooltip", "Vinst per timme baserat på sessionstid"},
+            {"trading_profits_label", "Handelsvinster:"},
+            {"trading_profits_tooltip", "Vinster från att sälja föremål på Trading Post"},
+            {"approx_trading_profits_listings_label", "Ungefärliga handelsvinster (Listningar):"},
+            {"approx_trading_profits_listings_tooltip", "Total vinst om såld via TP-listningar (15% avgift avdraget)"},
+            {"approx_trading_profits_instant_label", "Ungefärliga handelsvinster (Direktförsäljning):"},
+            {"approx_trading_profits_instant_tooltip", "Total vinst om såld via TP-direktköp (15% avgift avdraget)"},
+            {"trading_details_label", "Handelsdetaljer (Möjlighetskostnad):"},
+            {"trading_details_tooltip", "Vinst förlorad genom att inte sälja via TP-listningar"},
+            {"lost_profit_vs_tp_sell_label", "Förlorad vinst (vs TP Sälj):"},
+            {"lost_profit_vs_tp_sell_tooltip", "Möjlighetskostnad: Vinst förlorad genom att inte sälja via TP (med 15% avgift)"},
+            {"lost_profit_per_hour_vs_tp_sell_label", "Förlorad vinst per timme (vs TP Sälj):"},
+            {"lost_profit_per_hour_vs_tp_sell_tooltip", "Möjlighetskostnad per timme"},
+            {"session_duration_debug_label", "Sessionstid: %s"},
+            {"session_duration_debug_tooltip", "Aktuell farming-sessionstid"},
+            {"tab_items", "Föremål"},
+            {"manage_ignored_items", "Hantera ignorerade föremål"},
+            {"clear_all_ignored_items", "Rensa alla ignorerade föremål"},
+            {"unignore_item", "Avignorera föremål"},
+            {"manage_favorite_items", "Hantera favoritföremål"},
+            {"favorite_items_label", "Favoritföremål:"},
+            {"clear_all_favorite_items", "Rensa alla favoritföremål"},
+            {"tab_currencies", "Valutor"},
+            {"manage_ignored_currencies", "Hantera ignorerade valutor"},
+            {"clear_all_ignored_currencies", "Rensa alla ignorerade valutor"},
+            {"unignore_currency", "Avignorera valuta"},
+            {"manage_favorite_currencies", "Hantera favoritvalutor"},
+            {"favorite_currencies_label", "Favoritvalutor:"},
+            {"clear_all_favorite_currencies", "Rensa alla favoritvalutor"},
+            {"filter_active",   "Aktiv"},
+            {"filter_inactive", "Inaktiv"},
+            {"filter_all", "Alla"},
+            {"filter_none", "Ingen"},
+            {"filter_reset_all", "Återställ alla"},
+            {"filter_search_hint", "Sök filter..."},
+            {"filter_active_count", "%d filter aktiva"},
+            {"sell_method_filters_label", "Säljmetod-filter:"},
+            {"api_knowledge_filters_label", "API-kunskaps-filter:"},
+            {"additional_filters_label", "Ytterligare filter:"},
+            {"item_type_filters_label", "Föremålstyp-filter:"},
+            {"currency_filters_label", "Valuta-filter:"},
+            {"price_range", "Prisintervall (Koppar):"},
+            {"quantity_range", "Kvantitetsintervall:"},
+            {"debug_connection_status", "Anslutningsstatus"},
+            {"debug_session_snapshot", "Sessionsögonblicksbild"},
+            {"debug_profit_breakdown", "Vinstuppdelning"},
+            {"debug_data_state", "Datastatus"},
+            {"debug_logs", "Loggar"},
+            {"debug_favorites", "Favoriter"},
+            {"debug_total_session", "total denna session"},
+            {"debug_after_tp_fee", "efter 15% avgift"},
+            {"debug_direct_sell", "direktförsäljning"},
+            {"debug_rolling_avg", "rullande medelvärde"},
+            {"debug_vs_tp_sell", "vs TP sälj"},
+            {"debug_per_hour", "per timme"},
+            {"settings_api_key", "API-nyckel"},
+            {"settings_drf_token", "DRF Token"},
+            {"debug_information", "Felsökningsinformation"},
+            {"drf_status_label", "DRF-status: %s"},
+            {"drf_status_tooltip", "Aktuell DRF-anslutningsstatus"},
+            {"drf_reconnect_count_label", "DRF-återanslutningsantal: %d"},
+            {"drf_reconnect_count_tooltip", "Antal DRF-återanslutningsförsök"},
+            {"gw2_api_status_label", "GW2 API-status: %s"},
+            {"gw2_api_status_tooltip", "Aktuell GW2 API-anslutningsstatus"},
+            {"gw2_api_reconnect_count_label", "GW2 API-återanslutningsantal: %d"},
+            {"gw2_api_reconnect_count_tooltip", "Antal GW2 API-återanslutningsförsök"},
+            {"session_duration_debug", "Sessionstid"},
+            {"session_duration_debug_tooltip", "Aktuell farming-sessionstid"},
+            {"gw2_process_memory_label", "GW2-processminne"},
+            {"gw2_process_memory_tooltip", "Aktuell GW2-processminnesanvändning"},
+            {"gw2_api_request_count_label", "GW2 API-förfrågningsantal"},
+            {"gw2_api_request_count_tooltip", "Totalt antal GW2 API-förfrågningar gjorda"},
+            {"ignored_items_debug_label", "Ignorerade föremål: %d"},
+            {"ignored_items_debug_tooltip", "Antal ignorerade föremål"},
+            {"ignored_currencies_debug_label", "Ignorerade valutor: %d"},
+            {"ignored_currencies_debug_tooltip", "Antal ignorerade valutor"},
+            {"drf_logs_label", "DRF-loggar:"},
+            {"clear_drf_logs", "Rensa DRF-loggar"},
+            {"clear_drf_logs_tooltip", "Rensa alla DRF-loggposter"},
+            {"last_100_entries", "(Sista 100 posterna)"},
+            {"gw2_api_logs_label", "GW2 API-loggar:"},
+            {"clear_gw2_logs", "Rensa GW2-loggar"},
+            {"clear_gw2_logs_tooltip", "Rensa alla GW2 API-loggposter"},
+            {"settings_label", "Inställningar:"},
+            {"api_key_tooltip", "GW2 API-nyckelstatus"},
+            {"not_set", "Inte inställd"},
+            {"set", "Inställd"},
+            {"drf_token_tooltip", "DRF Token-status"},
+            {"toggle_hotkey_label", "Växla snabbtangent: %s"},
+            {"toggle_hotkey_tooltip", "Huvudfönstrets växla snabbtangent"},
+            {"auto_reset_mode_label", "Automatisk återställningsläge: %d"},
+            {"auto_reset_mode_tooltip", "Aktuellt automatiskt återställningsläge"},
+            {"next_reset_label", "Nästa återställning: %s"},
+            {"next_reset_tooltip", "Nästa schemalagda återställningstid (UTC)"},
+            {"fake_drf_server_label", "Falsk DRF-server:"},
+            {"use_fake_drf_server", "Använd falsk DRF-server"},
+            {"use_fake_drf_server_tooltip", "Endast för teständamål"},
+            {"reset_all_data", "Återställ all data"},
+            {"reset_all_data_tooltip", "Återställ all farming-data"},
+            {"coin", "Mynt"},
+            {"info_button", "Info"},
+            {"info_title", "FarmingTracker Info"},
+            {"info_text", "Hjälptext kommer att läggas till här senare..."},
+            {"close_button", "Stäng"},
+            {"rarity_label", "Sällsynthet: %s"},
+            {"type_label", "Typ: %d"},
+            {"account_bound_label", "Kontobunden: %s"},
+            {"nosell_label", "NoSell: %s"},
+            {"yes_label", "Ja"},
+            {"no_label", "Nej"},
+            {"sort_price_down", "Sortera: Föremålspris ner"},
+            {"sort_price_up", "Sortera: Föremålspris upp"},
+            {"sort_count_high", "Sortera: |Antal| högt"},
+            {"sort_count_low", "Sortera: |Antal| lågt"},
+            {"sort_name_az", "Sortera: Namn A–Ö"},
+            {"sort_name_za", "Sortera: Namn Ö–A"},
+            {"last_reset_label", "Återställ"},
+            {"last_reset_tooltip", "Tid sedan senaste återställning"},
+            {"custom_profit_edit_tooltip",    "Redigera vinstvärde"},
+            {"custom_profit_confirm_tooltip", "Spara ändringar"},
+            {"accent_color", "Accent Färg (Buttons, Fliks, UI)"}
+            {"accent_color_tooltip", "Accent color for buttons, tabs, and UI elements"}
+            {"account_management", "Konto Management"}
+            {"account_prefix", "Konto"}
+            {"actions", "Actions"}
+            {"add_account", "+ Lägg till Konto"}
+            {"api_key_invalid_format", "(Invalid Format: 9 Blocks required)"}
+            {"auto_reset_custom_days", "Anpassad (days)"}
+            {"auto_reset_daily", "Daily reset (00:00 UTC)"}
+            {"auto_reset_done_msg", "The tracker has been reset."}
+            {"auto_reset_done_title", "Återställ Complete"}
+            {"auto_reset_minutes_unload", "Minutes after last unload"}
+            {"auto_reset_never", "Never (manual Återställ only)"}
+            {"auto_reset_on_load", "På addon load"}
+            {"auto_reset_tooltip", "When to automatically reset farming counters"}
+            {"auto_reset_weekly", "Weekly (Mon 07:30 UTC)"}
+            {"auto_reset_weekly_eu_wvw", "Weekly EU WvW (Fri 18:00 UTC)"}
+            {"auto_reset_weekly_map_bonus", "Weekly map bonus (Thu 20:00 UTC)"}
+            {"auto_reset_weekly_na_wvw", "Weekly NA WvW (Sat 02:00 UTC)"}
+            {"automatic_backups", "Automatiskmatic Säkerhetskopias"}
+            {"backup", "Säkerhetskopia"}
+            {"backup_daily", "Daily"}
+            {"backup_frequency", "Säkerhetskopia frequency"}
+            {"backup_frequency_tooltip", "How often to create automatic backups"}
+            {"backup_manual_only", "Manuell only"}
+            {"backup_weekly", "Weekly"}
+            {"best_drop", "Bästa Drop"}
+            {"border_size", "Kant Storlek"}
+            {"border_size_tooltip", "Adjust the thickness of rarity borders (1.0 - 10.0)"}
+            {"bottom_gradient_color", "Bottom"}
+            {"bottom_gradient_color_tooltip", "Bottom gradient color"}
+            {"browse_for_file", "Browse for file..."}
+            {"cancel", "Avbryt"}
+            {"clear_all_custom_profits_warning", "Alla custom profit values will be deleted. This action cannot be undone."}
+            {"clear_compare_selection", "Rensa selection"}
+            {"column_ignore", "Ignore"}
+            {"column_item", "Item"}
+            {"currency_cat_fractal", "Fractals"}
+            {"currency_cat_janthir", "Janthir Wilds"}
+            {"currency_cat_common", "Common"}
+            {"currency_cat_map", "Map Valutor"}
+            {"currency_cat_other", "Other"}
+            {"currency_cat_pvp", "PvP"}
+            {"currency_cat_raid_strike", "Raids & Strikes"}
+            {"currency_cat_wvw", "WvW"}
+            {"currency_group_by_category", "Gruppera by category"}
+            {"currency_group_by_category_tooltip", "Gruppera currencies by category with collapsible sections or tabs"}
+            {"currency_show_as_tabs", "Visa as tabs"}
+            {"currency_show_as_tabs_tooltip", "Visa category groups as tabs instead of collapsible sections"}
+            {"currency_table_favorite_tooltip", "Lägg till/remove favorite. Favorites appear in the Favorites tab. Tip: Right-click the icon/name for more actions."}
+            {"currency_table_ignore_tooltip", "Lägg till/remove ignored. Ignored currencies appear in the Ignored tab. Tip: Right-click the icon/name for more actions."}
+            {"date", "Datum"}
+            {"debug_settings", "Felsökning Inställningar"}
+            {"default_no_profile", "Standard (Nej Profile)"}
+            {"delete_profile", "Ta bort Profile"}
+            {"delete_profile_tooltip", "Ta bort current profile"}
+            {"details", "Details"}
+            {"drops", "Drops"}
+            {"duration", "Varaktighet"}
+            {"enable_automatic_backups", "Aktivera automatic backups"}
+            {"enable_automatic_backups_tooltip", "Automatiskmatically create backups before changes"}
+            {"enable_best_drop_highlight", "Highlight Bästa Drop"}
+            {"enable_best_drop_highlight_tooltip", "Highlight the most valuable drop with a golden border in the Föremål tab"}
+            {"enable_best_drop_in_mini_window", "Visa Bästa Drop in Mini Fönster"}
+            {"enable_best_drop_in_mini_window_tooltip", "Visa the most valuable drop in the mini window overlay"}
+            {"enable_debug_tab", "Aktivera Felsökning Flik"}
+            {"enable_debug_tab_tooltip", "Visas the debug tab with additional information"}
+            {"enable_favorite_row_color", "Aktivera favorite row color"}
+            {"enable_favorite_row_color_tooltip", "Highlights favorite items/currencies with custom row background color"}
+            {"enable_favorite_text_color", "Aktivera favorite text color"}
+            {"enable_favorite_text_color_tooltip", "Highlights favorite items/currencies with custom text color"}
+            {"enable_favorites", "Aktivera Favorites"}
+            {"enable_favorites_tab", "Aktivera Favorites Flik"}
+            {"enable_favorites_tab_tooltip", "Visas a separate favorites tab"}
+            {"enable_grid_view_currencies", "Aktivera Grid View (Valutor)"}
+            {"enable_grid_view_currencies_tooltip", "Toggle between list and grid view in Valutor tab"}
+            {"enable_grid_view_items", "Aktivera Grid View (Föremål)"}
+            {"enable_grid_view_items_tooltip", "Toggle between list and grid view in Föremål tab"}
+            {"enable_icon_cache", "Aktivera Ikon Cache"}
+            {"enable_icon_cache_tooltip", "Cache item icons on disk to speed up loading after the first session"}
+            {"enable_notifications", "Aktivera notifications"}
+            {"enable_notifications_tooltip", "Aktivera in-game notifications"}
+            {"enable_session_history", "Aktivera Session Historik"}
+            {"enable_session_history_tooltip", "Spara farming session history for later viewing"}
+            {"enable_session_timeline", "Aktivera Session Tidslinje"}
+            {"enable_session_timeline_tooltip", "Spara detailed drop timeline with timestamps for session details"}
+            {"export_history", "Exportera Historik"}
+            {"export_history_tooltip", "Exportera session history to a JSON file"}
+            {"export_logs", "Exportera Logs"}
+            {"favorite_items_header", "Favorite Föremål"}
+            {"favorites_first", "Favorites First"}
+            {"favorites_first_tooltip", "Visas favorites first in item/currency lists"}
+            {"favorites_settings", "Favorites Inställningar"}
+            {"filter_account_bound", "Konto-bound"}
+            {"filter_account_bound_tooltip", "Visa account-bound items"}
+            {"filter_aether_rich_sap", "Aether-Rich Sap"}
+            {"filter_aether_rich_sap_tooltip", "Visa aether-rich sap currency"}
+            {"filter_airship_parts", "Airship Parts"}
+            {"filter_airship_parts_tooltip", "Visa airship parts currency"}
+            {"filter_ancient_coin", "Ancient Coin"}
+            {"filter_ancient_coin_tooltip", "Visa ancient coin currency"}
+            {"filter_antiquated_ducat", "Antiquated Ducat"}
+            {"filter_antiquated_ducat_tooltip", "Visa antiquated ducat currency"}
+            {"filter_ascended_shards_of_glory", "Ascended Shards of Glory"}
+            {"filter_ascended_shards_of_glory_tooltip", "Visa ascended shards of glory currency"}
+            {"filter_astral_acclaim", "Astral Acclaim"}
+            {"filter_astral_acclaim_tooltip", "Visa astral acclaim currency"}
+            {"filter_badge_of_honor", "Badge of Honor"}
+            {"filter_badge_of_honor_tooltip", "Visa badge of honor currency"}
+            {"filter_calcified_gasp", "Calcified Gasp"}
+            {"filter_calcified_gasp_tooltip", "Visa calcified gasp currency"}
+            {"filter_canach_coins", "Canach Coins"}
+            {"filter_canach_coins_tooltip", "Visa canach coins currency"}
+            {"filter_custom_profit", "Has custom profit"}
+            {"filter_custom_profit_tooltip", "Visa items with custom profit set"}
+            {"filter_elegy_mosaic", "Elegy Mosaic"}
+            {"filter_elegy_mosaic_tooltip", "Visa elegy mosaic currency"}
+            {"filter_favorite", "Favorite"}
+            {"filter_favorite_tooltip", "Visa favorite items (outside Favorites tab)"}
+            {"filter_fractal_relic", "Fractal Relic"}
+            {"filter_fractal_relic_tooltip", "Visa fractal relic currency"}
+            {"filter_gaeting_crystal_janthir", "Gaeting Crystal (Janthir)"}
+            {"filter_gaeting_crystal_janthir_tooltip", "Visa gaeting crystal (janthir) currency"}
+            {"filter_gaeting_crystals", "Gaeting Crystals"}
+            {"filter_gaeting_crystals_tooltip", "Visa gaeting crystals currency"}
+            {"filter_gem", "Gem"}
+            {"filter_gem_tooltip", "Visa gem currency"}
+            {"filter_geode", "Geode"}
+            {"filter_geode_tooltip", "Visa geode currency"}
+            {"filter_green_prophet_shards", "Green Prophet Shards"}
+            {"filter_green_prophet_shards_tooltip", "Visa green prophet shards currency"}
+            {"filter_guild_commendation", "Guild Commendation"}
+            {"filter_guild_commendation_tooltip", "Visa guild commendation currency"}
+            {"filter_ignored", "Ignored"}
+            {"filter_ignored_tooltip", "Visa ignored items"}
+            {"filter_imperial_favor", "Imperial Favor"}
+            {"filter_imperial_favor_tooltip", "Visa imperial favor currency"}
+            {"filter_items", "Filter Föremål"}
+            {"filter_jade_sliver", "Jade Sliver"}
+            {"filter_jade_sliver_tooltip", "Visa jade sliver currency"}
+            {"filter_karma_tooltip", "Visa karma currency"}
+            {"filter_known_by_api", "Known by API"}
+            {"filter_known_by_api_tooltip", "Visa items known by GW2 API"}
+            {"filter_laurel", "Laurel"}
+            {"filter_laurel_tooltip", "Visa laurel currency"}
+            {"filter_legendary_insight", "Legendary Insight"}
+            {"filter_legendary_insight_tooltip", "Visa legendary insight currency"}
+            {"filter_ley_line_crystals", "Ley-Line Crystals"}
+            {"filter_ley_line_crystals_tooltip", "Visa ley-line crystals currency"}
+            {"filter_magnetite_shards", "Magnetite Shards"}
+            {"filter_magnetite_shards_tooltip", "Visa magnetite shards currency"}
+            {"filter_max_price_tooltip", "Maximum price filter (0 = disabled)"}
+            {"filter_max_quantity_tooltip", "Maximum quantity filter (0 = disabled)"}
+            {"filter_min_price_tooltip", "Minimum price filter (0 = disabled)"}
+            {"filter_min_quantity_tooltip", "Minimum quantity filter (0 = disabled)"}
+            {"filter_nosell", "NejSell"}
+            {"filter_nosell_tooltip", "Visa NejSell items"}
+            {"filter_not_account_bound", "Nejt Konto-bound"}
+            {"filter_not_account_bound_tooltip", "Visa non-account-bound items"}
+            {"filter_not_favorite", "Nejt Favorite"}
+            {"filter_not_favorite_tooltip", "Visa items that are not marked as favorite"}
+            {"filter_not_ignored", "Nejt Ignored"}
+            {"filter_not_ignored_tooltip", "Visa non-ignored items"}
+            {"filter_not_nosell", "Nejt NejSell"}
+            {"filter_not_nosell_tooltip", "Visa sellable items"}
+            {"filter_pinch_of_stardust", "Pinch of Stardust"}
+            {"filter_pinch_of_stardust_tooltip", "Visa pinch of stardust currency"}
+            {"filter_pristine_fractal_relics", "Pristine Fractal Relics"}
+            {"filter_pristine_fractal_relics_tooltip", "Visa pristine fractal relics currency"}
+            {"filter_proofs_of_heroics", "Proofs of Heroics"}
+            {"filter_proofs_of_heroics_tooltip", "Visa proofs of heroics currency"}
+            {"filter_prophet_shards", "Prophet Shards"}
+            {"filter_prophet_shards_tooltip", "Visa prophet shards currency"}
+            {"filter_pvp_league_tickets", "PvP League Tickets"}
+            {"filter_pvp_league_tickets_tooltip", "Visa PvP league tickets currency"}
+            {"filter_rarity", "Filter Rarity"}
+            {"filter_research_notes", "Research Nejtes"}
+            {"filter_research_notes_tooltip", "Visa research notes currency"}
+            {"filter_sellable_on_tp", "Sellable on TP"}
+            {"filter_sellable_on_tp_tooltip", "Visa items sellable on Trading Post"}
+            {"filter_sellable_to_vendor", "Sellable to vendor"}
+            {"filter_sellable_to_vendor_tooltip", "Visa items sellable to vendor"}
+            {"filter_spirit_shards", "Spirit Shards"}
+            {"filter_spirit_shards_tooltip", "Visa spirit shards currency"}
+            {"filter_static_charge", "Static Charge"}
+            {"filter_static_charge_tooltip", "Visa static charge currency"}
+            {"filter_tales_of_dungeon_delving", "Tales of Dungeon Delving"}
+            {"filter_tales_of_dungeon_delving_tooltip", "Visa tales of dungeon delving currency"}
+            {"filter_testimony_of_castoran_heroics", "Testimony of Castoran Heroics"}
+            {"filter_testimony_of_castoran_heroics_tooltip", "Visa testimony of castoran heroics currency"}
+            {"filter_testimony_of_desert_heroics", "Testimony of Desert Heroics"}
+            {"filter_testimony_of_desert_heroics_tooltip", "Visa testimony of desert heroics currency"}
+            {"filter_testimony_of_jade_heroics", "Testimony of Jade Heroics"}
+            {"filter_testimony_of_jade_heroics_tooltip", "Visa testimony of jade heroics currency"}
+            {"filter_trade_contracts", "Trade Contracts"}
+            {"filter_trade_contracts_tooltip", "Visa trade contracts currency"}
+            {"filter_transmutation_charge", "Transmutation Charge"}
+            {"filter_transmutation_charge_tooltip", "Visa transmutation charge currency"}
+            {"filter_type_armor", "Armor"}
+            {"filter_type_armor_tooltip", "Visa armor items"}
+            {"filter_type_backpack", "Backpack"}
+            {"filter_type_backpack_tooltip", "Visa backpack items"}
+            {"filter_type_bag", "Bag"}
+            {"filter_type_bag_tooltip", "Visa bags"}
+            {"filter_type_consumable", "Consumable"}
+            {"filter_type_consumable_tooltip", "Visa consumable items"}
+            {"filter_type_container", "Container"}
+            {"filter_type_container_tooltip", "Visa containers"}
+            {"filter_type_crafting_material", "Crafting Material"}
+            {"filter_type_crafting_material_tooltip", "Visa crafting materials"}
+            {"filter_type_gathering_tool", "Gathering Tool"}
+            {"filter_type_gathering_tool_tooltip", "Visa gathering tools"}
+            {"filter_type_gizmo", "Gizmo"}
+            {"filter_type_gizmo_container", "Gizmo Container"}
+            {"filter_type_gizmo_container_tooltip", "Visa gizmo container items"}
+            {"filter_type_gizmo_tooltip", "Visa gizmo items"}
+            {"filter_type_mini_pet", "Mini Pet"}
+            {"filter_type_mini_pet_tooltip", "Visa mini pets"}
+            {"filter_type_tool", "Tool"}
+            {"filter_type_tool_tooltip", "Visa tool items"}
+            {"filter_type_trinket", "Trinket"}
+            {"filter_type_trinket_tooltip", "Visa trinket items"}
+            {"filter_type_trophy", "Trophy"}
+            {"filter_type_trophy_tooltip", "Visa trophy items"}
+            {"filter_type_unlock", "Lås upp"}
+            {"filter_type_unlock_tooltip", "Visa unlock items"}
+            {"filter_type_upgrade_component", "Upgrade Component"}
+            {"filter_type_upgrade_component_tooltip", "Visa upgrade components"}
+            {"filter_type_weapon", "Weapon"}
+            {"filter_type_weapon_tooltip", "Visa weapon items"}
+            {"filter_tyrian_defense_seal", "Tyrian Defense Seal"}
+            {"filter_tyrian_defense_seal_tooltip", "Visa tyrian defense seal currency"}
+            {"filter_unbound_magic", "Unbound Magic"}
+            {"filter_unbound_magic_tooltip", "Visa unbound magic currency"}
+            {"filter_uncommon_coins", "Uncommon Coins"}
+            {"filter_uncommon_coins_tooltip", "Visa uncommon coins currency"}
+            {"filter_unknown_by_api", "Unknown by API"}
+            {"filter_unknown_by_api_tooltip", "Visa items not known by GW2 API"}
+            {"filter_unstable_fractal_essence", "Unstable Fractal Essence"}
+            {"filter_unstable_fractal_essence_tooltip", "Visa unstable fractal essence currency"}
+            {"filter_unusual_coin", "Unusual Coin"}
+            {"filter_unusual_coin_tooltip", "Visa unusual coin currency"}
+            {"filter_ursus_oblige", "Ursus Oblige"}
+            {"filter_ursus_oblige_tooltip", "Visa ursus oblige currency"}
+            {"filter_volatile_magic", "Volatile Magic"}
+            {"filter_volatile_magic_tooltip", "Visa volatile magic currency"}
+            {"filter_wvw_skirmish_tickets", "WvW Skirmish Tickets"}
+            {"filter_wvw_skirmish_tickets_tooltip", "Visa WvW skirmish tickets currency"}
+            {"first_5_custom_profit", "First 5 items with custom profit set"}
+            {"first_5_custom_profit_tooltip", "First 5 items with custom profit set"}
+            {"first_5_ignored_items", "First 5 ignored items"}
+            {"first_5_ignored_items_tooltip", "First 5 ignored items"}
+            {"first_5_tracked_items", "First 5 tracked items and currencies with details"}
+            {"first_5_tracked_items_tooltip", "First 5 tracked items and currencies with details"}
+            {"full_backup", "Full Säkerhetskopia"}
+            {"full_backup_tooltip", "Säkerhetskopia all data (settings, session history, favorites, ignored items, custom profit) to a JSON file"}
+            {"full_restore", "Full Återställ"}
+            {"full_restore_tooltip", "Återställ all data from a backup JSON file"}
+            {"general_settings", "Allamänt Inställningar"}
+            {"gold_format", "Gold: %lld"}
+            {"gradient_backgrounds", "Gradient backgrounds"}
+            {"gradient_backgrounds_tooltip", "Aktiveras smooth gradient backgrounds for a more modern look"}
+            {"grid_icon_size_currencies", "Grid Ikon size (Valutor)"}
+            {"grid_icon_size_currencies_tooltip", "Storlek of icons in grid view for Valutor (16-128)"}
+            {"grid_icon_size_items", "Grid Ikon size (Föremål)"}
+            {"grid_icon_size_items_tooltip", "Storlek of icons in grid view for Föremål (16-128)"}
+            {"group_by_rarity", "Gruppera by Rarity"}
+            {"group_by_type", "Gruppera by Category"}
+            {"icon_cache_max_icons", "Max Cached Ikons"}
+            {"icon_cache_max_icons_tooltip", "Maximum number of icons to keep in cache (older icons are deleted when limit is reached)"}
+            {"icon_size", "Ikon size"}
+            {"icon_size_tooltip", "Storlek of item icons in pixels (16-96)"}
+            {"import", "Importera"}
+            {"import_history", "Importera Historik"}
+            {"import_history_tooltip", "Importera session history from a JSON file"}
+            {"import_tooltip", "Importera settings from a JSON file"}
+            {"infusion_drop_label", "Infusion Drop!"}
+            {"item", "Item"}
+            {"items_header", "Föremål"}
+            {"magic_find_abbreviation", "MF: %d%%"}
+            {"main_window_click_through", "Click through"}
+            {"main_window_click_through_tooltip", "Allaows clicking through the main window to the game"}
+            {"main_window_opacity", "Main Fönster Transparency"}
+            {"main_window_opacity_tooltip", "Main window background transparency (0-100%)"}
+            {"main_window_settings", "Main Fönster"}
+            {"map", "Map"}
+            {"mass_actions_clear_ignore", "Rensa ignore list"}
+            {"mass_actions_ignore_ascended", "Ignore all Ascended items"}
+            {"mass_actions_ignore_basic", "Ignore all Basic items"}
+            {"mass_actions_ignore_exotic", "Ignore all Exotic items"}
+            {"mass_actions_ignore_fine", "Ignore all Fine items"}
+            {"mass_actions_ignore_junk", "Ignore all Junk items"}
+            {"mass_actions_ignore_legendary", "Ignore all Legendary items"}
+            {"mass_actions_ignore_masterwork", "Ignore all Masterwork items"}
+            {"mass_actions_ignore_rare", "Ignore all Rare items"}
+            {"mass_actions_label", "Mass Actions"}
+            {"max_backup_count", "Max backup count"}
+            {"max_backup_count_tooltip", "Maximum number of backups to keep (1-20)"}
+            {"max_backups", "Max Säkerhetskopias"}
+            {"max_backups_tooltip", "Maximum number of backups to keep (1-20)"}
+            {"max_session_history", "Max Sessions"}
+            {"max_session_history_tooltip", "Maximum number of sessions to save (1-50). Oldest session is deleted when limit is reached if overwrite is enabled."}
+            {"min_value", "Min Värde"}
+            {"mini_window_click_through", "Fönster click through"}
+            {"mini_window_click_through_tooltip", "Allaows clicking through the mini window to the game"}
+            {"mini_window_hide_title_bar", "Dölj Mini Fönster Title Bar"}
+            {"mini_window_hide_title_bar_tooltip", "Dölj the title bar of the mini window"}
+            {"mini_window_locked", "Lås Mini Fönster"}
+            {"mini_window_locked_tooltip", "Fix the mini window position and size (no longer movable or resizable)"}
+            {"mini_window_opacity", "Mini Fönster Transparency"}
+            {"mini_window_opacity_tooltip", "Mini window background transparency (0-100%)"}
+            {"mini_window_show_profit", "Visa Vinst"}
+            {"mini_window_show_profit_per_hour", "Visa Vinst/Hour"}
+            {"mini_window_show_profit_per_hour_tooltip", "Display profit per hour in mini window"}
+            {"mini_window_show_profit_tooltip", "Display total profit in mini window"}
+            {"mini_window_show_session_duration", "Visa Session Varaktighet"}
+            {"mini_window_show_session_duration_tooltip", "Display session duration in mini window"}
+            {"mini_window_show_total_items", "Visa Totalt Föremål"}
+            {"mini_window_show_total_items_tooltip", "Display total item count in mini window"}
+            {"mini_window_show_tp_instant", "Visa TP Instant (Instant Sell)"}
+            {"mini_window_show_tp_instant_tooltip", "Display TP instant sell profit in mini window"}
+            {"mini_window_show_tp_sell", "Visa TP Sell (Listings)"}
+            {"mini_window_show_tp_sell_tooltip", "Display TP sell profit (listings) in mini window"}
+            {"minutes_after_unload_tooltip", "Minutes after addon unload before automatic reset"}
+            {"no_cancel", "Nej, Avbryt"}
+            {"no_items_in_session", "Nej items in this session"}
+            {"no_sessions_recorded", "Nej sessions recorded yet."}
+            {"notification_combine_logic", "Combine Filters (AND)"}
+            {"notification_combine_logic_tooltip", "If enabled, BOTH conditions (Värde AND Rarity) must be met. If disabled, ANY one of them is enough."}
+            {"notification_duration", "Display Varaktighet"}
+            {"notification_duration_tooltip", "How long the notification stays visible (seconds)"}
+            {"notification_general", "Allamänt Inställningar"}
+            {"notification_include_agony", "Include Agony Infusions"}
+            {"notification_include_agony_tooltip", "If enabled, Agony Infusions (+1 to +30) will also trigger an alert."}
+            {"notification_include_non_profit", "Include Nejn-Vinst Föremål"}
+            {"notification_include_non_profit_tooltip", "If enabled, items with no gold value (0c) will also trigger alerts if they meet the rarity requirement."}
+            {"notification_infusion_alert", "Infusion Alert"}
+            {"notification_infusion_alert_tooltip", "Always notify when an Infusion is found (ignores Värde/Rarity filters)"}
+            {"notification_item_alerts", "Item Alerts"}
+            {"notification_min_rarity", "Min. Rarity"}
+            {"notification_min_rarity_tooltip", "Trigger notification if item rarity is at least this level"}
+            {"notification_min_value", "Min. Värde (Gold)"}
+            {"notification_min_value_tooltip", "Trigger notification if item value is at least this amount"}
+            {"notification_play_sound", "Spela upp Ljud"}
+            {"notification_play_sound_tooltip", "Spela upp a sound effect when a notification appears"}
+            {"notification_precursor_alert", "Pre-Cursor Alert"}
+            {"notification_precursor_alert_tooltip", "Always notify when a Pre-Cursor is found (ignores Värde/Rarity filters)"}
+            {"notification_session_alerts", "Progress & Tid"}
+            {"notification_settings", "Avisering Inställningar"}
+            {"notification_setup_hint", "[Drag to reposition notifications]"}
+            {"notification_stacking", "Stack Aviserings"}
+            {"notification_stacking_tooltip", "Visa multiple notifications at once instead of replacing the old one immediately"}
+            {"notification_triggers", "Avisering Triggers"}
+            {"notification_volume", "Master Volym"}
+            {"notification_volume_tooltip", "Volym for notification sounds"}
+            {"notify_profit_goal", "Nejtify when profit goal reached"}
+            {"notify_profit_goal_tooltip", "Nejtify when you reach your profit goal"}
+            {"notify_reset_warning", "Nejtify before reset"}
+            {"notify_reset_warning_tooltip", "Nejtify before automatic reset occurs"}
+            {"notify_session_complete", "Nejtify after session duration"}
+            {"notify_session_complete_tooltip", "Nejtify after farming for a certain duration"}
+            {"opportunity_cost_per_hour", "Opportunity cost per hour"}
+            {"opportunity_cost_per_hour_tooltip", "Opportunity cost per hour"}
+            {"opportunity_cost_vs_tp_sell", "Opportunity cost vs TP sell"}
+            {"opportunity_cost_vs_tp_sell_tooltip", "Opportunity cost vs TP sell"}
+            {"overwrite_session_history", "Overwrite Sessions"}
+            {"overwrite_session_history_tooltip", "If enabled, oldest session is deleted when limit is reached"}
+            {"performance_settings", "Performance Inställningar"}
+            {"precursor_drop_label", "Pre-Cursor Drop!"}
+            {"profit_change", "Vinst Change"}
+            {"profit_goal_amount", "Goal Amount (Gold)"}
+            {"profit_goal_gold", "Vinst goal (gold)"}
+            {"profit_goal_gold_tooltip", "Vinst goal in gold coins (1-1000)"}
+            {"profit_goal_reached_msg", "You have reached your profit goal of %d gold!"}
+            {"profit_goal_reached_title", "Vinst Goal Reached"}
+            {"profit_per_hour_calculation", "Vinst per hour calculation"}
+            {"profit_per_hour_calculation_tooltip", "Vinst per hour calculation"}
+            {"quantity", "Quantity"}
+            {"range_filters_tooltip", "Visa price and quantity range filters"}
+            {"rare_drop_label", "Rare Drop!"}
+            {"rarity_border_thickness", "Rarity Kant Thickness"}
+            {"rarity_border_thickness_tooltip", "Adjust the thickness of rarity borders (1.0 - 10.0)"}
+            {"rarity_name_ascended", "Ascended"}
+            {"rarity_name_basic", "Basic"}
+            {"rarity_name_exotic", "Exotic"}
+            {"rarity_name_fine", "Fine"}
+            {"rarity_name_junk", "Junk"}
+            {"rarity_name_legendary", "Legendary"}
+            {"rarity_name_masterwork", "Masterwork"}
+            {"rarity_name_rare", "Rare"}
+            {"rarity_name_unknown", "Unknown"}
+            {"reconnect_drf_token", "Reconnect to DRF with the current token"}
+            {"reload_drf_token", "Reload DRF Token"}
+            {"reload_gw2_api_key", "Reload GW2 API Key"}
+            {"reload_gw2_api_key_tooltip", "Reload GW2 API key for item data fetching"}
+            {"remove_account", "- Ta bort Konto"}
+            {"reset_all", "Återställ Alla"}
+            {"reset_all_tooltip", "Återställ all settings to default values"}
+            {"reset_interval_days", "Återställ interval (days)"}
+            {"reset_interval_days_tooltip", "Anpassad reset interval in days (1-30 days)"}
+            {"reset_settings", "Automatisk Återställ"}
+            {"reset_warning_minutes", "Återställ Varning (Minutes)"}
+            {"reset_warning_minutes_tooltip", "Minutes before reset to show warning (1-60)"}
+            {"reset_warning_msg", "The tracker will reset in %d minutes!"}
+            {"reset_warning_title", "Återställ Varning"}
+            {"restore", "Återställ"}
+            {"row_color", "Row Färg"}
+            {"save", "Spara"}
+            {"save_account", "Spara Konto"}
+            {"save_all_items_confirm", "Aktivera session timeline?"}
+            {"save_all_items_warning", "This will significantly increase file size!"}
+            {"save_current_session", "Spara Current Session"}
+            {"save_current_session_tooltip", "Spara the current farming session without resetting"}
+            {"save_tooltip", "Spara current settings"}
+            {"search_favorite_currencies_hint", "Sök favorite currencies..."}
+            {"search_favorite_items_hint", "Sök favorite items..."}
+            {"search_items", "Sök Föremål"}
+            {"search_items_hint", "Sök items..."}
+            {"select_profile", "Välj a profile to apply its settings"}
+            {"select_profile_tooltip", "Välj a profile to apply its settings"}
+            {"session_complete_hours", "Session Complete (Hours)"}
+            {"session_complete_hours_tooltip", "Hours of farming before notification (1-24)"}
+            {"session_complete_msg", "You have been farming for %d hours!"}
+            {"session_complete_title", "Session Complete"}
+            {"session_count", "Session Antal"}
+            {"session_details", "Session Details"}
+            {"session_history", "Session Historik"}
+            {"session_hours", "Session hours"}
+            {"session_hours_tooltip", "Hours of farming before notification (1-24)"}
+            {"session_note", "Nejte"}
+            {"session_profit_trend", "Vinst Trend"}
+            {"session_search_hint", "Sök sessions, items, notes..."}
+            {"sessions_selected", "sessions selected"}
+            {"sessions_stored", "Sessions Stored"}
+            {"settings_profiles", "Inställningar Profiles"}
+            {"show_ignored_items", "Visa ignored items"}
+            {"show_ignored_items_tooltip", "Visa ignored items/currencies in Föremål and Valutor tabs (disable to hide). Difference from 'Ignored' filter: This filter controls display in Föremål/Valutor tabs, the 'Ignored' filter controls display in Filter tab."}
+            {"show_main_window", "Visa main window"}
+            {"show_mini_window", "Visa mini window"}
+            {"show_mini_window_tooltip", "Visas a small overlay widget with key statistics"}
+            {"show_notification_setup", "Setup Mode (Positioning)"}
+            {"show_notification_setup_tooltip", "Makes the notification window visible so you can move it"}
+            {"show_rarity_as_tabs", "Visa as Fliks"}
+            {"show_summaries", "Visa Summaries"}
+            {"show_summaries_tooltip", "Visa daily/weekly/monthly profit summaries"}
+            {"show_type_as_tabs", "Visa as Fliks"}
+            {"showing", "Visaing"}
+            {"sort_profit_high", "Sortera: Vinst high"}
+            {"sort_profit_low", "Sortera: Vinst low"}
+            {"sort_rarity_high", "Sortera: Rarity high to low"}
+            {"sort_rarity_low", "Sortera: Rarity low to high"}
+            {"sound_alert", "Alert Ljud"}
+            {"sound_infusion", "Infusion Ljud"}
+            {"sound_path_hint", "Path to sound file (empty = default)"}
+            {"sound_precursor", "Pre-Cursor Ljud"}
+            {"sound_standard", "Standard Ljud"}
+            {"sound_test", "Test"}
+            {"stat_avg_profit_per_hour", "Avg Vinst/h"}
+            {"stat_best_session", "Bästa Session"}
+            {"stat_total_profit", "Totalt Vinst"}
+            {"stat_total_time", "Totalt Tid"}
+            {"summaries_coming_soon", "Summaries feature coming soon..."}
+            {"summaries_label", "Summaries"}
+            {"summaries_tooltip", "Daily/Weekly/Monthly profit summaries"}
+            {"summary_period", "Period:"}
+            {"summary_this_month", "This Month"}
+            {"summary_this_week", "This Week"}
+            {"summary_today", "Today"}
+            {"tab_session_history", "Session Historik"}
+            {"tab_sessions", "Sessions"}
+            {"tab_summaries", "Summaries"}
+            {"test_item_label", "Test Item"}
+            {"text_color", "Text Färg"}
+            {"time", "Tid"}
+            {"time_ago_seconds", "%llds ago"}
+            {"timeline_icon_size_currencies", "Tidslinje Ikon Storlek (Valutor)"}
+            {"timeline_icon_size_currencies_tooltip", "Storlek of currency icons in Tidslinje tab (16-48)"}
+            {"timeline_icon_size_items", "Tidslinje Ikon Storlek (Föremål)"}
+            {"timeline_icon_size_items_tooltip", "Storlek of item icons in Tidslinje tab (16-96)"}
+            {"toggle_favorite", "Toggle favorite"}
+            {"toggle_favorite_tooltip", "Toggle favorite"}
+            {"toggle_ignore", "Toggle ignore"}
+            {"toggle_ignore_tooltip", "Toggle ignore"}
+            {"top_currencies_count_header", "Topp 5 Valutor (Antal)"}
+            {"top_currencies_count_tooltip", "Topp 5 currencies by count"}
+            {"top_drops", "Topp Drops"}
+            {"top_gradient_color", "Topp"}
+            {"top_gradient_color_tooltip", "Topp gradient color"}
+            {"top_items_count_header", "Topp 5 Föremål (Antal)"}
+            {"top_items_profit_header", "Topp 5 Föremål by Vinst"}
+            {"total_custom_profit", "Totalt custom profit"}
+            {"total_custom_profit_tooltip", "Totalt custom profit"}
+            {"total_drops", "Totalt Drops"}
+            {"total_duration", "Totalt Varaktighet"}
+            {"comparison_previous_period", "Jämförelse med föregående period:"}
+            {"profit_change", "Vinstförändring"}
+            {"clear_history", "Rensa Historik"}
+            {"clear_history_confirm", "Rensa all session history?"}
+            {"clear_history_tooltip", "Ta bort all saved session history"}
+            {"clear_history_warning", "This action cannot be undone!"}
+            {"clear_search", "Rensa"}
+            {"clear_search_favorites", "Rensa"}
+            {"clear_search_tooltip", "Rensas the current search"}
+            {"session_count", "Session Antal"}
+            {"total_tp_sell_profit", "Totalt TP sell profit"}
+            {"total_tp_sell_profit_tooltip", "Totalt TP sell profit"}
+            {"total_tracked_currencies", "Totalt number of tracked currencies"}
+            {"total_tracked_currencies_tooltip", "Totalt number of tracked currencies"}
+            {"total_tracked_items", "Totalt number of tracked items"}
+            {"total_tracked_items_tooltip", "Totalt number of tracked items"}
+            {"total_vendor_sell_profit", "Totalt vendor sell profit"}
+            {"total_vendor_sell_profit_tooltip", "Totalt vendor sell profit"}
+            {"tp_buy_gross_format", "TP Buy (Gross): %s"}
+            {"tp_buy_net_format", "TP Buy (Net): %s"}
+            {"tp_sell_gross_format", "TP Sell (Gross): %s"}
+            {"tp_sell_net_format", "TP Sell (Net): %s"}
+            {"trigger_drops", "Item Drops"}
+            {"trigger_profit_goal", "Vinst Goal"}
+            {"trigger_time_reset", "Tid & Återställ"}
+            {"type_backpack", "Backpack"}
+            {"type_gizmo_container", "Gizmo Container"}
+            {"type_tool", "Tool"}
+            {"type_trophy", "Trophy"}
+            {"type_unlock", "Lås upp"}
+            {"type_upgrade_component", "Upgrade Component"}
+            {"unknown_map", "Unknown"}
+            {"update_profile", "Uppdatera Profile"}
+            {"update_profile_tooltip", "Uppdatera current profile with current settings"}
+            {"value", "Värde"}
+            {"vendor_value_format", "Vendor Värde: %s"}
+            {"visual_settings", "Visual Inställningar"}
+            {"warning_minutes", "Varning minutes"}
+            {"warning_minutes_tooltip", "Minutes before reset to show warning (1-60)"}
+            {"yes_clear", "Ja, Rensa"}
+            {"yes_enable", "Ja, Aktivera"}
+            {"yes_reset", "Ja, Återställ"},
+
+            // Drops Tab
+            {"settings_tab", "Inställningar"},
+        
+            // Missing keys from English
+            {"backup_path_default_tooltip", "Default: addon directory"}
+            {"backup_path_label", "Backup folder:"}
+            {"browse_for_folder_tooltip", "Browse for folder"}
+            {"current_or_last_recorded", "Current or last recorded"}
+            {"custom_profit_import_tooltip", "Loads custom_profit_import.json from the addon folder"}
+            {"disable_complex_visuals", "Disable Complex Visuals on Low Performance"}
+            {"disable_complex_visuals_tooltip", "Disables rarity borders, sparklines and other visual effects to improve performance"}
+            {"efficiency_score_desc_short", "instant vs. listing"}
+            {"enable_drops_tab", "Enable Drops Tab"}
+            {"enable_drops_tab_tooltip", "Show the Drops tab"}
+            {"entries_label", "entries"}
+            {"open_folder_tooltip", "Open folder in Explorer"}
+};
+        return translations;
+    }
+}

@@ -1,0 +1,1291 @@
+// ---------------------------------------------------------------------------
+// localization_ro.cpp – Romanian translations for Farming Tracker
+// ---------------------------------------------------------------------------
+
+#include "localization.h"
+#include <unordered_map>
+
+namespace Localization
+{
+    const std::unordered_map<std::string, const char*> GetRomanianTranslations()
+    {
+        static const std::unordered_map<std::string, const char*> translations = {
+            // Status texts
+            {"status_disconnected", "Deconectat"},
+            {"status_connecting", "Se conectează..."},
+            {"status_connected", "Conectat"},
+            {"status_auth_failed", "Autentificare eșuată – verificați token-ul"},
+            {"status_reconnecting", "Se reconectează..."},
+            {"status_error", "Eroare"},
+            {"status_unknown", "Necunoscut"},
+
+            // Mini Window
+            {"mini_window_title", "Farming Tracker Mini"},
+            {"profit", "Profit"},
+            {"profit_per_hour", "Profit/oră"},
+            {"tp_sell", "TP Vânzare"},
+            {"tp_instant", "TP Instant"},
+            {"total_items", "Total obiecte"},
+            {"session", "Sesiune"},
+
+            // Main Window
+            {"main_window_title", "Farming Tracker"},
+            {"drf_label", "DRF"},
+            {"gw2_api_label", "GW2 API"},
+            {"session_time_label", "Timp sesiune"},
+            {"reset_button", "Resetare"},
+            {"reset_tooltip", "Resetează toate contoarele de farming (resetare manuală)"},
+
+            // Tabs
+            {"tab_summary", "Dashboard"},
+            {"tab_drops", "Drops"},
+            {"tab_loot_filter", "Loot Filter"},
+            {"tab_items", "Obiecte"},
+            {"tab_currencies", "Monede"},
+            {"tab_dashboard", "Panou de control"},
+            {"tab_favorites", "Favorite"},
+            {"tab_ignored", "Ignorate"},
+            {"tab_timeline", "Cronologie"},
+            {"timeline_profit_hour_listings", "Profituri aproximative de tranzacționare pe oră (Listări)"},
+            {"timeline_profit_hour_instant", "Profituri aproximative de tranzacționare pe oră (Vânzare instantanee)"},
+            {"timeline_no_drops", "Nicio drop înregistrată în această sesiune încă."},
+            {"timeline_item_drops", "Drop-uri de obiecte"},
+            {"timeline_currencies", "Monede"},
+            {"tab_filter", "Filtru"},
+            {"tab_custom_profit", "Profit personalizat"},
+            {"tab_debug", "Debug"},
+
+            // Summary Tab
+            {"warning_drf_not_connected", "⚠️ DRF nu este conectat"},
+            {"warning_drf_not_connected_desc", "Acest plugin necesită DRF pentru transmiterea datelor."},
+            {"warning_drf_install", "Instalați DRF via Nexus Addon Manager sau https://drf.rs/"},
+            {"warning_drf_token_invalid", "⚠️ Token DRF invalid"},
+            {"warning_drf_token_invalid_desc", "Verificați Token-ul DRF în Setări."},
+            {"warning_gw2_api_key_not_set", "⚠️ Cheia GW2 API nu este setată"},
+            {"warning_gw2_api_key_not_set_desc", "Setați cheia GW2 API în Setări pentru detalii despre obiecte."},
+            {"gold", "Aur"},
+            {"silver", "Argint"},
+            {"copper", "Cupru"},
+            {"total_profit", "Profit total"},
+            {"total_profit_tooltip", "Profit personalizat total din toate obiectele"},
+            {"total_items_count", "Total obiecte"},
+            {"total_items_tooltip", "Numărul total de obiecte unice urmărite"},
+            {"total_currencies", "Total monede"},
+            {"total_currencies_tooltip", "Numărul total de monede unice urmărite"},
+            {"profit_per_hour_label", "Profit pe oră"},
+            {"profit_per_hour_tooltip", "Profit pe oră bazat pe durata sesiunii"},
+            {"magic_find", "Magic Find"},
+            {"magic_find_tooltip", "Magic Find curent sau înregistrat ultima dată de la DRF"},
+            {"session_duration", "Durata sesiunii"},
+            {"session_duration_tooltip", "Durata sesiunii curente de farming"},
+            {"date_tooltip", "Timpul de început al sesiunii"},
+            {"duration_tooltip", "Durata sesiunii"},
+            {"profit_tooltip", "Profit total al sesiunii"},
+            {"profit_per_hour_tooltip", "Profit pe oră"},
+            {"drops_tooltip", "Număr de drop-uri"},
+            {"best_drop_tooltip", "Drop-ul cel mai valoros al sesiunii"},
+            {"top_items_profit", "Top obiecte (Profit)"},
+            {"top_items_profit_tooltip", "Top 5 obiecte după valoarea profitului"},
+            {"loading", "Se încarcă..."},
+            {"coin", "Monedă"},
+            {"top_items_count", "Top obiecte (Număr)"},
+            {"top_items_count_tooltip", "Top 5 obiecte după număr"},
+            {"top_currencies", "Top monede"},
+            {"top_currencies_tooltip", "Top 5 monede după număr"},
+            {"quick_statistics", "Statistici rapide"},
+            {"quick_statistics_tooltip", "Prezentare generală a statisticilor de farming"},
+            {"average_item_value", "Valoarea medie a obiectelor"},
+            {"average_item_value_na", "N/A"},
+            {"total_unique_items", "Total obiecte unice"},
+            {"warning_no_data", "⚠️ Nicio dată încărcată"},
+            {"warning_no_data_desc", "Așteptând date DRF..."},
+            {"export", "Export"},
+            {"export_tooltip", "Export datele de farming în fișier"},
+            {"export_json", "Export ca JSON"},
+            {"export_csv", "Export ca CSV"},
+            {"import_json", "Import din JSON"},
+
+            // Items Tab
+            {"search_hint", "Căutați obiecte..."},
+            {"clear", "Șterge"},
+            {"sort_count_high", "Sortare: |Număr| mare"},
+            {"sort_count_low", "Sortare: |Număr| mic"},
+            {"sort_id_up", "Sortare: ID obiect crescător"},
+            {"sort_id_down", "Sortare: ID obiect descrescător"},
+            {"sort_name_az", "Sortare: Nume A–Z"},
+            {"sort_tooltip", "Sortați obiecte după număr, ID sau nume"},
+            {"rarity_all", "Raritate: toate"},
+            {"rarity_basic", "Raritate: Basic+"},
+            {"rarity_fine", "Raritate: Fine+"},
+            {"rarity_masterwork", "Raritate: Masterwork+"},
+            {"rarity_rare", "Raritate: Rare+"},
+            {"rarity_exotic", "Raritate: Exotic+"},
+            {"rarity_ascended", "Raritate: Ascended+"},
+            {"rarity_legendary", "Raritate: Doar Legendary"},
+            {"rarity_tooltip", "Filtrare obiecte după raritate minimă"},
+            {"rarity", "Raritate"},
+            {"type", "Tip"},
+            {"vendor_value", "Valoare vânzător"},
+            {"tp_buy_net", "TP Cumpărare (Net)"},
+            {"account_bound", "Legat de cont"},
+            {"yes", "Da"},
+            {"no", "Nu"},
+            {"nosell", "NoSell"},
+            {"favorite", "Favorit"},
+            {"ignore", "Ignoră"},
+
+            // Currencies Tab
+            {"search_currencies_hint", "Căutați monede..."},
+            {"api_id", "ID API"},
+            {"currency_name", "Nume monedă"},
+            {"count", "Număr"},
+
+            // Favorites Tab
+            {"unfavorite_item", "Elimină din favorite"},
+            {"unfavorite_selected", "Elimină selectatele din favorite"},
+            {"no_favorites_yet", "Niciun favorit încă. Faceți clic dreapta pe un obiect pentru a-l adăuga."},
+            {"toggle_favorite_tooltip", "Comutare favorit"},
+            {"profits", "Profituri"},
+            {"profits_tooltip", "Profituri totale din farming"},
+            {"approx_profits", "Profituri aproximative"},
+            {"approx_gold_per_hour", "Aur aproximativ pe oră"},
+            {"trading_profits", "Profituri de tranzacționare"},
+
+            // Profit Tab
+            {"profits", "Profituri"},
+            {"profits_tooltip", "Profituri totale din farming"},
+            {"approx_profits", "Profituri aproximative"},
+            {"approx_gold_per_hour", "Aur aproximativ pe oră"},
+            {"trading_profits", "Profituri de tranzacționare"},
+            {"trading_profits_tooltip", "Profituri din Trading Post"},
+            {"approx_trading_profits_listings", "Profituri aproximative de tranzacționare (Listări)"},
+            {"approx_trading_profits_instant", "Profituri aproximative de tranzacționare (Vânzare instantanee)"},
+            {"trading_details", "Detalii tranzacționare (Cost de oportunitate)"},
+            {"trading_details_tooltip", "Cost de oportunitate pentru utilizarea obiectelor în loc de vânzare"},
+            {"lost_profit_vs_tp_sell", "Profit pierdut (vs TP Vânzare)"},
+            {"lost_profit_per_hour_vs_tp_sell", "Profit pierdut pe oră (vs TP Vânzare)"},
+            {"efficiency_score", "Scor eficiență"},
+            {"efficiency_score_label", "Scor eficiență:"},
+            {"efficiency_score_tooltip", "Cât din profitul maxim posibil ați realizat (Vânzare instantanee vs. TP Listări)."},
+            {"efficiency_score_desc", "Ați realizat %.1f%% din profitul maxim!"},
+            {"session_duration_label", "Durata sesiunii"},
+            {"session_duration_tooltip", "Durata sesiunii curente de farming"},
+
+            // Filter Tab
+            {"sell_method_filters", "Filtre metodă vânzare"},
+            {"sellable_to_vendor", "Vândabil la vânzător"},
+            {"sellable_to_vendor_tooltip", "Afișează obiecte vândabile la vânzător"},
+            {"sellable_on_tp", "Vândabil pe TP"},
+            {"sellable_on_tp_tooltip", "Afișează obiecte vândabile pe Trading Post"},
+            {"has_custom_profit", "Are profit personalizat"},
+            {"has_custom_profit_tooltip", "Afișează obiecte cu valori de profit personalizate"},
+            {"api_knowledge_filters", "Filtre cunoștințe API"},
+            {"known_by_api", "Cunoscut de API"},
+            {"known_by_api_tooltip", "Afișează obiecte cunoscute de GW2 API"},
+            {"unknown_by_api", "Necunoscut de API"},
+            {"unknown_by_api_tooltip", "Afișează obiecte necunoscute de GW2 API"},
+            {"item_type_filters", "Filtre tip obiect"},
+            {"type_armor", "Armură"},
+            {"type_armor_tooltip", "Afișează obiecte de armură"},
+            {"type_weapon", "Armă"},
+            {"type_weapon_tooltip", "Afișează obiecte de armă"},
+            {"type_trinket", "Bijuterie"},
+            {"type_trinket_tooltip", "Afișează obiecte de bijuterie"},
+            {"type_gizmo", "Gizmo"},
+            {"type_gizmo_tooltip", "Afișează obiecte gizmo"},
+            {"type_crafting_material", "Material de crafting"},
+            {"type_crafting_material_tooltip", "Afișează materiale de crafting"},
+            {"type_consumable", "Consumabil"},
+            {"type_consumable_tooltip", "Afișează obiecte consumabile"},
+            {"type_gathering_tool", "Unealtă de colectare"},
+            {"type_gathering_tool_tooltip", "Afișează unelte de colectare"},
+            {"type_bag", "Sac"},
+            {"type_bag_tooltip", "Afișează saci"},
+            {"type_container", "Container"},
+            {"type_container_tooltip", "Afișează containere"},
+            {"type_mini_pet", "Mini pet"},
+            {"type_mini_pet_tooltip", "Afișează mini pet-uri"},
+            {"currency_filters_label", "Filtre de monede"},
+            {"currency_general", "General"},
+            {"currency_main", "Monede principale"},
+            {"currency_fractal", "Monede Fractal/Raid/Dungeon"},
+            {"currency_wvw_pvp", "Monede WvW/PvP"},
+            {"currency_map", "Monede specifice hărții"},
+            {"filter_karma", "Karma"},
+            {"currency_karma_tooltip", "Afișează moneda karma"},
+            {"currency_laurel", "Laurel"},
+            {"currency_laurel_tooltip", "Afișează moneda laurel"},
+            {"currency_gem", "Gem"},
+            {"currency_gem_tooltip", "Afișează moneda gem"},
+            {"currency_fractal_relic", "Relică Fractal"},
+            {"currency_fractal_relic_tooltip", "Afișează moneda relică fractal"},
+            {"currency_badge_of_honor", "Badge de Onoare"},
+            {"currency_badge_of_honor_tooltip", "Afișează moneda badge de onoare"},
+            {"currency_guild_commendation", "Recomandare de Ghildă"},
+            {"currency_guild_commendation_tooltip", "Afișează moneda recomandare de ghildă"},
+            {"currency_transmutation_charge", "Taxă de Transmutație"},
+            {"currency_transmutation_charge_tooltip", "Afișează moneda taxă de transmutație"},
+            {"currency_spirit_shards", "Fragmente de Spirit"},
+            {"currency_spirit_shards_tooltip", "Afișează moneda fragmente de spirit"},
+            {"currency_unbound_magic", "Magie Nelegată"},
+            {"currency_unbound_magic_tooltip", "Afișează moneda magie nelegată"},
+            {"currency_volatile_magic", "Magie Volatilă"},
+            {"currency_volatile_magic_tooltip", "Afișează moneda magie volatilă"},
+            {"currency_airship_parts", "Piese de Nava Aeriană"},
+            {"currency_airship_parts_tooltip", "Afișează moneda piese de nava aeriană"},
+            {"currency_geode", "Geodă"},
+            {"currency_geode_tooltip", "Afișează moneda geodă"},
+            {"currency_ley_line_crystals", "Cristale Ley-Line"},
+            {"currency_ley_line_crystals_tooltip", "Afișează moneda cristale ley-line"},
+            {"currency_trade_contracts", "Contracte de Comerț"},
+            {"currency_trade_contracts_tooltip", "Afișează moneda contracte de comerț"},
+            {"currency_elegy_mosaic", "Mozaic Elegy"},
+            {"currency_elegy_mosaic_tooltip", "Afișează moneda mozaic elegy"},
+            {"currency_uncommon_coins", "Monede Neobișnuite"},
+            {"currency_uncommon_coins_tooltip", "Afișează moneda monede neobișnuite"},
+            {"currency_astral_acclaim", "Astral Acclaim"},
+            {"currency_astral_acclaim_tooltip", "Afișează moneda astral acclaim"},
+            {"currency_pristine_fractal_relics", "Relicte Fractal Pristine"},
+            {"currency_pristine_fractal_relics_tooltip", "Afișează moneda relicte fractal pristine"},
+            {"currency_unstable_fractal_essence", "Esență Fractal Instabilă"},
+            {"currency_unstable_fractal_essence_tooltip", "Afișează moneda esență fractal instabilă"},
+            {"currency_magnetite_shards", "Fragmente de Magnetit"},
+            {"currency_magnetite_shards_tooltip", "Afișează moneda fragmente de magnetit"},
+            {"currency_gaeting_crystals", "Cristale Gaeting"},
+            {"currency_gaeting_crystals_tooltip", "Afișează moneda cristale gaeting"},
+            {"currency_prophet_shards", "Fragmente de Profet"},
+            {"currency_prophet_shards_tooltip", "Afișează moneda fragmente de profet"},
+            {"currency_green_prophet_shards", "Fragmente de Profet Verzi"},
+            {"currency_green_prophet_shards_tooltip", "Afișează moneda fragmente de profet verzi"},
+            {"currency_wvw_skirmish_tickets", "Bilete WvW Skirmish"},
+            {"currency_wvw_skirmish_tickets_tooltip", "Afișează moneda bilete WvW skirmish"},
+            {"currency_proofs_of_heroics", "Dovezi de Eroism"},
+            {"currency_proofs_of_heroics_tooltip", "Afișează moneda dovezi de eroism"},
+            {"currency_pvp_league_tickets", "Bilete PvP League"},
+            {"currency_pvp_league_tickets_tooltip", "Afișează moneda bilete PvP league"},
+            {"currency_ascended_shards_of_glory", "Fragmente Ascended de Glory"},
+            {"currency_ascended_shards_of_glory_tooltip", "Afișează moneda fragmente ascended de glory"},
+            {"currency_research_notes", "Note de Cercetare"},
+            {"currency_research_notes_tooltip", "Afișează moneda note de cercetare"},
+            {"currency_tyrian_defense_seal", "Sigiliu Tyrian Defense"},
+            {"currency_tyrian_defense_seal_tooltip", "Afișează moneda sigiliu tyrian defense"},
+            {"currency_testimony_of_desert_heroics", "Mărturie a Eroismului de Deșert"},
+            {"currency_testimony_of_desert_heroics_tooltip", "Afișează moneda mărturie a eroismului de deșert"},
+            {"currency_testimony_of_jade_heroics", "Mărturie a Eroismului de Jad"},
+            {"currency_testimony_of_jade_heroics_tooltip", "Afișează moneda mărturie a eroismului de jad"},
+            {"currency_testimony_of_castoran_heroics", "Mărturie a Eroismului Castoran"},
+            {"currency_testimony_of_castoran_heroics_tooltip", "Afișează moneda mărturie a eroismului castoran"},
+            {"currency_legendary_insight", "Înțelepciune Legendară"},
+            {"currency_legendary_insight_tooltip", "Afișează moneda înțelepciune legendară"},
+            {"currency_tales_of_dungeon_delving", "Povești de Dungeon Delving"},
+            {"currency_tales_of_dungeon_delving_tooltip", "Afișează moneda povești de dungeon delving"},
+            {"currency_imperial_favor", "Favor Imperial"},
+            {"currency_imperial_favor_tooltip", "Afișează moneda favor imperial"},
+            {"currency_canach_coins", "Monede Canach"},
+            {"currency_canach_coins_tooltip", "Afișează moneda monede canach"},
+            {"currency_ancient_coin", "Monedă Antică"},
+            {"currency_ancient_coin_tooltip", "Afișează moneda monedă antică"},
+            {"currency_unusual_coin", "Monedă Neobișnuită"},
+            {"currency_unusual_coin_tooltip", "Afișează moneda monedă neobișnuită"},
+            {"currency_jade_sliver", "Firimitură de Jad"},
+            {"currency_jade_sliver_tooltip", "Afișează moneda firimitură de jad"},
+            {"currency_static_charge", "Încărcare Statică"},
+            {"currency_static_charge_tooltip", "Afișează moneda încărcare statică"},
+            {"currency_pinch_of_stardust", "Puțină Praful Stelelor"},
+            {"currency_pinch_of_stardust_tooltip", "Afișează moneda puțină praful stelelor"},
+            {"currency_calcified_gasp", "Gâfâ Calcificată"},
+            {"currency_calcified_gasp_tooltip", "Afișează moneda gâfâ calcificată"},
+            {"currency_ursus_oblige", "Ursus Oblige"},
+            {"currency_ursus_oblige_tooltip", "Afișează moneda ursus oblige"},
+            {"currency_gaeting_crystal_janthir", "Cristal Gaeting (Janthir)"},
+            {"currency_gaeting_crystal_janthir_tooltip", "Afișează moneda cristal gaeting (janthir)"},
+            {"currency_antiquated_ducat", "Ducat Antic"},
+            {"currency_antiquated_ducat_tooltip", "Afișează moneda ducat antic"},
+            {"currency_aether_rich_sap", "Săpun Aether-Rich"},
+            {"currency_aether_rich_sap_tooltip", "Afișează moneda săpun aether-rich"},
+
+            // Additional Filters
+            {"additional_filters", "Filtre suplimentare"},
+            {"account_bound", "Legat de cont"},
+            {"account_bound_tooltip", "Afișează obiecte legate de cont"},
+            {"not_account_bound", "Nu este legat de cont"},
+            {"not_account_bound_tooltip", "Afișează obiecte nelegate de cont"},
+            {"nosell_items", "NoSell"},
+            {"nosell_items_tooltip", "Afișează obiecte NoSell"},
+            {"not_nosell", "Nu este NoSell"},
+            {"not_nosell_tooltip", "Afișează obiecte vândabile"},
+            {"favorite_items", "Favorit"},
+            {"favorite_items_tooltip", "Afișează obiecte favorite"},
+            {"not_favorite", "Nu este favorit"},
+            {"not_favorite_tooltip", "Afișează obiecte nefavorite"},
+            {"ignored_items", "Ignorate"},
+            {"ignored_items_tooltip", "Afișează obiecte ignorate"},
+            {"not_ignored", "Nu este ignorat"},
+            {"not_ignored_tooltip", "Afișează obiecte neignorate"},
+
+            // Range Filters
+            {"range_filters", "Filtre de interval"},
+            {"show_range_filters", "Afișează filtre de interval"},
+            {"filter_min_price", "Filtru preț minim"},
+            {"filter_max_price", "Filtru preț maxim"},
+            {"filter_min_quantity", "Filtru cantitate minimă"},
+            {"filter_max_quantity", "Filtru cantitate maximă"},
+
+            // Mini Window Settings
+            {"mini_window_settings", "Fereastră mini"},
+            {"show_profit", "Afișează profit"},
+            {"show_profit_tooltip", "Afișează profit total în fereastra mini"},
+            {"show_profit_per_hour", "Afișează profit/oră"},
+            {"show_profit_per_hour_tooltip", "Afișează profit pe oră în fereastra mini"},
+            {"show_tp_sell", "Afișează TP Vânzare (Listări)"},
+            {"show_tp_sell_tooltip", "Afișează profit TP vânzare (listări) în fereastra mini"},
+            {"show_tp_instant", "Afișează TP Instant (Vânzare instantanee)"},
+            {"show_tp_instant_tooltip", "Afișează profit TP vânzare instantanee în fereastra mini"},
+            {"show_total_items", "Afișează total obiecte"},
+            {"show_total_items_tooltip", "Afișează numărul total de obiecte în fereastra mini"},
+            {"show_session_duration", "Afișează durata sesiunii"},
+            {"show_session_duration_tooltip", "Afișează durata sesiunii în fereastra mini"},
+            {"window_click_through", "Click prin fereastră"},
+            {"window_click_through_tooltip", "Permite click prin fereastra mini către joc"},
+
+            // Main Window Settings
+            {"main_window", "Fereastră principală"},
+            {"click_through", "Click prin"},
+            {"click_through_tooltip", "Permite click prin fereastra principală către joc"},
+
+            // Advanced UI Settings
+            {"advanced_ui_settings", "Setări UI avansate"},
+            {"no_advanced_ui_settings", "(Nicio setare UI avansată disponibilă)"},
+
+            // Display Settings
+            {"display_settings", "Setări afișare"},
+            {"show_item_icons", "Afișează pictograme obiecte"},
+            {"show_item_icons_tooltip", "Afișează pictograme obiecte în listă"},
+            {"show_rarity_borders", "Afișează margini de raritate"},
+            {"show_rarity_borders_tooltip", "Afișează margini colorate în jurul pictogramelor bazate pe raritate"},
+            {"enable_grid_view", "Activează vizualizare grilă"},
+            {"enable_grid_view_tooltip", "Afișează obiecte într-un layout grilă în loc de listă"},
+            {"grid_icon_size", "Dimensiune pictogramă grilă"},
+            {"grid_icon_size_tooltip", "Dimensiunea pictogramelor în vizualizarea grilă"},
+
+            // Count Display Settings
+            {"count_display_settings", "Setări afișare număr"},
+            {"count_text_color", "Culoare text număr"},
+            {"count_text_color_tooltip", "Culoarea textului număr"},
+            {"count_background_color", "Culoare fundal număr"},
+            {"count_background_color_tooltip", "Culoarea fundalului număr"},
+            {"count_font_size", "Dimensiune font număr"},
+            {"count_font_size_tooltip", "Dimensiunea fontului număr"},
+            {"count_horizontal_alignment", "Aliniere orizontală număr"},
+            {"count_horizontal_alignment_tooltip", "Alinierea orizontală a textului număr"},
+
+            // Gradient Background Settings
+            {"gradient_background_settings", "Setări fundal gradient"},
+            {"enable_gradient_backgrounds", "Activează fundal gradient"},
+            {"enable_gradient_backgrounds_tooltip", "Activează fundal gradient pentru ferestre"},
+            {"gradient_top_color", "Culoare gradient sus"},
+            {"gradient_top_color_tooltip", "Culoarea de sus a fundalului gradient"},
+            {"gradient_bottom_color", "Culoare gradient jos"},
+            {"gradient_bottom_color_tooltip", "Culoarea de jos a fundalului gradient"},
+
+            // Custom Profit System
+            {"custom_profit_system", "Sistem profit personalizat"},
+            {"enable_custom_profit", "Activează profit personalizat"},
+            {"enable_custom_profit_tooltip", "Activează valori de profit personalizate pentru obiecte"},
+
+            // Search
+            {"search_settings", "Căutare"},
+            {"enable_search", "Activează căutare"},
+            {"enable_search_tooltip", "Activează funcționalitatea de căutare"},
+
+            // Ignored Items
+            {"ignored_items_settings", "Obiecte ignorate"},
+            {"enable_ignored_items", "Activează obiecte ignorate"},
+            {"enable_ignored_items_tooltip", "Activează funcționalitatea obiectelor ignorate"},
+
+            // Auto Reset
+            {"auto_reset_settings", "Resetare automată"},
+            {"enable_auto_reset", "Activează resetare automată"},
+            {"enable_auto_reset_tooltip", "Resetează automat sesiunea de farming după o durată"},
+            {"auto_reset_duration", "Durată resetare automată (minute)"},
+            {"auto_reset_duration_tooltip", "Durata în minute înainte de resetarea automată"},
+
+            // DRF Settings
+            {"drf_settings", "Setări DRF"},
+            {"drf_token", "Token DRF"},
+            {"drf_token_label", "Token DRF:"},
+            {"drf_token_tooltip", "Token-ul dvs. de autentificare DRF"},
+            {"edit_token", "Editare token"},
+            {"save_token", "Salvare token"},
+
+            // GW2 API Settings
+            {"gw2_api_settings", "Setări GW2 API"},
+            {"gw2_api_key", "Cheie GW2 API"},
+            {"gw2_api_key_tooltip", "Cheia dvs. GW2 API pentru detalii despre obiecte"},
+            {"edit_key", "Editare cheie"},
+            {"save_key", "Salvare cheie"},
+
+            // Language Settings
+            {"language_settings", "Limbă"},
+            {"language_tooltip", "Selectați limba interfeței"},
+            {"language_english", "Engleză"},
+            {"language_german", "Germană"},
+            {"language_french", "Franceză"},
+            {"language_spanish", "Spaniolă"},
+            {"language_chinese", "Chineză"},
+            {"language_czech", "Cehă"},
+            {"language_italian", "Italiană"},
+            {"language_polish", "Poloneză"},
+            {"language_portuguese", "Portugheză"},
+            {"language_russian", "Rusă"},
+
+            // Additional hardcoded strings found in UI
+            {"farming_tracker_title", "Farming Tracker"},
+            {"no_accounts_configured", "Niciun cont configurat"},
+            {"no_profiles_created", "Niciun profil creat încă"},
+            {"count_label", "Număr:"},
+            {"profit_label", "Profit:"},
+            {"no_profit", "Niciun profit"},
+            {"vendor_value_label", "Valoare vânzător:"},
+            {"tp_sell_gross_label", "TP Vânzare (Brutto):"},
+            {"tp_sell_net_label", "TP Vânzare (Net):"},
+            {"tp_buy_gross_label", "TP Cumpărare (Brutto):"},
+            {"tp_buy_net_label", "TP Cumpărare (Net):"},
+            {"ignored_items_label", "Obiecte ignorate:"},
+            {"ignored_currencies_label", "Monede ignorate:"},
+            {"total_items_label", "Total obiecte:"},
+            {"total_currencies_label", "Total monede:"},
+            {"total_profit_label", "Profit total:"},
+            {"tp_sell_profit_label", "Profit TP vânzare:"},
+            {"tp_sell_profit_tooltip", "Profit total dacă toate obiectele ar fi vândute la prețurile curente de listare TP (minus 15% taxă)"},
+            {"vendor_profit_label", "Profit vânzător:"},
+            {"profit_per_hour_label", "Profit pe oră:"},
+            {"opportunity_cost_profit_label", "Profit cost de oportunitate:"},
+            {"opportunity_cost_profit_per_hour_label", "Profit cost de oportunitate/oră:"},
+            {"custom_profit_feature_placeholder", "Funcționalitate implementată - UI urmează"},
+            {"custom_profit_items_header", "Obiecte cu profit personalizat"},
+            {"custom_profit_currencies_header", "Monede cu profit personalizat"},
+            {"add_custom_profit_item", "Adaugă profit personalizat pentru obiect"},
+            {"add_custom_profit_currency", "Adaugă profit personalizat pentru monedă"},
+            {"custom_profit_set_profit", "Setează profit"},
+            {"custom_profit_remove", "Elimină"},
+            {"custom_profit_value", "Valoare profit (Cupru)"},
+            {"custom_profit_set_tooltip", "Setează valoare profit personalizat pentru acest obiect"},
+            {"custom_profit_remove_tooltip", "Elimină valoare profit personalizat pentru acest obiect"},
+            {"no_custom_profit_items", "(Niciun obiect cu profit personalizat)"},
+            {"no_custom_profit_currencies", "(Nicio monedă cu profit personalizat)"},
+            {"clear_all_custom_profits", "Șterge toate profiturile personalizate"},
+            {"clear_all_custom_profits_tooltip", "Șterge toate valorile de profit personalizat"},
+            {"tabs_settings", "Alte tab-uri"},
+            {"tabs_description", "Afișează sau ascunde alte tab-uri"},
+            {"tab_settings", "Setări tab-uri"},
+            {"tab_settings_description", "Ordinea și comportamentul tab-urilor"},
+            {"enable_dashboard_tab", "Activează tab-ul Panou de control"},
+            {"enable_dashboard_tab_tooltip", "Afișează tab-ul Panou de control"},
+            {"enable_items_tab", "Activează tab-ul Obiecte"},
+            {"enable_items_tab_tooltip", "Afișează tab-ul Obiecte"},
+            {"enable_currencies_tab", "Activează tab-ul Monede"},
+            {"enable_currencies_tab_tooltip", "Afișează tab-ul Monede"},
+            {"enable_ignored_tab", "Activează tab-ul Ignorate"},
+            {"enable_ignored_tab_tooltip", "Afișează tab-ul obiectelor ignorate"},
+            {"enable_session_history_tab", "Activează tab-ul Istoric sesiuni"},
+            {"enable_session_history_tab_tooltip", "Afișează tab-ul Istoric sesiuni"},
+            {"enable_timeline_tab", "Activează tab-ul Cronologie"},
+            {"enable_timeline_tab_tooltip", "Afișează tab-ul Cronologie cu istoric detaliat de drop-uri"},
+            {"enable_loot_log_tab", "Activează tab-ul Loot Log"},
+            {"enable_loot_log_tab_tooltip", "Afișează tab-ul Loot Log"},
+            {"enable_filter_tab", "Activează tab-ul Filtru"},
+            {"enable_filter_tab_tooltip", "Afișează tab-ul Filtru"},
+            {"lock_tab_order", "Blochează ordinea tab-urilor"},
+            {"lock_tab_order_tooltip", "Dezactivează reordonarea tab-urilor în fereastra principală"},
+            {"enable_summaries_tab", "Activează tab-ul Rezumate"},
+            {"enable_summaries_tab_tooltip", "Afișează tab-ul rezumate zilnice/săptămânale/lunare în istoricul sesiunilor"},
+            {"custom_profit_settings", "Profit personalizat"},
+            {"total_profit_label_simple", "Profit total"},
+            {"total_items_label_simple", "Total obiecte"},
+            {"total_currencies_label_simple", "Total monede"},
+            {"profit_per_hour_label_simple", "Profit pe oră"},
+            {"session_duration_label_simple", "Durata sesiunii"},
+            {"next_reset_label_simple", "Următoarea resetare"},
+            {"export_label", "Export:"},
+            {"quick_actions", "Acțiuni rapide:"},
+            {"reset_confirm", "Sunteți sigur că doriți să resetați toate setările la valorile implicite?"},
+            {"reset_warning", "Această acțiune nu poate fi anulată."},
+            {"hotkeys", "Taste rapide"},
+            {"mini_window_toggle_hotkey", "Tastă rapidă comutare fereastră mini"},
+            {"backup_restore", "Backup & Restaurare"},
+            {"appearance_settings", "Aspect"},
+            {"enable_tooltips", "Activează sfaturi"},
+            {"enable_tooltips_tooltip", "Afișează sfaturi când plasați cursorul peste elementele interfeței"},
+            {"enable_grid_view_tooltip", "Afișați elemente într-o grilă în loc de o listă"},
+            {"favorites_first_tooltip", "Afișați elementele favorite în partea de sus a listei"},
+            {"group_by_rarity_tooltip", "Grupați elementele după raritatea lor"},
+            {"show_rarity_as_tabs_tooltip", "Afișați fiecare raritate ca un tab separat"},
+            {"group_by_category_tooltip", "Grupați elementele după categoria lor"},
+            {"show_group_as_tabs_tooltip", "Afișați fiecare categorie ca un tab separat"},
+            {"mass_ignore_rarity_tooltip", "Ignorați toate elementele acestei rarități"},
+            {"icons_borders", "Pictograme & Margini"},
+            {"colors_gradients", "Culori & Gradienturi"},
+            {"window_opacity", "Opacitate fereastră"},
+            {"windows_settings", "Ferestre"},
+            {"advanced_settings", "Avansat"},
+            {"export_settings", "Export setări în fișier:"},
+            {"import_settings", "Import setări din fișier:"},
+            {"edit_account", "Editare cont: %s"},
+            {"account_name", "Nume cont:"},
+            {"gw2_api_key_label", "Cheie GW2 API:"},
+            {"reload_config", "Reîncarcă configurație:"},
+            {"auto_reset_label", "Resetare automată:"},
+            {"next_reset_utc", "Următoarea resetare programată (UTC): %s"},
+            {"favorites_ui", "UI Favorite:"},
+            {"favorites_colors", "Culori Favorite:"},
+            {"visual_enhancements", "Îmbunătățiri vizuale:"},
+            {"show_profit_sparkline", "Afișează linie de profit"},
+            {"show_profit_sparkline_tooltip", "Afișează un mic grafic liniar care arată tendința profitului pe oră"},
+            {"mini_window_widget", "Fereastră mini (Widget overlay):"},
+            {"main_window_label", "Fereastră principală:"},
+            {"profiles_description", "Profilurile vă permit să salvați diferite configurații și să comutați rapid între ele."},
+            {"create_new_profile", "Creează profil nou:"},
+            {"current_profile", "Profil curent: %s"},
+            {"auto_backup", "Backup automat al setărilor înainte de modificări majore"},
+            {"notifications", "Configurați notificări in-game pentru evenimente importante"},
+            {"profit_goal", "Obiectiv profit:"},
+            {"reset_warning_label", "Avertisment resetare:"},
+            {"session_complete", "Sesiune completă:"},
+            {"manage_ignored_items", "Gestionează obiecte ignorate"},
+            {"manage_ignored_currencies", "Gestionează monede ignorate"},
+            {"rarity_label", "Raritate: %s"},
+            {"type_label", "Tip: %d"},
+            {"account_bound_label", "Legat de cont: %s"},
+            {"nosell_label", "NoSell: %s"},
+            {"item_id_label", "ID obiect: %d"},
+            {"currency_id_label", "ID monedă: %d"},
+            {"context_menu_add_favorites", "Adaugă la favorite"},
+            {"context_menu_remove_favorites", "Elimină din favorite"},
+            {"context_menu_ignore", "Ignoră obiect"},
+            {"context_menu_unignore", "Elimină din ignorate"},
+            {"context_menu_copy_name", "Copiază nume"},
+            {"context_menu_copy_id", "Copiază ID"},
+            {"sell_method_filters_label", "Filtre metodă vânzare:"},
+            {"api_knowledge_filters_label", "Filtre cunoștințe API:"},
+            {"additional_filters_label", "Filtre suplimentare:"},
+            {"item_type_filters_label", "Filtre tip obiect:"},
+            {"currency_filters_label", "Filtre monede:"},
+            {"price_range", "Interval preț (Cupru):"},
+            {"quantity_range", "Interval cantitate:"},
+            {"debug_info", "Informații debug"},
+            {"drf_status", "Status DRF: %s"},
+            {"drf_reconnect_count", "Număr reîncărcări DRF: %d"},
+            {"gw2_api_status", "Status GW2 API: %s"},
+            {"gw2_api_reconnect_count", "Număr reîncărcări GW2 API: %d"},
+            {"session_duration_debug", "Durată sesiune"},
+            {"gw2_memory", "Memorie proces GW2: %zu MB"},
+            {"gw2_api_request_count", "Număr cereri GW2 API: %d"},
+            {"ignored_items_count", "Obiecte ignorate: %d"},
+            {"ignored_currencies_count", "Monede ignorate: %d"},
+            {"drf_logs", "Jurnale DRF:"},
+            {"last_100_entries", "(Ultimele 100 intrări)"},
+            {"gw2_api_logs", "Jurnale GW2 API:"},
+            {"item_currency_details", "Detalii Obiect/Monedă (Primele 5):"},
+            {"item_label", "Obiect %d: %s (Număr: "},
+            {"loaded_label", ", Încărcat: %s)"},
+            {"currency_label", "Monedă %d: %s (Număr: "},
+            {"custom_profit_items", "Obiecte cu profit personalizat (Primele 5):"},
+            {"custom_profit_item", "Obiect %d: %s (Profit personalizat: "},
+            {"no_custom_profit_items", "(Niciun obiect cu profit personalizat)"},
+            {"ignored_items_debug", "Obiecte ignorate (Primele 5):"},
+            {"yes_label", "Da"},
+            {"no_label", "Nu"},
+            {"profits_label", "Profituri:"},
+            {"profits_tooltip", "Profituri totale din farming"},
+            {"approx_profits_label", "Profituri aproximative:"},
+            {"approx_profits_tooltip", "Profit total din MAX(Vânzător, TP Vânzare cu 15% taxă) sau Profit personalizat"},
+            {"approx_gold_per_hour_label", "Aur aproximativ pe oră:"},
+            {"approx_gold_per_hour_tooltip", "Profit pe oră bazat pe durata sesiunii"},
+            {"trading_profits_label", "Profituri de tranzacționare:"},
+            {"trading_profits_tooltip", "Profituri din vânzarea obiectelor pe Trading Post"},
+            {"approx_trading_profits_listings_label", "Profituri aproximative de tranzacționare (Listări):"},
+            {"approx_trading_profits_listings_tooltip", "Profit total dacă vândut via TP listări (15% taxă dedusă)"},
+            {"approx_trading_profits_instant_label", "Profituri aproximative de tranzacționare (Vânzare instantanee):"},
+            {"approx_trading_profits_instant_tooltip", "Profit total dacă vândut via TP cumpărare instantanee (15% taxă dedusă)"},
+            {"trading_details_label", "Detalii tranzacționare (Cost de oportunitate):"},
+            {"trading_details_tooltip", "Profit pierdut prin ne-vânzarea via TP listări"},
+            {"lost_profit_vs_tp_sell_label", "Profit pierdut (vs TP Vânzare):"},
+            {"lost_profit_vs_tp_sell_tooltip", "Cost de oportunitate: Profit pierdut prin ne-vânzarea via TP (cu 15% taxă)"},
+            {"lost_profit_per_hour_vs_tp_sell_label", "Profit pierdut pe oră (vs TP Vânzare):"},
+            {"lost_profit_per_hour_vs_tp_sell_tooltip", "Cost de oportunitate pe oră"},
+            {"session_duration_debug_label", "Durată sesiune: %s"},
+            {"session_duration_debug_tooltip", "Durata sesiunii curente de farming"},
+            {"tab_items", "Obiecte"},
+            {"manage_ignored_items", "Gestionează obiecte ignorate"},
+            {"clear_all_ignored_items", "Șterge toate obiectele ignorate"},
+            {"unignore_item", "Dezignoră obiect"},
+            {"manage_favorite_items", "Gestionează obiecte favorite"},
+            {"favorite_items_label", "Obiecte favorite:"},
+            {"clear_all_favorite_items", "Șterge toate obiectele favorite"},
+            {"tab_currencies", "Monede"},
+            {"manage_ignored_currencies", "Gestionează monede ignorate"},
+            {"clear_all_ignored_currencies", "Șterge toate monedele ignorate"},
+            {"unignore_currency", "Dezignoră monedă"},
+            {"manage_favorite_currencies", "Gestionează monede favorite"},
+            {"favorite_currencies_label", "Monede favorite:"},
+            {"clear_all_favorite_currencies", "Șterge toate monedele favorite"},
+            {"filter_active",   "Activ"},
+            {"filter_inactive", "Inactiv"},
+            {"filter_all", "Toate"},
+            {"filter_none", "Niciunul"},
+            {"filter_reset_all", "Resetează Tot"},
+            {"filter_search_hint", "Căutare filtru..."},
+            {"filter_active_count", "%d filtre active"},
+            {"sell_method_filters_label", "Filtre metodă vânzare:"},
+            {"api_knowledge_filters_label", "Filtre cunoștințe API:"},
+            {"additional_filters_label", "Filtre suplimentare:"},
+            {"item_type_filters_label", "Filtre tip obiect:"},
+            {"currency_filters_label", "Filtre monede:"},
+            {"price_range", "Interval preț (Cupru):"},
+            {"quantity_range", "Interval cantitate:"},
+            {"debug_connection_status", "Status conexiune"},
+            {"debug_session_snapshot", "Instantaneu sesiune"},
+            {"debug_profit_breakdown", "Descompunere profit"},
+            {"debug_data_state", "Stare date"},
+            {"debug_logs", "Jurnale"},
+            {"debug_favorites", "Favorite"},
+            {"debug_total_session", "total în această sesiune"},
+            {"debug_after_tp_fee", "după 15% taxă"},
+            {"debug_direct_sell", "vânzare directă"},
+            {"debug_rolling_avg", "medie mobilă"},
+            {"debug_vs_tp_sell", "vs TP vânzare"},
+            {"debug_per_hour", "pe oră"},
+            {"settings_api_key", "Cheie API"},
+            {"settings_drf_token", "Token DRF"},
+            {"debug_information", "Informații debug"},
+            {"drf_status_label", "Status DRF: %s"},
+            {"drf_status_tooltip", "Status curent conexiune DRF"},
+            {"drf_reconnect_count_label", "Număr reîncărcări DRF: %d"},
+            {"drf_reconnect_count_tooltip", "Număr de încercări de reîncărcare DRF"},
+            {"gw2_api_status_label", "Status GW2 API: %s"},
+            {"gw2_api_status_tooltip", "Status curent conexiune GW2 API"},
+            {"gw2_api_reconnect_count_label", "Număr reîncărcări GW2 API: %d"},
+            {"gw2_api_reconnect_count_tooltip", "Număr de încercări de reîncărcare GW2 API"},
+            {"session_duration_debug", "Durată sesiune"},
+            {"session_duration_debug_tooltip", "Durata sesiunii curente de farming"},
+            {"gw2_process_memory_label", "Memorie proces GW2"},
+            {"gw2_process_memory_tooltip", "Utilizarea curentă a memoriei procesului GW2"},
+            {"gw2_api_request_count_label", "Număr cereri GW2 API"},
+            {"gw2_api_request_count_tooltip", "Numărul total de cereri GW2 API făcute"},
+            {"ignored_items_debug_label", "Obiecte ignorate: %d"},
+            {"ignored_items_debug_tooltip", "Număr de obiecte ignorate"},
+            {"ignored_currencies_debug_label", "Monede ignorate: %d"},
+            {"ignored_currencies_debug_tooltip", "Număr de monede ignorate"},
+            {"drf_logs_label", "Jurnale DRF:"},
+            {"clear_drf_logs", "Șterge jurnale DRF"},
+            {"clear_drf_logs_tooltip", "Șterge toate intrările din jurnalele DRF"},
+            {"last_100_entries", "(Ultimele 100 intrări)"},
+            {"gw2_api_logs_label", "Jurnale GW2 API:"},
+            {"clear_gw2_logs", "Șterge jurnale GW2"},
+            {"clear_gw2_logs_tooltip", "Șterge toate intrările din jurnalele GW2 API"},
+            {"settings_label", "Setări:"},
+            {"api_key_tooltip", "Status cheie GW2 API"},
+            {"not_set", "Nu este setat"},
+            {"set", "Setat"},
+            {"drf_token_tooltip", "Status token DRF"},
+            {"toggle_hotkey_label", "Tastă rapidă comutare: %s"},
+            {"toggle_hotkey_tooltip", "Tastă rapidă comutare fereastră principală"},
+            {"auto_reset_mode_label", "Mod resetare automată: %d"},
+            {"auto_reset_mode_tooltip", "Mod curent de resetare automată"},
+            {"next_reset_label", "Următoarea resetare: %s"},
+            {"next_reset_tooltip", "Timpul următoarei resetări programate (UTC)"},
+            {"fake_drf_server_label", "Server DRF fals:"},
+            {"use_fake_drf_server", "Utilizează server DRF fals"},
+            {"use_fake_drf_server_tooltip", "Doar pentru scopuri de testare"},
+            {"reset_all_data", "Resetează Toate Datele"},
+            {"reset_all_data_tooltip", "Resetează toate datele de farming"},
+            {"coin", "Monedă"},
+            {"info_button", "Info"},
+            {"info_title", "FarmingTracker Info"},
+            {"info_text", "Textul de ajutor va fi adăugat aici mai târziu..."},
+            {"close_button", "Închide"},
+            {"rarity_label", "Raritate: %s"},
+            {"type_label", "Tip: %d"},
+            {"account_bound_label", "Legat de cont: %s"},
+            {"nosell_label", "NoSell: %s"},
+            {"yes_label", "Da"},
+            {"no_label", "Nu"},
+            {"sort_price_down", "Sortare: Preț obiect descrescător"},
+            {"sort_price_up", "Sortare: Preț obiect crescător"},
+            {"sort_count_high", "Sortare: |Număr| mare"},
+            {"sort_count_low", "Sortare: |Număr| mic"},
+            {"sort_name_az", "Sortare: Nume A–Z"},
+            {"sort_name_za", "Sortare: Nume Z–A"},
+            {"last_reset_label", "Resetare"},
+            {"last_reset_tooltip", "Timp de la ultima resetare"},
+            {"custom_profit_edit_tooltip",    "Editare valoare profit"},
+            {"custom_profit_confirm_tooltip", "Salvare modificări"},
+            {"accent_color", "Accent Culoare (Buttons, Filăs, UI)"}
+            {"accent_color_tooltip", "Accent color for buttons, tabs, and UI elements"}
+            {"account_management", "Cont Management"}
+            {"account_prefix", "Cont"}
+            {"actions", "Actions"}
+            {"add_account", "+ Adăugare Cont"}
+            {"api_key_invalid_format", "(Invalid Format: 9 Blocks required)"}
+            {"auto_reset_custom_days", "Personalizat (days)"}
+            {"auto_reset_daily", "Daily reset (00:00 UTC)"}
+            {"auto_reset_done_msg", "The tracker has been reset."}
+            {"auto_reset_done_title", "Resetare Complete"}
+            {"auto_reset_minutes_unload", "Minutes after last unload"}
+            {"auto_reset_never", "Never (manual Resetare only)"}
+            {"auto_reset_on_load", "Pornit addon load"}
+            {"auto_reset_tooltip", "When to automatically reset farming counters"}
+            {"auto_reset_weekly", "Weekly (Mon 07:30 UTC)"}
+            {"auto_reset_weekly_eu_wvw", "Weekly EU WvW (Fri 18:00 UTC)"}
+            {"auto_reset_weekly_map_bonus", "Weekly map bonus (Thu 20:00 UTC)"}
+            {"auto_reset_weekly_na_wvw", "Weekly NA WvW (Sat 02:00 UTC)"}
+            {"automatic_backups", "Automatmatic Copie de siguranțăs"}
+            {"backup", "Copie de siguranță"}
+            {"backup_daily", "Daily"}
+            {"backup_frequency", "Copie de siguranță frequency"}
+            {"backup_frequency_tooltip", "How often to create automatic backups"}
+            {"backup_manual_only", "Manual only"}
+            {"backup_weekly", "Weekly"}
+            {"best_drop", "Cel mai bun Drop"}
+            {"border_size", "Bordură Dimensiune"}
+            {"border_size_tooltip", "Adjust the thickness of rarity borders (1.0 - 10.0)"}
+            {"bottom_gradient_color", "Bottom"}
+            {"bottom_gradient_color_tooltip", "Bottom gradient color"}
+            {"browse_for_file", "Browse for file..."}
+            {"cancel", "Anulare"}
+            {"clear_all_custom_profits_warning", "Toate custom profit values will be deleted. This action cannot be undone."}
+            {"clear_compare_selection", "Curățare selection"}
+            {"clear_history", "Curățare Istoric"}
+            {"clear_history_confirm", "Curățare all session history?"}
+            {"clear_history_tooltip", "Ștergere all saved session history"}
+            {"clear_history_warning", "This action cannot be undone!"}
+            {"clear_search", "Curățare"}
+            {"clear_search_favorites", "Curățare"}
+            {"clear_search_tooltip", "Curățares the current search"}
+            {"column_count", "Număr"}
+            {"column_currency", "Currency"}
+            {"column_favorite", "Favorite"}
+            {"column_icon", "Pictogramă"}
+            {"column_ignore", "Ignore"}
+            {"column_item", "Item"}
+            {"column_label", "Etichetă"}
+            {"column_name", "Name"}
+            {"column_profit", "Profit"}
+            {"column_value", "Valoare"}
+            {"comparison_previous_period", "Comparison with previous period:"}
+            {"count_format", "Număr: %lld"}
+            {"create", "Create"}
+            {"create_new_profile_tooltip", "Create a new profile with current settings"}
+            {"create_tooltip", "Create a new profile with current settings"}
+            {"currencies_header", "Valute"}
+            {"currency_cat_common", "Common"}
+            {"currency_cat_fractal", "Fractals"}
+            {"currency_cat_janthir", "Janthir Wilds"}
+            {"currency_cat_map", "Map Valute"}
+            {"currency_cat_other", "Other"}
+            {"currency_cat_pvp", "PvP"}
+            {"currency_cat_raid_strike", "Raids & Strikes"}
+            {"currency_cat_wvw", "WvW"}
+            {"currency_group_by_category", "Grupare by category"}
+            {"currency_group_by_category_tooltip", "Grupare currencies by category with collapsible sections or tabs"}
+            {"currency_show_as_tabs", "Afișare as tabs"}
+            {"currency_show_as_tabs_tooltip", "Afișare category groups as tabs instead of collapsible sections"}
+            {"currency_table_favorite_tooltip", "Adăugare/remove favorite. Favorites appear in the Favorites tab. Tip: Right-click the icon/name for more actions."}
+            {"currency_table_ignore_tooltip", "Adăugare/remove ignored. Ignored currencies appear in the Ignored tab. Tip: Right-click the icon/name for more actions."}
+            {"date", "Dată"}
+            {"debug_settings", "Depanare Setări"}
+            {"default_no_profile", "Implicit (Nu Profile)"}
+            {"delete_profile", "Ștergere Profile"}
+            {"delete_profile_tooltip", "Ștergere current profile"}
+            {"details", "Details"}
+            {"drops", "Drops"}
+            {"duration", "Durată"}
+            {"enable_automatic_backups", "Activare automatic backups"}
+            {"enable_automatic_backups_tooltip", "Automatmatically create backups before changes"}
+            {"enable_best_drop_highlight", "Highlight Cel mai bun Drop"}
+            {"enable_best_drop_highlight_tooltip", "Highlight the most valuable drop with a golden border in the Obiecte tab"}
+            {"enable_best_drop_in_mini_window", "Afișare Cel mai bun Drop in Mini Fereastră"}
+            {"enable_best_drop_in_mini_window_tooltip", "Afișare the most valuable drop in the mini window overlay"}
+            {"enable_debug_tab", "Activare Depanare Filă"}
+            {"enable_debug_tab_tooltip", "Afișares the debug tab with additional information"}
+            {"enable_favorite_row_color", "Activare favorite row color"}
+            {"enable_favorite_row_color_tooltip", "Highlights favorite items/currencies with custom row background color"}
+            {"enable_favorite_text_color", "Activare favorite text color"}
+            {"enable_favorite_text_color_tooltip", "Highlights favorite items/currencies with custom text color"}
+            {"enable_favorites", "Activare Favorites"}
+            {"enable_favorites_tab", "Activare Favorites Filă"}
+            {"enable_favorites_tab_tooltip", "Afișares a separate favorites tab"}
+            {"enable_grid_view_currencies", "Activare Grid View (Valute)"}
+            {"enable_grid_view_currencies_tooltip", "Toggle between list and grid view in Valute tab"}
+            {"enable_grid_view_items", "Activare Grid View (Obiecte)"}
+            {"enable_grid_view_items_tooltip", "Toggle between list and grid view in Obiecte tab"}
+            {"enable_icon_cache", "Activare Pictogramă Cache"}
+            {"enable_icon_cache_tooltip", "Cache item icons on disk to speed up loading after the first session"}
+            {"enable_notifications", "Activare notifications"}
+            {"enable_notifications_tooltip", "Activare in-game notifications"}
+            {"enable_session_history", "Activare Sesiune Istoric"}
+            {"enable_session_history_tooltip", "Salvare farming session history for later viewing"}
+            {"enable_session_timeline", "Activare Sesiune Cronologie"}
+            {"enable_session_timeline_tooltip", "Salvare detailed drop timeline with timestamps for session details"}
+            {"export_history", "Exportare Istoric"}
+            {"export_history_tooltip", "Exportare session history to a JSON file"}
+            {"export_logs", "Exportare Logs"}
+            {"favorite_items_header", "Favorite Obiecte"}
+            {"favorites_first", "Favorites First"}
+            {"favorites_first_tooltip", "Afișares favorites first in item/currency lists"}
+            {"favorites_settings", "Favorites Setări"}
+            {"filter_account_bound", "Cont-bound"}
+            {"filter_account_bound_tooltip", "Afișare account-bound items"}
+            {"filter_aether_rich_sap", "Aether-Rich Sap"}
+            {"filter_aether_rich_sap_tooltip", "Afișare aether-rich sap currency"}
+            {"filter_airship_parts", "Airship Parts"}
+            {"filter_airship_parts_tooltip", "Afișare airship parts currency"}
+            {"filter_ancient_coin", "Ancient Coin"}
+            {"filter_ancient_coin_tooltip", "Afișare ancient coin currency"}
+            {"filter_antiquated_ducat", "Antiquated Ducat"}
+            {"filter_antiquated_ducat_tooltip", "Afișare antiquated ducat currency"}
+            {"filter_ascended_shards_of_glory", "Ascended Shards of Glory"}
+            {"filter_ascended_shards_of_glory_tooltip", "Afișare ascended shards of glory currency"}
+            {"filter_astral_acclaim", "Astral Acclaim"}
+            {"filter_astral_acclaim_tooltip", "Afișare astral acclaim currency"}
+            {"filter_badge_of_honor", "Badge of Honor"}
+            {"filter_badge_of_honor_tooltip", "Afișare badge of honor currency"}
+            {"filter_calcified_gasp", "Calcified Gasp"}
+            {"filter_calcified_gasp_tooltip", "Afișare calcified gasp currency"}
+            {"filter_canach_coins", "Canach Coins"}
+            {"filter_canach_coins_tooltip", "Afișare canach coins currency"}
+            {"filter_custom_profit", "Has custom profit"}
+            {"filter_custom_profit_tooltip", "Afișare items with custom profit set"}
+            {"filter_elegy_mosaic", "Elegy Mosaic"}
+            {"filter_elegy_mosaic_tooltip", "Afișare elegy mosaic currency"}
+            {"filter_favorite", "Favorite"}
+            {"filter_favorite_tooltip", "Afișare favorite items (outside Favorites tab)"}
+            {"filter_fractal_relic", "Fractal Relic"}
+            {"filter_fractal_relic_tooltip", "Afișare fractal relic currency"}
+            {"filter_gaeting_crystal_janthir", "Gaeting Crystal (Janthir)"}
+            {"filter_gaeting_crystal_janthir_tooltip", "Afișare gaeting crystal (janthir) currency"}
+            {"filter_gaeting_crystals", "Gaeting Crystals"}
+            {"filter_gaeting_crystals_tooltip", "Afișare gaeting crystals currency"}
+            {"filter_gem", "Gem"}
+            {"filter_gem_tooltip", "Afișare gem currency"}
+            {"filter_geode", "Geode"}
+            {"filter_geode_tooltip", "Afișare geode currency"}
+            {"filter_green_prophet_shards", "Green Prophet Shards"}
+            {"filter_green_prophet_shards_tooltip", "Afișare green prophet shards currency"}
+            {"filter_guild_commendation", "Guild Commendation"}
+            {"filter_guild_commendation_tooltip", "Afișare guild commendation currency"}
+            {"filter_ignored", "Ignored"}
+            {"filter_ignored_tooltip", "Afișare ignored items"}
+            {"filter_imperial_favor", "Imperial Favor"}
+            {"filter_imperial_favor_tooltip", "Afișare imperial favor currency"}
+            {"filter_items", "Filtru Obiecte"}
+            {"filter_jade_sliver", "Jade Sliver"}
+            {"filter_jade_sliver_tooltip", "Afișare jade sliver currency"}
+            {"filter_karma_tooltip", "Afișare karma currency"}
+            {"filter_known_by_api", "Known by API"}
+            {"filter_known_by_api_tooltip", "Afișare items known by GW2 API"}
+            {"filter_laurel", "Laurel"}
+            {"filter_laurel_tooltip", "Afișare laurel currency"}
+            {"filter_legendary_insight", "Legendary Insight"}
+            {"filter_legendary_insight_tooltip", "Afișare legendary insight currency"}
+            {"filter_ley_line_crystals", "Ley-Line Crystals"}
+            {"filter_ley_line_crystals_tooltip", "Afișare ley-line crystals currency"}
+            {"filter_magnetite_shards", "Magnetite Shards"}
+            {"filter_magnetite_shards_tooltip", "Afișare magnetite shards currency"}
+            {"filter_max_price_tooltip", "Maximum price filter (0 = disabled)"}
+            {"filter_max_quantity_tooltip", "Maximum quantity filter (0 = disabled)"}
+            {"filter_min_price_tooltip", "Minimum price filter (0 = disabled)"}
+            {"filter_min_quantity_tooltip", "Minimum quantity filter (0 = disabled)"}
+            {"filter_nosell", "NuSell"}
+            {"filter_nosell_tooltip", "Afișare NuSell items"}
+            {"filter_not_account_bound", "Nut Cont-bound"}
+            {"filter_not_account_bound_tooltip", "Afișare non-account-bound items"}
+            {"filter_not_favorite", "Nut Favorite"}
+            {"filter_not_favorite_tooltip", "Afișare items that are not marked as favorite"}
+            {"filter_not_ignored", "Nut Ignored"}
+            {"filter_not_ignored_tooltip", "Afișare non-ignored items"}
+            {"filter_not_nosell", "Nut NuSell"}
+            {"filter_not_nosell_tooltip", "Afișare sellable items"}
+            {"filter_pinch_of_stardust", "Pinch of Stardust"}
+            {"filter_pinch_of_stardust_tooltip", "Afișare pinch of stardust currency"}
+            {"filter_pristine_fractal_relics", "Pristine Fractal Relics"}
+            {"filter_pristine_fractal_relics_tooltip", "Afișare pristine fractal relics currency"}
+            {"filter_proofs_of_heroics", "Proofs of Heroics"}
+            {"filter_proofs_of_heroics_tooltip", "Afișare proofs of heroics currency"}
+            {"filter_prophet_shards", "Prophet Shards"}
+            {"filter_prophet_shards_tooltip", "Afișare prophet shards currency"}
+            {"filter_pvp_league_tickets", "PvP League Tickets"}
+            {"filter_pvp_league_tickets_tooltip", "Afișare PvP league tickets currency"}
+            {"filter_rarity", "Filtru Rarity"}
+            {"filter_research_notes", "Research Nutes"}
+            {"filter_research_notes_tooltip", "Afișare research notes currency"}
+            {"filter_sellable_on_tp", "Sellable on TP"}
+            {"filter_sellable_on_tp_tooltip", "Afișare items sellable on Trading Post"}
+            {"filter_sellable_to_vendor", "Sellable to vendor"}
+            {"filter_sellable_to_vendor_tooltip", "Afișare items sellable to vendor"}
+            {"filter_spirit_shards", "Spirit Shards"}
+            {"filter_spirit_shards_tooltip", "Afișare spirit shards currency"}
+            {"filter_static_charge", "Static Charge"}
+            {"filter_static_charge_tooltip", "Afișare static charge currency"}
+            {"filter_tales_of_dungeon_delving", "Tales of Dungeon Delving"}
+            {"filter_tales_of_dungeon_delving_tooltip", "Afișare tales of dungeon delving currency"}
+            {"filter_testimony_of_castoran_heroics", "Testimony of Castoran Heroics"}
+            {"filter_testimony_of_castoran_heroics_tooltip", "Afișare testimony of castoran heroics currency"}
+            {"filter_testimony_of_desert_heroics", "Testimony of Desert Heroics"}
+            {"filter_testimony_of_desert_heroics_tooltip", "Afișare testimony of desert heroics currency"}
+            {"filter_testimony_of_jade_heroics", "Testimony of Jade Heroics"}
+            {"filter_testimony_of_jade_heroics_tooltip", "Afișare testimony of jade heroics currency"}
+            {"filter_trade_contracts", "Trade Contracts"}
+            {"filter_trade_contracts_tooltip", "Afișare trade contracts currency"}
+            {"filter_transmutation_charge", "Transmutation Charge"}
+            {"filter_transmutation_charge_tooltip", "Afișare transmutation charge currency"}
+            {"filter_type_armor", "Armor"}
+            {"filter_type_armor_tooltip", "Afișare armor items"}
+            {"filter_type_backpack", "Backpack"}
+            {"filter_type_backpack_tooltip", "Afișare backpack items"}
+            {"filter_type_bag", "Bag"}
+            {"filter_type_bag_tooltip", "Afișare bags"}
+            {"filter_type_consumable", "Consumable"}
+            {"filter_type_consumable_tooltip", "Afișare consumable items"}
+            {"filter_type_container", "Container"}
+            {"filter_type_container_tooltip", "Afișare containers"}
+            {"filter_type_crafting_material", "Crafting Material"}
+            {"filter_type_crafting_material_tooltip", "Afișare crafting materials"}
+            {"filter_type_gathering_tool", "Gathering Tool"}
+            {"filter_type_gathering_tool_tooltip", "Afișare gathering tools"}
+            {"filter_type_gizmo", "Gizmo"}
+            {"filter_type_gizmo_container", "Gizmo Container"}
+            {"filter_type_gizmo_container_tooltip", "Afișare gizmo container items"}
+            {"filter_type_gizmo_tooltip", "Afișare gizmo items"}
+            {"filter_type_mini_pet", "Mini Pet"}
+            {"filter_type_mini_pet_tooltip", "Afișare mini pets"}
+            {"filter_type_tool", "Tool"}
+            {"filter_type_tool_tooltip", "Afișare tool items"}
+            {"filter_type_trinket", "Trinket"}
+            {"filter_type_trinket_tooltip", "Afișare trinket items"}
+            {"filter_type_trophy", "Trophy"}
+            {"filter_type_trophy_tooltip", "Afișare trophy items"}
+            {"filter_type_unlock", "Deblocare"}
+            {"filter_type_unlock_tooltip", "Afișare unlock items"}
+            {"filter_type_upgrade_component", "Upgrade Component"}
+            {"filter_type_upgrade_component_tooltip", "Afișare upgrade components"}
+            {"filter_type_weapon", "Weapon"}
+            {"filter_type_weapon_tooltip", "Afișare weapon items"}
+            {"filter_tyrian_defense_seal", "Tyrian Defense Seal"}
+            {"filter_tyrian_defense_seal_tooltip", "Afișare tyrian defense seal currency"}
+            {"filter_unbound_magic", "Unbound Magic"}
+            {"filter_unbound_magic_tooltip", "Afișare unbound magic currency"}
+            {"filter_uncommon_coins", "Uncommon Coins"}
+            {"filter_uncommon_coins_tooltip", "Afișare uncommon coins currency"}
+            {"filter_unknown_by_api", "Unknown by API"}
+            {"filter_unknown_by_api_tooltip", "Afișare items not known by GW2 API"}
+            {"filter_unstable_fractal_essence", "Unstable Fractal Essence"}
+            {"filter_unstable_fractal_essence_tooltip", "Afișare unstable fractal essence currency"}
+            {"filter_unusual_coin", "Unusual Coin"}
+            {"filter_unusual_coin_tooltip", "Afișare unusual coin currency"}
+            {"filter_ursus_oblige", "Ursus Oblige"}
+            {"filter_ursus_oblige_tooltip", "Afișare ursus oblige currency"}
+            {"filter_volatile_magic", "Volatile Magic"}
+            {"filter_volatile_magic_tooltip", "Afișare volatile magic currency"}
+            {"filter_wvw_skirmish_tickets", "WvW Skirmish Tickets"}
+            {"filter_wvw_skirmish_tickets_tooltip", "Afișare WvW skirmish tickets currency"}
+            {"first_5_custom_profit", "First 5 items with custom profit set"}
+            {"first_5_custom_profit_tooltip", "First 5 items with custom profit set"}
+            {"first_5_ignored_items", "First 5 ignored items"}
+            {"first_5_ignored_items_tooltip", "First 5 ignored items"}
+            {"first_5_tracked_items", "First 5 tracked items and currencies with details"}
+            {"first_5_tracked_items_tooltip", "First 5 tracked items and currencies with details"}
+            {"full_backup", "Full Copie de siguranță"}
+            {"full_backup_tooltip", "Copie de siguranță all data (settings, session history, favorites, ignored items, custom profit) to a JSON file"}
+            {"full_restore", "Full Restaurare"}
+            {"full_restore_tooltip", "Restaurare all data from a backup JSON file"}
+            {"general_settings", "General Setări"}
+            {"gold_format", "Gold: %lld"}
+            {"gradient_backgrounds", "Gradient backgrounds"}
+            {"gradient_backgrounds_tooltip", "Activares smooth gradient backgrounds for a more modern look"}
+            {"grid_icon_size_currencies", "Grid Pictogramă size (Valute)"}
+            {"grid_icon_size_currencies_tooltip", "Dimensiune of icons in grid view for Valute (16-128)"}
+            {"grid_icon_size_items", "Grid Pictogramă size (Obiecte)"}
+            {"grid_icon_size_items_tooltip", "Dimensiune of icons in grid view for Obiecte (16-128)"}
+            {"group_by_rarity", "Grupare by Rarity"}
+            {"group_by_type", "Grupare by Category"}
+            {"icon_cache_max_icons", "Max Cached Pictogramăs"}
+            {"icon_cache_max_icons_tooltip", "Maximum number of icons to keep in cache (older icons are deleted when limit is reached)"}
+            {"icon_size", "Pictogramă size"}
+            {"icon_size_tooltip", "Dimensiune of item icons in pixels (16-96)"}
+            {"import", "Importare"}
+            {"import_history", "Importare Istoric"}
+            {"import_history_tooltip", "Importare session history from a JSON file"}
+            {"import_tooltip", "Importare settings from a JSON file"}
+            {"infusion_drop_label", "Infusion Drop!"}
+            {"item", "Item"}
+            {"items_header", "Obiecte"}
+            {"magic_find_abbreviation", "MF: %d%%"}
+            {"main_window_click_through", "Click through"}
+            {"main_window_click_through_tooltip", "Toateows clicking through the main window to the game"}
+            {"main_window_opacity", "Main Fereastră Transparency"}
+            {"main_window_opacity_tooltip", "Main window background transparency (0-100%)"}
+            {"main_window_settings", "Main Fereastră"}
+            {"map", "Map"}
+            {"mass_actions_clear_ignore", "Curățare ignore list"}
+            {"mass_actions_ignore_ascended", "Ignore all Ascended items"}
+            {"mass_actions_ignore_basic", "Ignore all Basic items"}
+            {"mass_actions_ignore_exotic", "Ignore all Exotic items"}
+            {"mass_actions_ignore_fine", "Ignore all Fine items"}
+            {"mass_actions_ignore_junk", "Ignore all Junk items"}
+            {"mass_actions_ignore_legendary", "Ignore all Legendary items"}
+            {"mass_actions_ignore_masterwork", "Ignore all Masterwork items"}
+            {"mass_actions_ignore_rare", "Ignore all Rare items"}
+            {"mass_actions_label", "Mass Actions"}
+            {"max_backup_count", "Max backup count"}
+            {"max_backup_count_tooltip", "Maximum number of backups to keep (1-20)"}
+            {"max_backups", "Max Copie de siguranțăs"}
+            {"max_backups_tooltip", "Maximum number of backups to keep (1-20)"}
+            {"max_session_history", "Max Sesiunes"}
+            {"max_session_history_tooltip", "Maximum number of sessions to save (1-50). Oldest session is deleted when limit is reached if overwrite is enabled."}
+            {"min_value", "Min Valoare"}
+            {"mini_window_click_through", "Fereastră click through"}
+            {"mini_window_click_through_tooltip", "Toateows clicking through the mini window to the game"}
+            {"mini_window_hide_title_bar", "Ascundere Mini Fereastră Title Bar"}
+            {"mini_window_hide_title_bar_tooltip", "Ascundere the title bar of the mini window"}
+            {"mini_window_locked", "Blocare Mini Fereastră"}
+            {"mini_window_locked_tooltip", "Fix the mini window position and size (no longer movable or resizable)"}
+            {"mini_window_opacity", "Mini Fereastră Transparency"}
+            {"mini_window_opacity_tooltip", "Mini window background transparency (0-100%)"}
+            {"mini_window_show_profit", "Afișare Profit"}
+            {"mini_window_show_profit_per_hour", "Afișare Profit/Hour"}
+            {"mini_window_show_profit_per_hour_tooltip", "Display profit per hour in mini window"}
+            {"mini_window_show_profit_tooltip", "Display total profit in mini window"}
+            {"mini_window_show_session_duration", "Afișare Sesiune Durată"}
+            {"mini_window_show_session_duration_tooltip", "Display session duration in mini window"}
+            {"mini_window_show_total_items", "Afișare Total Obiecte"}
+            {"mini_window_show_total_items_tooltip", "Display total item count in mini window"}
+            {"mini_window_show_tp_instant", "Afișare TP Instant (Instant Sell)"}
+            {"mini_window_show_tp_instant_tooltip", "Display TP instant sell profit in mini window"}
+            {"mini_window_show_tp_sell", "Afișare TP Sell (Listings)"}
+            {"mini_window_show_tp_sell_tooltip", "Display TP sell profit (listings) in mini window"}
+            {"minutes_after_unload_tooltip", "Minutes after addon unload before automatic reset"}
+            {"no_cancel", "Nu, Anulare"}
+            {"no_items_in_session", "Nu items in this session"}
+            {"no_sessions_recorded", "Nu sessions recorded yet."}
+            {"notification_combine_logic", "Combine Filtrus (AND)"}
+            {"notification_combine_logic_tooltip", "If enabled, BOTH conditions (Valoare AND Rarity) must be met. If disabled, ANY one of them is enough."}
+            {"notification_duration", "Display Durată"}
+            {"notification_duration_tooltip", "How long the notification stays visible (seconds)"}
+            {"notification_general", "General Setări"}
+            {"notification_include_agony", "Include Agony Infusions"}
+            {"notification_include_agony_tooltip", "If enabled, Agony Infusions (+1 to +30) will also trigger an alert."}
+            {"notification_include_non_profit", "Include Nun-Profit Obiecte"}
+            {"notification_include_non_profit_tooltip", "If enabled, items with no gold value (0c) will also trigger alerts if they meet the rarity requirement."}
+            {"notification_infusion_alert", "Infusion Alert"}
+            {"notification_infusion_alert_tooltip", "Always notify when an Infusion is found (ignores Valoare/Rarity filters)"}
+            {"notification_item_alerts", "Item Alerts"}
+            {"notification_min_rarity", "Min. Rarity"}
+            {"notification_min_rarity_tooltip", "Trigger notification if item rarity is at least this level"}
+            {"notification_min_value", "Min. Valoare (Gold)"}
+            {"notification_min_value_tooltip", "Trigger notification if item value is at least this amount"}
+            {"notification_play_sound", "Redare Sunet"}
+            {"notification_play_sound_tooltip", "Redare a sound effect when a notification appears"}
+            {"notification_precursor_alert", "Pre-Cursor Alert"}
+            {"notification_precursor_alert_tooltip", "Always notify when a Pre-Cursor is found (ignores Valoare/Rarity filters)"}
+            {"notification_session_alerts", "Progress & Timp"}
+            {"notification_settings", "Nutificare Setări"}
+            {"notification_setup_hint", "[Drag to reposition notifications]"}
+            {"notification_stacking", "Stack Nutificares"}
+            {"notification_stacking_tooltip", "Afișare multiple notifications at once instead of replacing the old one immediately"}
+            {"notification_triggers", "Nutificare Triggers"}
+            {"notification_volume", "Master Volum"}
+            {"notification_volume_tooltip", "Volum for notification sounds"}
+            {"notify_profit_goal", "Nutify when profit goal reached"}
+            {"notify_profit_goal_tooltip", "Nutify when you reach your profit goal"}
+            {"notify_reset_warning", "Nutify before reset"}
+            {"notify_reset_warning_tooltip", "Nutify before automatic reset occurs"}
+            {"notify_session_complete", "Nutify after session duration"}
+            {"notify_session_complete_tooltip", "Nutify after farming for a certain duration"}
+            {"opportunity_cost_per_hour", "Opportunity cost per hour"}
+            {"opportunity_cost_per_hour_tooltip", "Opportunity cost per hour"}
+            {"opportunity_cost_vs_tp_sell", "Opportunity cost vs TP sell"}
+            {"opportunity_cost_vs_tp_sell_tooltip", "Opportunity cost vs TP sell"}
+            {"overwrite_session_history", "Overwrite Sesiunes"}
+            {"overwrite_session_history_tooltip", "If enabled, oldest session is deleted when limit is reached"}
+            {"performance_settings", "Performance Setări"}
+            {"precursor_drop_label", "Pre-Cursor Drop!"}
+            {"profit_change", "Profit Change"}
+            {"profit_goal_amount", "Goal Amount (Gold)"}
+            {"profit_goal_gold", "Profit goal (gold)"}
+            {"profit_goal_gold_tooltip", "Profit goal in gold coins (1-1000)"}
+            {"profit_goal_reached_msg", "You have reached your profit goal of %d gold!"}
+            {"profit_goal_reached_title", "Profit Goal Reached"}
+            {"profit_per_hour_calculation", "Profit per hour calculation"}
+            {"profit_per_hour_calculation_tooltip", "Profit per hour calculation"}
+            {"quantity", "Quantity"}
+            {"range_filters_tooltip", "Afișare price and quantity range filters"}
+            {"rare_drop_label", "Rare Drop!"}
+            {"rarity_border_thickness", "Rarity Bordură Thickness"}
+            {"rarity_border_thickness_tooltip", "Adjust the thickness of rarity borders (1.0 - 10.0)"}
+            {"rarity_name_ascended", "Ascended"}
+            {"rarity_name_basic", "Basic"}
+            {"rarity_name_exotic", "Exotic"}
+            {"rarity_name_fine", "Fine"}
+            {"rarity_name_junk", "Junk"}
+            {"rarity_name_legendary", "Legendary"}
+            {"rarity_name_masterwork", "Masterwork"}
+            {"rarity_name_rare", "Rare"}
+            {"rarity_name_unknown", "Unknown"}
+            {"reconnect_drf_token", "Reconnect to DRF with the current token"}
+            {"reload_drf_token", "Reload DRF Token"}
+            {"reload_gw2_api_key", "Reload GW2 API Key"}
+            {"reload_gw2_api_key_tooltip", "Reload GW2 API key for item data fetching"}
+            {"remove_account", "- Eliminare Cont"}
+            {"reset_all", "Resetare Toate"}
+            {"reset_all_tooltip", "Resetare all settings to default values"}
+            {"reset_interval_days", "Resetare interval (days)"}
+            {"reset_interval_days_tooltip", "Personalizat reset interval in days (1-30 days)"}
+            {"reset_settings", "Automat Resetare"}
+            {"reset_warning_minutes", "Resetare Avertisment (Minutes)"}
+            {"reset_warning_minutes_tooltip", "Minutes before reset to show warning (1-60)"}
+            {"reset_warning_msg", "The tracker will reset in %d minutes!"}
+            {"reset_warning_title", "Resetare Avertisment"}
+            {"restore", "Restaurare"}
+            {"row_color", "Row Culoare"}
+            {"save", "Salvare"}
+            {"save_account", "Salvare Cont"}
+            {"save_all_items_confirm", "Activare session timeline?"}
+            {"save_all_items_warning", "This will significantly increase file size!"}
+            {"save_current_session", "Salvare Current Sesiune"}
+            {"save_current_session_tooltip", "Salvare the current farming session without resetting"}
+            {"save_tooltip", "Salvare current settings"}
+            {"search_favorite_currencies_hint", "Căutare favorite currencies..."}
+            {"search_favorite_items_hint", "Căutare favorite items..."}
+            {"search_items", "Căutare Obiecte"}
+            {"search_items_hint", "Căutare items..."}
+            {"select_profile", "Selectare a profile to apply its settings"}
+            {"select_profile_tooltip", "Selectare a profile to apply its settings"}
+            {"session_complete_hours", "Sesiune Complete (Hours)"}
+            {"session_complete_hours_tooltip", "Hours of farming before notification (1-24)"}
+            {"session_complete_msg", "You have been farming for %d hours!"}
+            {"session_complete_title", "Sesiune Complete"}
+            {"session_count", "Sesiune Număr"}
+            {"session_details", "Sesiune Details"}
+            {"session_history", "Sesiune Istoric"}
+            {"session_hours", "Sesiune hours"}
+            {"session_hours_tooltip", "Hours of farming before notification (1-24)"}
+            {"session_note", "Nute"}
+            {"session_profit_trend", "Profit Trend"}
+            {"session_search_hint", "Căutare sessions, items, notes..."}
+            {"sessions_selected", "sessions selected"}
+            {"sessions_stored", "Sesiunes Stored"}
+            {"settings_profiles", "Setări Profiles"}
+            {"show_ignored_items", "Afișare ignored items"}
+            {"show_ignored_items_tooltip", "Afișare ignored items/currencies in Obiecte and Valute tabs (disable to hide). Difference from 'Ignored' filter: This filter controls display in Obiecte/Valute tabs, the 'Ignored' filter controls display in Filtru tab."}
+            {"show_main_window", "Afișare main window"}
+            {"show_mini_window", "Afișare mini window"}
+            {"show_mini_window_tooltip", "Afișares a small overlay widget with key statistics"}
+            {"show_notification_setup", "Setup Mode (Positioning)"}
+            {"show_notification_setup_tooltip", "Makes the notification window visible so you can move it"}
+            {"show_rarity_as_tabs", "Afișare as Filăs"}
+            {"show_summaries", "Afișare Summaries"}
+            {"show_summaries_tooltip", "Afișare daily/weekly/monthly profit summaries"}
+            {"show_type_as_tabs", "Afișare as Filăs"}
+            {"showing", "Afișareing"}
+            {"sort_profit_high", "Sortare: Profit high"}
+            {"sort_profit_low", "Sortare: Profit low"}
+            {"sort_rarity_high", "Sortare: Rarity high to low"}
+            {"sort_rarity_low", "Sortare: Rarity low to high"}
+            {"sound_alert", "Alert Sunet"}
+            {"sound_infusion", "Infusion Sunet"}
+            {"sound_path_hint", "Path to sound file (empty = default)"}
+            {"sound_precursor", "Pre-Cursor Sunet"}
+            {"sound_standard", "Standard Sunet"}
+            {"sound_test", "Test"}
+            {"stat_avg_profit_per_hour", "Avg Profit/h"}
+            {"stat_best_session", "Cel mai bun Sesiune"}
+            {"stat_total_profit", "Total Profit"}
+            {"stat_total_time", "Total Timp"}
+            {"summaries_coming_soon", "Summaries feature coming soon..."}
+            {"summaries_label", "Summaries"}
+            {"summaries_tooltip", "Daily/Weekly/Monthly profit summaries"}
+            {"summary_period", "Period:"}
+            {"summary_this_month", "This Month"}
+            {"summary_this_week", "This Week"}
+            {"summary_today", "Today"}
+            {"tab_session_history", "Sesiune Istoric"}
+            {"tab_sessions", "Sesiunes"}
+            {"tab_summaries", "Summaries"}
+            {"test_item_label", "Test Item"}
+            {"text_color", "Text Culoare"}
+            {"time", "Timp"}
+            {"time_ago_seconds", "%llds ago"}
+            {"timeline_icon_size_currencies", "Cronologie Pictogramă Dimensiune (Valute)"}
+            {"timeline_icon_size_currencies_tooltip", "Dimensiune of currency icons in Cronologie tab (16-48)"}
+            {"timeline_icon_size_items", "Cronologie Pictogramă Dimensiune (Obiecte)"}
+            {"timeline_icon_size_items_tooltip", "Dimensiune of item icons in Cronologie tab (16-96)"}
+            {"toggle_favorite", "Toggle favorite"}
+            {"toggle_favorite_tooltip", "Toggle favorite"}
+            {"toggle_ignore", "Toggle ignore"}
+            {"toggle_ignore_tooltip", "Toggle ignore"}
+            {"top_currencies_count_header", "Top 5 Valute (Număr)"}
+            {"top_currencies_count_tooltip", "Top 5 currencies by count"}
+            {"top_drops", "Top Drops"}
+            {"top_gradient_color", "Top"}
+            {"top_gradient_color_tooltip", "Top gradient color"}
+            {"top_items_count_header", "Top 5 Obiecte (Număr)"}
+            {"top_items_profit_header", "Top 5 Obiecte by Profit"}
+            {"total_custom_profit", "Total custom profit"}
+            {"total_custom_profit_tooltip", "Total custom profit"}
+            {"total_drops", "Total Drops"}
+            {"total_duration", "Total Durată"}
+            {"total_tp_sell_profit", "Total TP sell profit"}
+            {"total_tp_sell_profit_tooltip", "Total TP sell profit"}
+            {"total_tracked_currencies", "Total number of tracked currencies"}
+            {"total_tracked_currencies_tooltip", "Total number of tracked currencies"}
+            {"total_tracked_items", "Total number of tracked items"}
+            {"total_tracked_items_tooltip", "Total number of tracked items"}
+            {"total_vendor_sell_profit", "Total vendor sell profit"}
+            {"total_vendor_sell_profit_tooltip", "Total vendor sell profit"}
+            {"tp_buy_gross_format", "TP Buy (Gross): %s"}
+            {"tp_buy_net_format", "TP Buy (Net): %s"}
+            {"tp_sell_gross_format", "TP Sell (Gross): %s"}
+            {"tp_sell_net_format", "TP Sell (Net): %s"}
+            {"trigger_drops", "Item Drops"}
+            {"trigger_profit_goal", "Profit Goal"}
+            {"trigger_time_reset", "Timp & Resetare"}
+            {"type_backpack", "Backpack"}
+            {"type_gizmo_container", "Gizmo Container"}
+            {"type_tool", "Tool"}
+            {"type_trophy", "Trophy"}
+            {"type_unlock", "Deblocare"}
+            {"type_upgrade_component", "Upgrade Component"}
+            {"unknown_map", "Unknown"}
+            {"update_profile", "Actualizare Profile"}
+            {"update_profile_tooltip", "Actualizare current profile with current settings"}
+            {"value", "Valoare"}
+            {"vendor_value_format", "Vendor Valoare: %s"}
+            {"visual_settings", "Visual Setări"}
+            {"warning_minutes", "Avertisment minutes"}
+            {"warning_minutes_tooltip", "Minutes before reset to show warning (1-60)"}
+            {"yes_clear", "Da, Curățare"}
+            {"yes_enable", "Da, Activare"}
+            {"yes_reset", "Da, Resetare"},
+
+            // Drops Tab
+            {"settings_tab", "Setări"},
+        
+            // Missing keys from English
+            {"backup_path_default_tooltip", "Default: addon directory"}
+            {"backup_path_label", "Backup folder:"}
+            {"browse_for_folder_tooltip", "Browse for folder"}
+            {"current_or_last_recorded", "Current or last recorded"}
+            {"custom_profit_import_tooltip", "Loads custom_profit_import.json from the addon folder"}
+            {"disable_complex_visuals", "Disable Complex Visuals on Low Performance"}
+            {"disable_complex_visuals_tooltip", "Disables rarity borders, sparklines and other visual effects to improve performance"}
+            {"efficiency_score_desc_short", "instant vs. listing"}
+            {"enable_drops_tab", "Enable Drops Tab"}
+            {"enable_drops_tab_tooltip", "Show the Drops tab"}
+            {"entries_label", "entries"}
+            {"open_folder_tooltip", "Open folder in Explorer"}
+};
+        return translations;
+    }
+}
