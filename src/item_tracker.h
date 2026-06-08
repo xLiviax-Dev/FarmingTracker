@@ -30,6 +30,7 @@ struct ApiDetails
     bool        noSell       = false;
     bool        accountBound = false;
     std::string rarity;
+    int         level        = 0;
     bool        loaded       = false;
     ItemType    itemType     = ItemType::Unknown;
     std::string upgradeComponentType; // e.g., "Infusion", "Rune", "Sigil", etc.
@@ -158,6 +159,7 @@ namespace ItemTracker
 
     // Best Drop
     std::pair<int, Stat> GetBestDrop();
+    std::pair<int, Stat> GetBestDropTotalValue(); // New: Best drop by total session value
 
     // Export Functions
     std::string ExportToJson();

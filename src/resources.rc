@@ -60,6 +60,7 @@ IDB_ICON_SETTINGS_PROFILES  RCDATA "..\\data\\icons\\tabicons\\settings_profiles
 IDB_ICON_COPY               RCDATA "..\\data\\icons\\tabicons\\copy.png"
 IDB_ICON_RESET              RCDATA "..\\data\\icons\\tabicons\\reset.png"
 IDB_ICON_OPEN_FOLDER        RCDATA "..\\data\\icons\\tabicons\\open_folder.png"
+IDB_ICON_EXPORT             RCDATA "..\\data\\icons\\tabicons\\export.png"
 
 // Info button icons (embedded from data\icons\infobutton\)
 IDB_INFO_WHEAT        RCDATA "..\\data\\icons\\infobutton\\Emoji wheat 32.png"

@@ -352,47 +352,115 @@ void RenderProfitTab()
     // LEFT COLUMN
     ImGui::BeginGroup();
 
-    // Best Drop
-    auto [bestId, bestSt] = ItemTracker::GetBestDrop();
-    if (bestId != 0 && bestSt.count > 0 && ItemTracker::PassesFilter(bestSt))
+    // Best Drops Row (Single & Total)
     {
-        { ImVec2 p=ImGui::GetCursorScreenPos(); DrawDarkGradientBox(p,{p.x+kw,p.y+iconSz+52.f}); }
-        PushCard();
-        ImGui::BeginChild("##best", ImVec2(kw, iconSz+52.f), false, ImGuiWindowFlags_NoScrollbar);
+        auto [bestId, bestSt] = ItemTracker::GetBestDrop();
+        auto [bestTotalId, bestTotalSt] = ItemTracker::GetBestDropTotalValue();
         
-        // Calculate total width of icon + text group
-        std::string bn = bestSt.details.loaded ? bestSt.details.name : Localization::GetText("loading");
-        std::string profit = UICommon::FormatCoin(ItemTracker::GetStatProfit(bestSt));
-        float labelWidth = ImGui::CalcTextSize(Localization::GetText("best_drop")).x;
-        float nameWidth = ImGui::CalcTextSize(bn.c_str()).x;
-        float profitWidth = ImGui::CalcTextSize(profit.c_str()).x;
-        float maxTextWidth = std::max({labelWidth, nameWidth, profitWidth});
-        float totalWidth = iconSz + 10.f + maxTextWidth;
-        float centerX = (kw - totalWidth) * 0.5f;
-        
-        ImGui::SetCursorPosX(centerX);
-        ImVec2 ipos = ImGui::GetCursorScreenPos();
-        UICommon::DrawItemIconCell(bestId, bestSt.details.iconUrl, iconSz, bestSt.details.rarity);
-        bool ih = ImGui::IsItemHovered();
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
-            UIContextMenu::OpenContextMenu("BestDropMenu", bestId, bestSt.details.loaded ? bestSt.details.name : "...");
-        ImGui::GetWindowDrawList()->AddRect(ipos, {ipos.x+iconSz, ipos.y+iconSz}, IM_COL32(255,215,0,200), 4.f, 0, 2.f);
-        ImGui::SameLine(0, 10);
-        ImGui::BeginGroup();
-        ImGui::TextColored(ImVec4(1.f, 1.f, 1.f, 1.f), "%s", Localization::GetText("best_drop"));
-        ImGui::Text("%s", bn.c_str());
-        bool nh = ImGui::IsItemHovered();
-        if (nh && ImGui::IsMouseClicked(1)) UIContextMenu::OpenContextMenu("BestDropMenu", bestId, bn);
-        ImGui::TextColored(kGold, "%s", profit.c_str());
-        ImGui::EndGroup();
-        if (ih || nh)
+        bool hasBestSingle = (bestId != 0 && bestSt.count > 0 && ItemTracker::PassesFilter(bestSt));
+        bool hasBestTotal = (bestTotalId != 0 && bestTotalSt.count > 0 && ItemTracker::PassesFilter(bestTotalSt));
+
+        if (hasBestSingle || hasBestTotal)
         {
-            UITooltips::ItemTooltipOptions opt; opt.showTrading=opt.showAccountFlags=opt.showId=true;
-            if (bestSt.details.loaded) UITooltips::RenderItemTooltip(bestSt.details, bestId, opt);
-            else UITooltips::RenderItemTooltipFallback(bn, bestSt.details.rarity, bestId, opt);
+            float dropCardW = (mainW - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+            float dropCardH = iconSz + 52.f;
+
+            // Single Best Drop
+            if (hasBestSingle)
+            {
+                { ImVec2 p = ImGui::GetCursorScreenPos(); DrawDarkGradientBox(p, { p.x + dropCardW, p.y + dropCardH }); }
+                PushCard();
+                ImGui::BeginChild("##best_single", ImVec2(dropCardW, dropCardH), false, ImGuiWindowFlags_NoScrollbar);
+
+                std::string bn = bestSt.details.loaded ? bestSt.details.name : Localization::GetText("loading");
+                long long unitProfit = 0;
+                {
+                    long long vendorPrice = ItemTracker::CanSellToVendor(bestSt.details) ? (long long)bestSt.details.vendorValue : 0;
+                    long long tpSellPrice = ItemTracker::CanSellOnTp(bestSt.details) ? ItemTracker::TpSellProceedsPerUnitCopper(bestSt.details) : 0;
+                    unitProfit = std::max(vendorPrice, tpSellPrice);
+                }
+                std::string profitStr = UICommon::FormatCoin(unitProfit);
+                
+                float labelWidth = ImGui::CalcTextSize(Localization::GetText("best_drop_single")).x;
+                float nameWidth = ImGui::CalcTextSize(bn.c_str()).x;
+                float profitWidth = ImGui::CalcTextSize(profitStr.c_str()).x;
+                float maxTextWidth = std::max({ labelWidth, nameWidth, profitWidth });
+                float totalWidth = iconSz + 10.f + maxTextWidth;
+                float centerX = (dropCardW - totalWidth) * 0.5f;
+
+                ImGui::SetCursorPosX(centerX);
+                ImVec2 ipos = ImGui::GetCursorScreenPos();
+                UICommon::DrawItemIconCell(bestId, bestSt.details.iconUrl, iconSz, bestSt.details.rarity);
+                bool ih = ImGui::IsItemHovered();
+                if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                    UIContextMenu::OpenContextMenu("BestDropMenuSingle", bestId, bestSt.details.loaded ? bestSt.details.name : "...");
+                ImGui::GetWindowDrawList()->AddRect(ipos, { ipos.x + iconSz, ipos.y + iconSz }, IM_COL32(255, 215, 0, 200), 4.f, 0, 2.f);
+                ImGui::SameLine(0, 10);
+                ImGui::BeginGroup();
+                ImGui::TextColored(ImVec4(1.f, 1.f, 1.f, 1.f), "%s", Localization::GetText("best_drop_single"));
+                ImGui::Text("%s", bn.c_str());
+                bool nh = ImGui::IsItemHovered();
+                if (nh && ImGui::IsMouseClicked(1)) UIContextMenu::OpenContextMenu("BestDropMenuSingle", bestId, bn);
+                ImGui::TextColored(kGold, "%s", profitStr.c_str());
+                ImGui::EndGroup();
+                if (ih || nh)
+                {
+                    UITooltips::ItemTooltipOptions opt; opt.showTrading = opt.showAccountFlags = opt.showId = true;
+                    if (bestSt.details.loaded) UITooltips::RenderItemTooltip(bestSt.details, bestId, opt);
+                    else UITooltips::RenderItemTooltipFallback(bn, bestSt.details.rarity, bestId, opt);
+                }
+                UIContextMenu::RenderItemContextMenu("BestDropMenuSingle", UIContextMenu::ContextMenuType::General);
+                ImGui::EndChild(); PopCard();
+                if (hasBestTotal) ImGui::SameLine();
+            }
+
+            // Total Best Drop
+            if (hasBestTotal)
+            {
+                { ImVec2 p = ImGui::GetCursorScreenPos(); DrawDarkGradientBox(p, { p.x + dropCardW, p.y + dropCardH }); }
+                PushCard();
+                ImGui::BeginChild("##best_total", ImVec2(dropCardW, dropCardH), false, ImGuiWindowFlags_NoScrollbar);
+
+                std::string bn = bestTotalSt.details.loaded ? bestTotalSt.details.name : Localization::GetText("loading");
+                long long totalProfit = ItemTracker::GetStatProfit(bestTotalSt);
+                std::string profitStr = UICommon::FormatCoin(totalProfit);
+                char countBuf[32]; snprintf(countBuf, sizeof(countBuf), " (x%zu)", bestTotalSt.count);
+                std::string profitWithCount = profitStr + countBuf;
+
+                float labelWidth = ImGui::CalcTextSize(Localization::GetText("best_drop_total")).x;
+                float nameWidth = ImGui::CalcTextSize(bn.c_str()).x;
+                float profitWidth = ImGui::CalcTextSize(profitWithCount.c_str()).x;
+                float maxTextWidth = std::max({ labelWidth, nameWidth, profitWidth });
+                float totalWidth = iconSz + 10.f + maxTextWidth;
+                float centerX = (dropCardW - totalWidth) * 0.5f;
+
+                ImGui::SetCursorPosX(centerX);
+                ImVec2 ipos = ImGui::GetCursorScreenPos();
+                UICommon::DrawItemIconCell(bestTotalId, bestTotalSt.details.iconUrl, iconSz, bestTotalSt.details.rarity);
+                bool ih = ImGui::IsItemHovered();
+                if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                    UIContextMenu::OpenContextMenu("BestDropMenuTotal", bestTotalId, bestTotalSt.details.loaded ? bestTotalSt.details.name : "...");
+                ImGui::GetWindowDrawList()->AddRect(ipos, { ipos.x + iconSz, ipos.y + iconSz }, IM_COL32(255, 215, 0, 200), 4.f, 0, 2.f);
+                ImGui::SameLine(0, 10);
+                ImGui::BeginGroup();
+                ImGui::TextColored(ImVec4(1.f, 1.f, 1.f, 1.f), "%s", Localization::GetText("best_drop_total"));
+                ImGui::Text("%s", bn.c_str());
+                bool nh = ImGui::IsItemHovered();
+                if (nh && ImGui::IsMouseClicked(1)) UIContextMenu::OpenContextMenu("BestDropMenuTotal", bestTotalId, bn);
+                ImGui::TextColored(kGold, "%s", profitStr.c_str());
+                ImGui::SameLine(0, 2); ImGui::TextColored(kMuted, "x%zu", bestTotalSt.count);
+                ImGui::EndGroup();
+                if (ih || nh)
+                {
+                    UITooltips::ItemTooltipOptions opt; opt.showTrading = opt.showAccountFlags = opt.showId = true;
+                    if (bestTotalSt.details.loaded) UITooltips::RenderItemTooltip(bestTotalSt.details, bestTotalId, opt);
+                    else UITooltips::RenderItemTooltipFallback(bn, bestTotalSt.details.rarity, bestTotalId, opt);
+                }
+                UIContextMenu::RenderItemContextMenu("BestDropMenuTotal", UIContextMenu::ContextMenuType::General);
+                ImGui::EndChild(); PopCard();
+            }
+            ImGui::Spacing();
         }
-        UIContextMenu::RenderItemContextMenu("BestDropMenu", UIContextMenu::ContextMenuType::General);
-        ImGui::EndChild(); PopCard(); ImGui::Spacing();
     }
 
     // Sparkline

@@ -60,6 +60,7 @@
 #define IDB_ICON_COPY               351
 #define IDB_ICON_RESET              352
 #define IDB_ICON_OPEN_FOLDER        353
+#define IDB_ICON_EXPORT             354
 
 // Info button icons
 #define IDB_INFO_WHEAT           401

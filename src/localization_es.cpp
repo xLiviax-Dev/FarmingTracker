@@ -888,6 +888,7 @@ namespace Localization
             {"reset_all", "Restablecer todo"},
             {"reset_all_tooltip", "Restablecer todos los ajustes a valores predeterminados"},
             {"export", "Exportar"},
+            {"export_backup_settings", "Exportación y Respaldo"},
             {"export_tooltip", "Exportar ajustes a un archivo JSON"},
             {"import", "Importar"},
             {"import_tooltip", "Importar ajustes desde un archivo JSON"},

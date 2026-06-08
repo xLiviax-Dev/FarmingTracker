@@ -76,6 +76,7 @@ struct Settings
     // Best Drop Highlight Settings
     bool enableBestDropHighlight = true;
     bool enableBestDropInMiniWindow = false;
+    bool miniWindowShowBestDropTotalValue = false; // New: Show best drop by total session value
 
     // Mini Window (Overlay Widget) Settings
     bool showMiniWindow = false;

@@ -899,6 +899,7 @@ namespace Localization
             {"reset_all", "Tout réinitialiser"},
             {"reset_all_tooltip", "Réinitialiser tous les paramètres aux valeurs par défaut"},
             {"export", "Exporter"},
+            {"export_backup_settings", "Exportation & Sauvegarde"},
             {"export_tooltip", "Exporter les paramètres vers un fichier JSON"},
             {"import", "Importer"},
             {"import_tooltip", "Importer les paramètres depuis un fichier JSON"},

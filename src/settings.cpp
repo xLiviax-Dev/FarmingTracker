@@ -166,6 +166,7 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     j["enableSummariesInProfitTab"] = s.enableSummariesInProfitTab;
     j["enableBestDropHighlight"] = s.enableBestDropHighlight;
     j["enableBestDropInMiniWindow"] = s.enableBestDropInMiniWindow;
+    j["miniWindowShowBestDropTotalValue"] = s.miniWindowShowBestDropTotalValue;
     j["showMiniWindow"] = s.showMiniWindow;
     j["miniWindowShowProfit"] = s.miniWindowShowProfit;
     j["miniWindowShowProfitPerHour"] = s.miniWindowShowProfitPerHour;
@@ -481,6 +482,7 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     if (j.contains("enableSummariesInProfitTab")) s.enableSummariesInProfitTab = j["enableSummariesInProfitTab"].get<bool>();
     if (j.contains("enableBestDropHighlight")) s.enableBestDropHighlight = j["enableBestDropHighlight"].get<bool>();
     if (j.contains("enableBestDropInMiniWindow")) s.enableBestDropInMiniWindow = j["enableBestDropInMiniWindow"].get<bool>();
+    if (j.contains("miniWindowShowBestDropTotalValue")) s.miniWindowShowBestDropTotalValue = j["miniWindowShowBestDropTotalValue"].get<bool>();
     if (j.contains("showMiniWindow")) s.showMiniWindow = j["showMiniWindow"].get<bool>();
     if (j.contains("miniWindowShowProfit")) s.miniWindowShowProfit = j["miniWindowShowProfit"].get<bool>();
     if (j.contains("miniWindowShowProfitPerHour")) s.miniWindowShowProfitPerHour = j["miniWindowShowProfitPerHour"].get<bool>();

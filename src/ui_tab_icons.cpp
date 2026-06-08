@@ -83,6 +83,8 @@ static const std::unordered_map<std::string, int> kIconResources =
     { "copy",            IDB_ICON_COPY            },
     { "reset",           IDB_ICON_RESET           },
     { "open_folder",     IDB_ICON_OPEN_FOLDER     },
+    { "export",          IDB_ICON_EXPORT          },
+    { "file_csv",        IDB_ICON_FILE_DESCRIPTION },
 };
 
 // Nexus texture ID prefix

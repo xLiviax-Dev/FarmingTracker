@@ -791,6 +791,7 @@ namespace Localization
             {"reset_all", "全部重置"},
             {"reset_all_tooltip", "将所有设置重置为默认值"},
             {"export", "导出"},
+            {"export_backup_settings", "导出与备份"},
             {"export_tooltip", "将设置导出到JSON文件"},
             {"import", "导入"},
             {"import_tooltip", "从JSON文件导入设置"},

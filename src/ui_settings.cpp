@@ -42,6 +42,7 @@ enum class SettingsPage
     Notifications= 7,
     Performance  = 8,
     Advanced     = 9,
+    Export       = 10,
     COUNT
 };
 
@@ -86,9 +87,24 @@ static void LabelText(const char* text, ImU32 col = COL_LABEL_TEXT)
 // =============================================================================
 // Helper: sub-header
 // =============================================================================
-static void SubHeader(const char* text)
+static void SubHeader(const char* text, const char* iconKey = nullptr)
 {
     ImGui::Spacing();
+    
+    if (iconKey)
+    {
+        void* iconTex = UITabIcons::GetIcon(iconKey);
+        if (iconTex)
+        {
+            float sz = 16.0f;
+            float ty = ImGui::GetCursorPosY() + (ImGui::GetTextLineHeight() - sz) * 0.5f;
+            ImGui::SetCursorPosY(ty);
+            ImGui::Image(reinterpret_cast<ImTextureID>(iconTex), ImVec2(sz, sz), ImVec2(0, 0), ImVec2(1, 1), ImGui::ColorConvertU32ToFloat4(COL_SUBHDR_TEXT));
+            ImGui::SameLine(0, 5.0f);
+            ImGui::SetCursorPosY(ty - (ImGui::GetTextLineHeight() - sz) * 0.5f); // Reset Y slightly for text
+        }
+    }
+
     ImGui::PushStyleColor(ImGuiCol_Text, ImGui::ColorConvertU32ToFloat4(COL_SUBHDR_TEXT));
     ImGui::TextUnformatted(text);
     ImGui::PopStyleColor();
@@ -205,6 +221,7 @@ static void DrawNavItem(const char* label, SettingsPage page, float itemW)
         "notifications",   // Notifications — mapped via tabicons key below
         "performance",     // Performance
         "advanced",        // Advanced
+        "export",          // Export
     };
     // UITabIcons keys that match the tabicons folder names
     // (must be registered in UITabIcons::kIconResources)
@@ -219,6 +236,7 @@ static void DrawNavItem(const char* label, SettingsPage page, float itemW)
         "notifications",   // Notifications
         "performance",     // Performance
         "advanced",        // Advanced
+        "export",          // Export
     };
 
     ImDrawList* dl     = ImGui::GetWindowDrawList();
@@ -662,6 +680,13 @@ static void RenderPage_Windows()
         if (ImGui::Checkbox(Localization::GetText("mini_window_show_total_items"),        &g_Settings.miniWindowShowTotalItems))          SettingsManager::Save();
         if (ImGui::Checkbox(Localization::GetText("mini_window_show_session_duration"),   &g_Settings.miniWindowShowSessionDuration))     SettingsManager::Save();
         if (ImGui::Checkbox(Localization::GetText("enable_best_drop_in_mini_window"),     &g_Settings.enableBestDropInMiniWindow))        SettingsManager::Save();
+        if (g_Settings.enableBestDropInMiniWindow || g_Settings.miniWindowShowBestDropTotalValue)
+        {
+            ImGui::Indent();
+            if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_single"), &g_Settings.enableBestDropInMiniWindow)) SettingsManager::Save();
+            if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_total"),  &g_Settings.miniWindowShowBestDropTotalValue)) SettingsManager::Save();
+            ImGui::Unindent();
+        }
         EndSection();
     }
 
@@ -757,63 +782,6 @@ static void RenderPage_DataReset()
         if (ImGui::SliderInt("##MaxSessHist", &g_Settings.maxSessionHistory, 1, 50, "%d"))
         { SettingsManager::Save(); SessionHistory::SetMaxSessions(g_Settings.maxSessionHistory); }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("max_session_history_tooltip"));
-        EndSection();
-    }
-
-    if (BeginSection("backup", Localization::GetText("backup_restore"), false, "open_folder"))
-    {
-        if (ImGui::Checkbox(Localization::GetText("enable_automatic_backups"), &g_Settings.enableAutoBackups)) SettingsManager::Save();
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_automatic_backups_tooltip"));
-
-        if (g_Settings.enableAutoBackups)
-        {
-            const char* freqItems[] = { Localization::GetText("backup_manual_only"), Localization::GetText("backup_daily"), Localization::GetText("backup_weekly") };
-            ImGui::SetNextItemWidth(160.0f);
-            if (ImGui::Combo("##BackupFreq", &g_Settings.backupFrequency, freqItems, 3)) SettingsManager::Save();
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("backup_frequency_tooltip"));
-            char cntLbl[256]; snprintf(cntLbl, sizeof(cntLbl), "%s##BackupCount", Localization::GetText("max_backup_count"));
-            if (ImGui::SliderInt(cntLbl, &g_Settings.maxBackupCount, 1, 20)) SettingsManager::Save();
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("max_backup_count_tooltip"));
-
-            ImGui::Spacing();
-            LabelText(Localization::GetText("backup_path_label"));
-            static char s_BackupPathBuf[MAX_PATH] = "";
-            static bool s_BackupPathInit = false;
-            if (!s_BackupPathInit) { strncpy_s(s_BackupPathBuf, g_Settings.autoBackupPath.c_str(), sizeof(s_BackupPathBuf)-1); s_BackupPathInit = true; }
-            float browseW = 28.0f, openW = 28.0f, gap = 4.0f;
-            float inputW  = ImGui::GetContentRegionAvail().x - browseW - openW - gap * 2.0f;
-            ImGui::SetNextItemWidth(inputW);
-            if (ImGui::InputText("##BackupFolder", s_BackupPathBuf, sizeof(s_BackupPathBuf)))
-            { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); g_Settings.autoBackupPath = s_BackupPathBuf; SettingsManager::Save(); }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", g_Settings.autoBackupPath.empty() ? Localization::GetText("backup_path_default_tooltip") : g_Settings.autoBackupPath.c_str());
-            ImGui::SameLine(0, gap);
-            if (ImGui::Button("...##BackupBrowse", ImVec2(browseW, 0)))
-            {
-                BROWSEINFOA bi = {};
-                bi.lpszTitle = "Select backup folder";
-                bi.ulFlags   = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_NONEWFOLDERBUTTON;
-                std::string cur = g_Settings.autoBackupPath.empty() ? (APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : "") : g_Settings.autoBackupPath;
-                struct BD { const char* p; } bd; bd.p = cur.c_str();
-                bi.lParam = reinterpret_cast<LPARAM>(&bd);
-                bi.lpfn   = [](HWND hwnd, UINT msg, LPARAM, LPARAM lp) -> int {
-                    if (msg == BFFM_INITIALIZED) { auto* d = reinterpret_cast<BD*>(lp);
-                        if (d && d->p && d->p[0]) SendMessageA(hwnd, BFFM_SETSELECTIONA, TRUE, reinterpret_cast<LPARAM>(d->p)); } return 0; };
-                LPITEMIDLIST pidl = SHBrowseForFolderA(&bi);
-                if (pidl) { char fp[MAX_PATH] = {};
-                    if (SHGetPathFromIDListA(pidl, fp))
-                    { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
-                      g_Settings.autoBackupPath = fp; strncpy_s(s_BackupPathBuf, fp, sizeof(s_BackupPathBuf)-1); SettingsManager::Save(); }
-                    CoTaskMemFree(pidl); }
-            }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("browse_for_folder_tooltip"));
-            ImGui::SameLine(0, gap);
-            if (ImGui::Button("->##BackupOpen", ImVec2(openW, 0)))
-            {
-                std::string p = g_Settings.autoBackupPath.empty() ? (APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : "") : g_Settings.autoBackupPath;
-                if (!p.empty()) ShellExecuteA(NULL, "explore", p.c_str(), NULL, NULL, SW_SHOWNORMAL);
-            }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("open_folder_tooltip"));
-        }
         EndSection();
     }
 
@@ -1074,6 +1042,105 @@ static void RenderPage_Performance()
 }
 
 // =============================================================================
+// Page: Export & Backup
+// =============================================================================
+static void RenderPage_Export()
+{
+    ImGui::PushStyleColor(ImGuiCol_CheckMark,     ImVec4(0.20f, 0.85f, 0.35f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.10f, 0.50f, 0.15f, 0.80f));
+
+    // --- Export / Import & Full Backup Section ---
+    if (BeginSection("export_backup_combined", Localization::GetText("export_settings"), false, "export"))
+    {
+        // Settings File
+        SubHeader(Localization::GetText("export_settings"), "export");
+        LabelText(Localization::GetText("export_tooltip"), COL_DIM_TEXT);
+        if (ImGui::Button(Localization::GetText("export"), ImVec2(120, 0))) ImGui::OpenPopup("Export Settings");
+        
+        ImGui::Spacing();
+        LabelText(Localization::GetText("import_tooltip"), COL_DIM_TEXT);
+        if (ImGui::Button(Localization::GetText("import"), ImVec2(120, 0))) ImGui::OpenPopup("Import Settings");
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // Full Backup
+        SubHeader(Localization::GetText("full_backup"), "file_csv");
+        LabelText(Localization::GetText("full_backup_tooltip"), COL_DIM_TEXT);
+        if (ImGui::Button(Localization::GetText("full_backup"), ImVec2(120, 0))) ImGui::OpenPopup("FullBackupConfirm");
+
+        ImGui::Spacing();
+        LabelText(Localization::GetText("full_restore_tooltip"), COL_DIM_TEXT);
+        if (ImGui::Button(Localization::GetText("full_restore"), ImVec2(120, 0))) ImGui::OpenPopup("FullRestoreConfirm");
+        
+        EndSection();
+    }
+
+    // --- Auto Backup Section ---
+    if (BeginSection("auto_backup_section", Localization::GetText("backup_restore"), false, "open_folder"))
+    {
+        SubHeader(Localization::GetText("backup_restore"), "open_folder");
+        if (ImGui::Checkbox(Localization::GetText("enable_automatic_backups"), &g_Settings.enableAutoBackups)) SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_automatic_backups_tooltip"));
+
+        if (g_Settings.enableAutoBackups)
+        {
+            const char* freqItems[] = { Localization::GetText("backup_manual_only"), Localization::GetText("backup_daily"), Localization::GetText("backup_weekly") };
+            ImGui::SetNextItemWidth(160.0f);
+            if (ImGui::Combo("##BackupFreq", &g_Settings.backupFrequency, freqItems, 3)) SettingsManager::Save();
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("backup_frequency_tooltip"));
+            char cntLbl[256]; snprintf(cntLbl, sizeof(cntLbl), "%s##BackupCount", Localization::GetText("max_backup_count"));
+            if (ImGui::SliderInt(cntLbl, &g_Settings.maxBackupCount, 1, 20)) SettingsManager::Save();
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("max_backup_count_tooltip"));
+
+            ImGui::Spacing();
+            LabelText(Localization::GetText("backup_path_label"));
+            static char s_BackupPathBuf[MAX_PATH] = "";
+            static bool s_BackupPathInit = false;
+            if (!s_BackupPathInit) { strncpy_s(s_BackupPathBuf, g_Settings.autoBackupPath.c_str(), sizeof(s_BackupPathBuf)-1); s_BackupPathInit = true; }
+            float browseW = 28.0f, openW = 28.0f, gap = 4.0f;
+            float inputW  = ImGui::GetContentRegionAvail().x - browseW - openW - gap * 2.0f;
+            ImGui::SetNextItemWidth(inputW);
+            if (ImGui::InputText("##BackupFolder", s_BackupPathBuf, sizeof(s_BackupPathBuf)))
+            { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); g_Settings.autoBackupPath = s_BackupPathBuf; SettingsManager::Save(); }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", g_Settings.autoBackupPath.empty() ? Localization::GetText("backup_path_default_tooltip") : g_Settings.autoBackupPath.c_str());
+            ImGui::SameLine(0, gap);
+            if (ImGui::Button("...##BackupBrowse", ImVec2(browseW, 0)))
+            {
+                BROWSEINFOA bi = {};
+                bi.lpszTitle = "Select backup folder";
+                bi.ulFlags   = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_NONEWFOLDERBUTTON;
+                std::string cur = g_Settings.autoBackupPath.empty() ? (APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : "") : g_Settings.autoBackupPath;
+                struct BD { const char* p; } bd; bd.p = cur.c_str();
+                bi.lParam = reinterpret_cast<LPARAM>(&bd);
+                bi.lpfn   = [](HWND hwnd, UINT msg, LPARAM, LPARAM lp) -> int {
+                    if (msg == BFFM_INITIALIZED) { auto* d = reinterpret_cast<BD*>(lp);
+                        if (d && d->p && d->p[0]) SendMessageA(hwnd, BFFM_SETSELECTIONA, TRUE, reinterpret_cast<LPARAM>(d->p)); } return 0; };
+                LPITEMIDLIST pidl = SHBrowseForFolderA(&bi);
+                if (pidl) { char fp[MAX_PATH] = {};
+                    if (SHGetPathFromIDListA(pidl, fp))
+                    { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+                      g_Settings.autoBackupPath = fp; strncpy_s(s_BackupPathBuf, fp, sizeof(s_BackupPathBuf)-1); SettingsManager::Save(); }
+                    CoTaskMemFree(pidl); }
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("browse_for_folder_tooltip"));
+            ImGui::SameLine(0, gap);
+            if (ImGui::Button("->##BackupOpen", ImVec2(openW, 0)))
+            {
+                std::string p = g_Settings.autoBackupPath.empty() ? (APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : "") : g_Settings.autoBackupPath;
+                if (!p.empty()) ShellExecuteA(NULL, "explore", p.c_str(), NULL, NULL, SW_SHOWNORMAL);
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("open_folder_tooltip"));
+        }
+        
+        EndSection();
+    }
+
+    ImGui::PopStyleColor(2);
+}
+
+// =============================================================================
 // Page: Advanced
 // =============================================================================
 static void RenderPage_Advanced()
@@ -1204,12 +1271,13 @@ void RenderOptions()
     DrawNavItem(Localization::GetText("performance_settings"),  SettingsPage::Performance,   SIDEBAR_W);
     DrawNavSep(SIDEBAR_W);
     DrawNavItem(Localization::GetText("advanced_settings"),     SettingsPage::Advanced,      SIDEBAR_W);
+    DrawNavItem(Localization::GetText("export_backup_settings"), SettingsPage::Export,        SIDEBAR_W);
 
     // Bottom sidebar buttons
     {
         float btnW = SIDEBAR_W - 16.0f;
         float btnX = orig.x + 8.0f;
-        float btnY = orig.y + winH - (22.0f * 5.0f + 8.0f * 6.0f);
+        float btnY = orig.y + winH - (22.0f * 1.0f + 8.0f * 2.0f); // Adjusted for only 1 button (Reset All)
 
         // FramePadding sorgt fuer vertikale Textzentrierung in allen Sidebar-Buttons
         float btnH = 22.0f;
@@ -1218,22 +1286,6 @@ void RenderOptions()
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, padY));
 
         ImGui::SetCursorScreenPos(ImVec2(btnX, btnY));
-        if (ImGui::Button(Localization::GetText("export"), ImVec2(btnW, btnH))) ImGui::OpenPopup("Export Settings");
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("export_tooltip"));
-
-        ImGui::SetCursorScreenPos(ImVec2(btnX, btnY + 30.0f));
-        if (ImGui::Button(Localization::GetText("import"), ImVec2(btnW, btnH))) ImGui::OpenPopup("Import Settings");
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("import_tooltip"));
-
-        ImGui::SetCursorScreenPos(ImVec2(btnX, btnY + 60.0f));
-        if (ImGui::Button(Localization::GetText("full_backup"), ImVec2(btnW, btnH))) ImGui::OpenPopup("FullBackupConfirm");
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("full_backup_tooltip"));
-
-        ImGui::SetCursorScreenPos(ImVec2(btnX, btnY + 90.0f));
-        if (ImGui::Button(Localization::GetText("full_restore"), ImVec2(btnW, btnH))) ImGui::OpenPopup("FullRestoreConfirm");
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("full_restore_tooltip"));
-
-        ImGui::SetCursorScreenPos(ImVec2(btnX, btnY + 120.0f));
         ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.50f, 0.08f, 0.08f, 0.80f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.70f, 0.12f, 0.12f, 1.00f));
         if (ImGui::Button(Localization::GetText("reset_all"), ImVec2(btnW, btnH))) ImGui::OpenPopup("Reset Confirm");
@@ -1319,6 +1371,7 @@ void RenderOptions()
         Localization::GetText("notification_settings"),
         Localization::GetText("performance_settings"),
         Localization::GetText("advanced_settings"),
+        Localization::GetText("export_backup_settings"),
     };
     const char* pageTitle = pageTitles[static_cast<int>(s_CurrentPage)];
     dl->AddText(ImVec2(contentX, orig.y + (TOPBAR_H - ImGui::GetTextLineHeight()) * 0.5f),
@@ -1353,6 +1406,7 @@ void RenderOptions()
         case SettingsPage::Favorites:     RenderPage_Favorites();     break;
         case SettingsPage::Notifications: RenderPage_Notifications(); break;
         case SettingsPage::Performance:   RenderPage_Performance();   break;
+        case SettingsPage::Export:        RenderPage_Export();        break;
         case SettingsPage::Advanced:      RenderPage_Advanced();      break;
         default: break;
     }

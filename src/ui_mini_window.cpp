@@ -99,12 +99,32 @@ void RenderMiniWindow()
             if (bestDrop.first != 0 && bestDrop.second.count > 0 && ItemTracker::PassesFilter(bestDrop.second))
             {
                 ImGui::Separator();
-                ImGui::Text("%s: ", Localization::GetText("best_drop"));
+                ImGui::Text("%s: ", Localization::GetText("best_drop_single"));
                 ImGui::SameLine();
                 long long bestDropProfit = ItemTracker::GetStatProfit(bestDrop.second);
-                ImVec4 bestDropColor = bestDropProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (bestDropProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                // For single drop, we show the unit value in the mini window to differentiate
+                long long vendorPrice = ItemTracker::CanSellToVendor(bestDrop.second.details) ? (long long)bestDrop.second.details.vendorValue : 0;
+                long long tpSellPrice = ItemTracker::CanSellOnTp(bestDrop.second.details) ? ItemTracker::TpSellProceedsPerUnitCopper(bestDrop.second.details) : 0;
+                long long unitProfit = std::max(vendorPrice, tpSellPrice);
+                
+                ImVec4 bestDropColor = unitProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (unitProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
                 ImGui::TextColored(bestDropColor, "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
-                ImGui::Text("%s: %s", Localization::GetText("value"), UICommon::FormatCoin(bestDropProfit).c_str());
+                ImGui::Text("%s: %s", Localization::GetText("unit_value"), UICommon::FormatCoin(unitProfit).c_str());
+            }
+        }
+
+        if (g_Settings.miniWindowShowBestDropTotalValue)
+        {
+            auto bestTotal = ItemTracker::GetBestDropTotalValue();
+            if (bestTotal.first != 0 && bestTotal.second.count > 0 && ItemTracker::PassesFilter(bestTotal.second))
+            {
+                if (!g_Settings.enableBestDropInMiniWindow) ImGui::Separator();
+                ImGui::Text("%s: ", Localization::GetText("best_drop_total"));
+                ImGui::SameLine();
+                long long bestTotalProfit = ItemTracker::GetStatProfit(bestTotal.second);
+                ImVec4 bestTotalColor = bestTotalProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (bestTotalProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                ImGui::TextColored(bestTotalColor, "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::Text("%s (%zu): %s", Localization::GetText("total_value"), bestTotal.second.count, UICommon::FormatCoin(bestTotalProfit).c_str());
             }
         }
     }

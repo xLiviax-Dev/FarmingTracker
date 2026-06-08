@@ -306,11 +306,19 @@ static void CheckAndTriggerNotification(int apiId, Stat& st)
         std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
         std::string lowerDesc = st.details.description;
         std::transform(lowerDesc.begin(), lowerDesc.end(), lowerDesc.begin(), ::tolower);
-        if (lowerName.find("precursor") != std::string::npos ||
-            lowerDesc.find("precursor") != std::string::npos ||
-            (st.details.rarity == "Exotic" && st.details.itemType == ItemType::Weapon &&
-             st.details.vendorValue == 0 && !st.details.accountBound))
-        {
+
+        // Precursor search terms in different languages
+        bool containsPrecursor = (lowerName.find("precursor") != std::string::npos || lowerDesc.find("precursor") != std::string::npos ||
+                                 lowerName.find("präkursor") != std::string::npos || lowerDesc.find("präkursor") != std::string::npos ||
+                                 lowerName.find("précurseur") != std::string::npos || lowerDesc.find("précurseur") != std::string::npos ||
+                                 lowerName.find("прекурсор") != std::string::npos || lowerDesc.find("прекурсор") != std::string::npos ||
+                                 lowerName.find("前置") != std::string::npos || lowerDesc.find("前置") != std::string::npos);
+
+        if ((containsPrecursor ||
+              (st.details.rarity == "Exotic" && st.details.itemType == ItemType::Weapon &&
+               st.details.level == 80 && st.details.vendorValue == 0 && !st.details.accountBound)) &&
+             apiId != 76179) // Amalgamated Gemstone
+         {
             shouldNotify = true;
             specialText  = Localization::GetText("precursor_drop_label");
         }
@@ -2629,6 +2637,7 @@ void ItemTracker::ApplyItemsFromApi(const json& itemsArray, const json& pricesAr
             st->details.description = item.value("description", "");
             st->details.vendorValue = item.value("vendor_value", 0);
             st->details.rarity      = item.value("rarity", std::string());
+            st->details.level       = item.value("level", 0);
             st->details.noSell      = JsonHasNoSell(item);
             st->details.accountBound = JsonHasAccountBound(item);
             if (item.contains("icon") && item["icon"].is_string())
@@ -2851,25 +2860,52 @@ ItemTracker::CoinSplit ItemTracker::SplitCoin(long long copperValue)
     return result;
 }
 
-std::pair<int, Stat> ItemTracker::GetBestDrop()
+std::pair<int, Stat> ItemTracker::GetBestDropTotalValue()
 {
     std::lock_guard<std::mutex> lock(s_Mutex);
-    
-    std::pair<int, Stat> bestDrop = {0, Stat()};
-    long long maxProfit = 0;
-    
+
+    std::pair<int, Stat> bestDrop = { 0, Stat() };
+    long long maxTotalProfit = 0;
+
     for (const auto& [id, stat] : s_Items)
     {
         if (stat.count == 0) continue;
         if (!PassesFilter(stat)) continue;
-        
-        long long profit = GetStatProfit(stat);
-        if (profit > maxProfit)
+
+        long long totalProfit = GetStatProfit(stat);
+        if (totalProfit > maxTotalProfit)
         {
-            maxProfit = profit;
-            bestDrop = {id, stat};
+            maxTotalProfit = totalProfit;
+            bestDrop = { id, stat };
         }
     }
-    
+
+    return bestDrop;
+}
+
+std::pair<int, Stat> ItemTracker::GetBestDrop()
+{
+    std::lock_guard<std::mutex> lock(s_Mutex);
+
+    std::pair<int, Stat> bestDrop = { 0, Stat() };
+    long long maxUnitProfit = 0;
+
+    for (const auto& [id, stat] : s_Items)
+    {
+        if (stat.count == 0) continue;
+        if (!PassesFilter(stat)) continue;
+
+        // Calculate unit profit
+        long long vendorPrice = CanSellToVendor(stat.details) ? (long long)stat.details.vendorValue : 0;
+        long long tpSellPrice = CanSellOnTp(stat.details) ? TpSellProceedsPerUnitCopper(stat.details) : 0;
+        long long unitProfit = std::max(vendorPrice, tpSellPrice);
+
+        if (unitProfit > maxUnitProfit)
+        {
+            maxUnitProfit = unitProfit;
+            bestDrop = { id, stat };
+        }
+    }
+
     return bestDrop;
 }

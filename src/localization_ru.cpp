@@ -1300,6 +1300,7 @@ namespace Localization
             {"yes_reset", "Да, сбросить"},
             {"cancel", "Отмена"},
             {"export", "Экспорт"},
+            {"export_backup_settings", "Экспорт и резервное копирование"},
             {"export_tooltip", "Экспортировать настройки в файл JSON"},
             {"export_settings", "Экспортировать настройки"},
             {"import", "Импорт"},
