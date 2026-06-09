@@ -20,6 +20,11 @@ static constexpr size_t MAX_LOG_ENTRIES = 100;
 // Request count
 static std::atomic<int> s_RequestCount{0};
 
+// Persistent WinHttp Handles for reuse
+static HINTERNET s_hSession = nullptr;
+static HINTERNET s_hConnect = nullptr;
+static std::mutex s_HttpMutex;
+
 namespace
 {
     std::wstring Utf8ToWide(const std::string& s)
@@ -33,43 +38,60 @@ namespace
         return w;
     }
 
+    void CloseHttpHandles()
+    {
+        std::lock_guard<std::mutex> lock(s_HttpMutex);
+        if (s_hConnect) { WinHttpCloseHandle(s_hConnect); s_hConnect = nullptr; }
+        if (s_hSession) { WinHttpCloseHandle(s_hSession); s_hSession = nullptr; }
+    }
+
     bool HttpsGet(const std::wstring& host, INTERNET_PORT port, const std::wstring& pathQuery,
                   std::string& outBody, std::string& error)
     {
         outBody.clear();
         error.clear();
 
-        HINTERNET hSession = WinHttpOpen(L"FarmingTracker-GW2API/1.0",
-            WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
-            WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
-        if (!hSession) { error = "WinHttpOpen"; return false; }
+        std::lock_guard<std::mutex> lock(s_HttpMutex);
 
-        // Set timeouts from settings
-        DWORD connectTimeoutMs, receiveTimeoutMs;
+        if (!s_hSession)
         {
-            std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
-            connectTimeoutMs = static_cast<DWORD>(g_Settings.gw2ApiConnectTimeout);
-            receiveTimeoutMs = static_cast<DWORD>(g_Settings.gw2ApiReceiveTimeout);
+            s_hSession = WinHttpOpen(L"FarmingTracker-GW2API/1.1",
+                WINHTTP_ACCESS_TYPE_DEFAULT_PROXY,
+                WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+            if (!s_hSession) { error = "WinHttpOpen"; return false; }
+
+            // Set timeouts from settings
+            DWORD connectTimeoutMs, receiveTimeoutMs;
+            {
+                std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
+                connectTimeoutMs = static_cast<DWORD>(g_Settings.gw2ApiConnectTimeout);
+                receiveTimeoutMs = static_cast<DWORD>(g_Settings.gw2ApiReceiveTimeout);
+            }
+            WinHttpSetOption(s_hSession, WINHTTP_OPTION_CONNECT_TIMEOUT, &connectTimeoutMs, sizeof(connectTimeoutMs));
+            WinHttpSetOption(s_hSession, WINHTTP_OPTION_RECEIVE_TIMEOUT, &receiveTimeoutMs, sizeof(receiveTimeoutMs));
         }
-        WinHttpSetOption(hSession, WINHTTP_OPTION_CONNECT_TIMEOUT, &connectTimeoutMs, sizeof(connectTimeoutMs));
-        WinHttpSetOption(hSession, WINHTTP_OPTION_RECEIVE_TIMEOUT, &receiveTimeoutMs, sizeof(receiveTimeoutMs));
 
-        HINTERNET hConnect = WinHttpConnect(hSession, host.c_str(), port, 0);
-        if (!hConnect) { WinHttpCloseHandle(hSession); error = "WinHttpConnect"; return false; }
+        if (!s_hConnect)
+        {
+            s_hConnect = WinHttpConnect(s_hSession, host.c_str(), port, 0);
+            if (!s_hConnect) { error = "WinHttpConnect"; return false; }
+        }
 
-        HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"GET", pathQuery.c_str(),
+        HINTERNET hRequest = WinHttpOpenRequest(s_hConnect, L"GET", pathQuery.c_str(),
             nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
             WINHTTP_FLAG_SECURE);
-        if (!hRequest) { WinHttpCloseHandle(hConnect); WinHttpCloseHandle(hSession); error = "WinHttpOpenRequest"; return false; }
+        if (!hRequest) { error = "WinHttpOpenRequest"; return false; }
 
         BOOL ok = WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
             WINHTTP_NO_REQUEST_DATA, 0, 0, 0);
+        
         if (!ok || !WinHttpReceiveResponse(hRequest, nullptr))
         {
-            error = "WinHttpSend/Receive";
+            error = "WinHttpSend/Receive (" + std::to_string(GetLastError()) + ")";
             WinHttpCloseHandle(hRequest);
-            WinHttpCloseHandle(hConnect);
-            WinHttpCloseHandle(hSession);
+            // If connection failed, reset connect handle to try a fresh one next time
+            WinHttpCloseHandle(s_hConnect);
+            s_hConnect = nullptr;
             return false;
         }
 
@@ -91,8 +113,6 @@ namespace
         } while (dwSize > 0);
 
         WinHttpCloseHandle(hRequest);
-        WinHttpCloseHandle(hConnect);
-        WinHttpCloseHandle(hSession);
 
         if (status != 200 && status != 206)
         {
@@ -193,42 +213,54 @@ bool Gw2Api::FetchItemsMany(const std::vector<int>& ids, const std::string& toke
         std::string q = "/v2/items?ids=" + idlist + "&lang=" + langCode;
         if (!GetJson(q, token, jItems, error))
         {
-            Log("Failed to fetch items: " + error, "error");
-            return false;
-        }
-
-        if (jItems.is_array())
-            for (auto& el : jItems) itemsOut.push_back(el);
-
-        q = "/v2/commerce/prices?ids=" + idlist;
-        if (!GetJson(q, token, jPrices, error))
-        {
-            // Check if error is due to HTTP 206 (Partial Content) - this is not an error
-            if (error.find("HTTP 206") != std::string::npos)
+            // If the error is a 404 (all IDs invalid), we treat it as success but with empty results.
+            // This allows ApplyItemsFromApi to mark those IDs as unknown and stop the retry loop.
+            if (error.find("404") != std::string::npos || error.find("invalid") != std::string::npos)
             {
-                // HTTP 206 is normal for batch requests, continue processing
-                if (jPrices.is_array())
-                    for (auto& el : jPrices) pricesOut.push_back(el);
+                jItems = nlohmann::json::array();
+                jPrices = nlohmann::json::array();
             }
             else
             {
-                // Real error - skip this batch
-                // HTTP 404 with "all ids provided are invalid" is normal for non-tradable items
-                if (error.find("HTTP 404") != std::string::npos && error.find("all ids provided are invalid") != std::string::npos)
-                {
-                    Log("Items not tradable on TP (no prices available)", "data");
-                }
-                else
-                {
-                    Log("Failed to fetch prices for batch: " + error, "warning");
-                }
-                error.clear();
+                Log("Failed to fetch items: " + error, "error");
+                return false;
             }
         }
         else
         {
-            if (jPrices.is_array())
-                for (auto& el : jPrices) pricesOut.push_back(el);
+            if (jItems.is_array())
+                for (auto& el : jItems) itemsOut.push_back(el);
+
+            q = "/v2/commerce/prices?ids=" + idlist;
+            if (!GetJson(q, token, jPrices, error))
+            {
+                // Check if error is due to HTTP 206 (Partial Content) - this is not an error
+                if (error.find("HTTP 206") != std::string::npos)
+                {
+                    // HTTP 206 is normal for batch requests, continue processing
+                    if (jPrices.is_array())
+                        for (auto& el : jPrices) pricesOut.push_back(el);
+                }
+                else
+                {
+                    // Real error - skip this batch
+                    // HTTP 404 with "all ids provided are invalid" is normal for non-tradable items
+                    if (error.find("HTTP 404") != std::string::npos && error.find("all ids provided are invalid") != std::string::npos)
+                    {
+                        Log("Items not tradable on TP (no prices available)", "data");
+                    }
+                    else
+                    {
+                        Log("Failed to fetch prices for batch: " + error, "warning");
+                    }
+                    error.clear();
+                }
+            }
+            else
+            {
+                if (jPrices.is_array())
+                    for (auto& el : jPrices) pricesOut.push_back(el);
+            }
         }
 
         // Rate limiting: delay between batches
@@ -281,6 +313,47 @@ int Gw2Api::GetRequestCount()
 void Gw2Api::ResetRequestCount()
 {
     s_RequestCount.store(0);
+}
+
+void Gw2Api::Shutdown()
+{
+    CloseHttpHandles();
+}
+
+bool Gw2Api::CheckPermissions(const std::string& token, std::string& error)
+{
+    nlohmann::json j;
+    if (!GetJson("/v2/tokeninfo", token, j, error))
+        return false;
+
+    if (!j.contains("permissions") || !j["permissions"].is_array())
+    {
+        error = "Tokeninfo response is missing permissions array";
+        return false;
+    }
+
+    bool hasInventories = false;
+    bool hasProgression = false;
+
+    for (auto& p : j["permissions"])
+    {
+        if (p.is_string())
+        {
+            std::string perm = p.get<std::string>();
+            if (perm == "inventories") hasInventories = true;
+            if (perm == "progression") hasProgression = true;
+        }
+    }
+
+    if (!hasInventories || !hasProgression)
+    {
+        error = "Missing required permissions: ";
+        if (!hasInventories) error += "inventories ";
+        if (!hasProgression) error += "progression";
+        return false;
+    }
+
+    return true;
 }
 
 bool Gw2Api::FetchAccountName(const std::string& token, std::string& accountName, std::string& error)

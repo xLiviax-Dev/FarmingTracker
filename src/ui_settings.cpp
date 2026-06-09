@@ -320,7 +320,15 @@ static void RenderPage_General()
             Localization::GetText("language_italian"),
             Localization::GetText("language_polish"),
             Localization::GetText("language_portuguese"),
-            Localization::GetText("language_russian")
+            Localization::GetText("language_russian"),
+            Localization::GetText("language_danish"),
+            Localization::GetText("language_greek"),
+            Localization::GetText("language_finnish"),
+            Localization::GetText("language_hungarian"),
+            Localization::GetText("language_dutch"),
+            Localization::GetText("language_norwegian"),
+            Localization::GetText("language_romanian"),
+            Localization::GetText("language_swedish")
         };
         int langIdx = 0;
         if      (g_Settings.language == "German")     langIdx = 1;
@@ -332,8 +340,17 @@ static void RenderPage_General()
         else if (g_Settings.language == "Polish")     langIdx = 7;
         else if (g_Settings.language == "Portuguese") langIdx = 8;
         else if (g_Settings.language == "Russian")    langIdx = 9;
+        else if (g_Settings.language == "Danish")     langIdx = 10;
+        else if (g_Settings.language == "Greek")      langIdx = 11;
+        else if (g_Settings.language == "Finnish")    langIdx = 12;
+        else if (g_Settings.language == "Hungarian")  langIdx = 13;
+        else if (g_Settings.language == "Dutch")      langIdx = 14;
+        else if (g_Settings.language == "Norwegian")  langIdx = 15;
+        else if (g_Settings.language == "Romanian")   langIdx = 16;
+        else if (g_Settings.language == "Swedish")    langIdx = 17;
+
         ImGui::SetNextItemWidth(200.0f);
-        if (ImGui::Combo("##Language", &langIdx, languageItems, 10))
+        if (ImGui::Combo("##Language", &langIdx, languageItems, 18))
         {
             {
                 std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
@@ -349,6 +366,14 @@ static void RenderPage_General()
                     case 7: g_Settings.language = "Polish";     break;
                     case 8: g_Settings.language = "Portuguese"; break;
                     case 9: g_Settings.language = "Russian";    break;
+                    case 10: g_Settings.language = "Danish";    break;
+                    case 11: g_Settings.language = "Greek";     break;
+                    case 12: g_Settings.language = "Finnish";    break;
+                    case 13: g_Settings.language = "Hungarian"; break;
+                    case 14: g_Settings.language = "Dutch";     break;
+                    case 15: g_Settings.language = "Norwegian"; break;
+                    case 16: g_Settings.language = "Romanian";  break;
+                    case 17: g_Settings.language = "Swedish";   break;
                 }
             }
             Localization::SetLanguage(Localization::StringToLanguage(g_Settings.language));
@@ -875,7 +900,7 @@ static void RenderPage_Notifications()
                     int vp = static_cast<int>(volume * 100.0f);
                     if (ImGui::SliderInt("##vol", &vp, 0, 100, "%d%%"))
                     { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); volume = vp / 100.0f; SettingsManager::Save(); }
-                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Individual volume");
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("individual_volume"));
                     ImGui::SameLine();
                     if (ImGui::Button(Localization::GetText("sound_test"))) UINotifications::PlayNotificationSound(isPrecursor, isInfusion, isAlert);
                     ImGui::PopID();
@@ -1000,15 +1025,15 @@ static void RenderPage_Performance()
 
     if (BeginSection("magnetite", "Magnetite Shard Tracker", false, "magnetite"))
     {
-        if (ImGui::Checkbox("Enable Magnetite Shard weekly tracker", &g_Settings.enableMagnetiteTracker)) SettingsManager::Save();
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Tracks Magnetite Shards earned this week via DRF and GW2 wallet API.");
+        if (ImGui::Checkbox(Localization::GetText("enable_magnetite_tracker"), &g_Settings.enableMagnetiteTracker)) SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_magnetite_tracker_tooltip"));
         if (g_Settings.enableMagnetiteTracker)
         {
             int earned = MagnetiteTracker::GetWeeklyEarned();
-            ImGui::Text("Weekly progress:"); ImGui::SameLine();
+            ImGui::Text("%s", Localization::GetText("magnetite_weekly_progress")); ImGui::SameLine();
             ImGui::TextColored(ImVec4(0.75f,0.55f,1.f,1.f), "%d / %d", earned, MagnetiteTracker::WEEKLY_CAP);
             ImGui::Spacing();
-            ImGui::Text("API check cooldown (minutes):"); ImGui::SameLine();
+            ImGui::Text("%s", Localization::GetText("magnetite_api_check_cooldown")); ImGui::SameLine();
             ImGui::SetNextItemWidth(85.0f);
             if (ImGui::InputInt("##MagCooldown", &g_Settings.magnetiteApiCheckCooldownMin, 1, 5))
             { g_Settings.magnetiteApiCheckCooldownMin = std::max(1, std::min(60, g_Settings.magnetiteApiCheckCooldownMin)); SettingsManager::Save(); }
@@ -1032,8 +1057,8 @@ static void RenderPage_Performance()
             ImGui::Spacing();
             std::string lastCheck;
             { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); lastCheck = g_Settings.magnetiteLastApiCheckUtc; }
-            if (!lastCheck.empty()) ImGui::Text("Last wallet check: %s", MagnetiteTracker::UtcToLocal(lastCheck).c_str());
-            else ImGui::TextDisabled("Wallet API not yet queried this session.");
+            if (!lastCheck.empty()) ImGui::Text(Localization::GetText("magnetite_last_wallet_check"), MagnetiteTracker::UtcToLocal(lastCheck).c_str());
+            else ImGui::TextDisabled("%s", Localization::GetText("magnetite_wallet_not_queried"));
         }
         EndSection();
     }

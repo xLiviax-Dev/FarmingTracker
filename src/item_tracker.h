@@ -93,7 +93,7 @@ namespace ItemTracker
     std::vector<int> CollectPendingItemIds();
     bool             NeedCurrencyTable();
 
-    void ApplyItemsFromApi(const nlohmann::json& itemsArray, const nlohmann::json& pricesArray);
+    void ApplyItemsFromApi(const std::vector<int>& requestedIds, const nlohmann::json& itemsArray, const nlohmann::json& pricesArray);
     void ApplyCurrencyTable(const nlohmann::json& currenciesArray);
     void ClearItemDetails(); // Clear all item details to force reload on language change
     void ForceReloadAll(); // New: Mark all items as not loaded to force re-fetch

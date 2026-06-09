@@ -1,6 +1,7 @@
 #include "ui_profit.h"
 #include "settings.h"
 #include "item_tracker.h"
+#include "custom_profit.h"
 #include "localization.h"
 #include "session_history.h"
 #include "ui_common.h"
@@ -598,11 +599,11 @@ void RenderProfitTab()
 
             // Remaining shards and percentage labels
             int remaining = std::max(0, cap - earned);
-            ImGui::Text("Earned this week:");
+            ImGui::Text("%s", Localization::GetText("earned_this_week"));
             ImGui::SameLine();
             ImGui::TextColored(ImVec4(0.75f, 0.55f, 1.f, 1.f), "%d", earned);
 
-            ImGui::Text("Remaining:");
+            ImGui::Text("%s", Localization::GetText("remaining"));
             ImGui::SameLine();
             ImGui::TextColored(remaining > 0
                 ? ImVec4(1.f, 1.f, 1.f, 1.f)
@@ -645,33 +646,91 @@ void RenderProfitTab()
         }
     }
 
-    // Top Items
-    auto sItems = ItemTracker::GetSortedItems(ItemTracker::SortMode::ProfitDesc);
-    long long maxIV = 0;
-    { int c=0; for (auto& [id,st]:sItems) { if(c>=5)break; if(!st.count)continue; long long p=ItemTracker::GetStatProfit(st); if(p>0){maxIV=std::max(maxIV,p);c++;} } }
+    // Top Items & Currencies by Profit
+    std::vector<std::pair<int, Stat>> combinedStats;
+    {
+        auto sItems = ItemTracker::GetSortedItems(ItemTracker::SortMode::ProfitDesc);
+        auto sCurrencies = ItemTracker::GetSortedCurrencies(ItemTracker::SortMode::ProfitDesc);
+        
+        for (const auto& pair : sItems) combinedStats.push_back(pair);
+        for (const auto& pair : sCurrencies) combinedStats.push_back(pair);
 
-    { ImVec2 p=ImGui::GetCursorScreenPos(); DrawDarkGradientBox(p,{p.x+mainW,p.y+28.f+5*(iconSz+8.f)+16.f}); }
+        std::sort(combinedStats.begin(), combinedStats.end(), [](const auto& a, const auto& b) {
+            return ItemTracker::GetStatProfit(a.second) > ItemTracker::GetStatProfit(b.second);
+        });
+    }
+
+    long long maxIV = 0;
+    { 
+        int c = 0; 
+        for (auto& [id, st] : combinedStats) 
+        { 
+            if (c >= 5) break; 
+            if (!st.count) continue; 
+            long long p = ItemTracker::GetStatProfit(st); 
+            if (p > 0) { maxIV = std::max(maxIV, p); c++; } 
+        } 
+    }
+
+    { ImVec2 p = ImGui::GetCursorScreenPos(); DrawDarkGradientBox(p, { p.x + mainW, p.y + 28.f + 5 * (iconSz + 8.f) + 16.f }); }
     PushCard();
-    ImGui::BeginChild("##topI", ImVec2(mainW, 28.f+5*(iconSz+8.f)+16.f), false, ImGuiWindowFlags_NoScrollbar);
+    ImGui::BeginChild("##topI", ImVec2(mainW, 28.f + 5 * (iconSz + 8.f) + 16.f), false, ImGuiWindowFlags_NoScrollbar);
     ImGui::Indent(4.f);
     SecLabel(Localization::GetText("top_items_profit_header"));
-    if (ImGui::BeginTable("##ti", 5, ImGuiTableFlags_NoSavedSettings|ImGuiTableFlags_SizingFixedFit))
+    if (ImGui::BeginTable("##ti", 6, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_SizingFixedFit))
     {
-        ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthFixed,iconSz+4);
-        ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthStretch);
-        ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthFixed,70.f);
-        ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthFixed,80.f);
-        ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthFixed,90.f);
-        int cnt=0;
-        for (auto& [id,st]:sItems)
+        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, iconSz + 4);
+        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 70.f);
+        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 80.f);
+        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 90.f);
+        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 100.f); // Spacer to move right side 100px left
+        int cnt = 0;
+        for (auto& [id, st] : combinedStats)
         {
-            if (cnt>=5) break; if (!st.count) continue;
-            long long p = ItemTracker::GetStatProfit(st); if (p<=0) continue;
+            if (cnt >= 5) break; if (!st.count) continue;
+            long long p = ItemTracker::GetStatProfit(st); if (p <= 0) continue;
             std::string nm = st.details.loaded ? st.details.name : Localization::GetText("loading");
-            DropRow(id, nm, st.count, UICommon::FormatCoin(p), kGold, p, maxIV,
+            
+            char profitStr[64];
+            snprintf(profitStr, sizeof(profitStr), "%s", UICommon::FormatCoin(p).c_str());
+            
+            DropRow(id, nm, st.count, profitStr, kGold, p, maxIV,
                     st.details.iconUrl, st.details.loaded ? st.details.rarity : "", iconSz);
-            UITooltips::ItemTooltipOptions opt; opt.showCount=true; opt.count=st.count; opt.showTrading=opt.showAccountFlags=opt.showId=true;
-            if (ImGui::IsItemHovered()) { if (st.details.loaded) UITooltips::RenderItemTooltip(st.details,id,opt); else UITooltips::RenderItemTooltipFallback(nm,"",id,opt); }
+            
+            if (ImGui::IsItemHovered()) 
+             { 
+                 if (st.details.loaded) 
+                 {
+                     if (st.IsCurrency())
+                     {
+                         UITooltips::CurrencyTooltipOptions opt;
+                         opt.showCount = true;
+                         opt.count = st.count;
+                         opt.showProfit = true;
+                         opt.profit = p;
+                         UITooltips::RenderCurrencyTooltip(st.details, id, opt);
+                     }
+                     else
+                     {
+                         UITooltips::ItemTooltipOptions opt;
+                         opt.showCount = true;
+                         opt.count = st.count;
+                         opt.showProfit = true;
+                         opt.profit = p;
+                         UITooltips::RenderItemTooltip(st.details, id, opt);
+                     }
+                 }
+                 else 
+                 {
+                     UITooltips::ItemTooltipOptions opt;
+                     opt.showCount = true;
+                     opt.count = st.count;
+                     opt.showProfit = true;
+                     opt.profit = p;
+                     UITooltips::RenderItemTooltipFallback(nm, "", id, opt); 
+                 }
+             }
             cnt++;
         }
         UIContextMenu::RenderItemContextMenu("DashDropMenu", UIContextMenu::ContextMenuType::General);
@@ -690,22 +749,31 @@ void RenderProfitTab()
     ImGui::BeginChild("##topC", ImVec2(mainW, 28.f+5*(iconSz+8.f)+16.f), false, ImGuiWindowFlags_NoScrollbar);
     ImGui::Indent(4.f);
     SecLabel(Localization::GetText("top_currencies_count_header"));
-    if (ImGui::BeginTable("##tc", 5, ImGuiTableFlags_NoSavedSettings|ImGuiTableFlags_SizingFixedFit))
+    if (ImGui::BeginTable("##tc", 6, ImGuiTableFlags_NoSavedSettings|ImGuiTableFlags_SizingFixedFit))
     {
         ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthFixed,iconSz+4);
         ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthStretch);
         ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthFixed,70.f);
         ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthFixed,80.f);
         ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthFixed,90.f);
+        ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthFixed,100.f); // Spacer to move right side 100px left
         int cnt=0;
         for (auto& [id,st]:sCurr)
         {
             if (cnt>=5) break; if (st.count<=0) continue;
             std::string nm = st.details.loaded ? st.details.name : (id==1 ? Localization::GetText("coin") : Localization::GetText("loading"));
-            std::string url = st.details.iconUrl;
-            if (id==1 && url.empty()) url="https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
-            char cb[32]; snprintf(cb,sizeof(cb),"%lld",st.count);
-            DropRow(id, nm, st.count, cb, kPurple, st.count, maxCV, url, st.details.loaded ? st.details.rarity : "", iconSz);
+            std::string iconUrl = st.details.iconUrl;
+            if (id == 1 && iconUrl.empty()) iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
+            
+            long long customProfit = CustomProfitManager::GetCustomProfit(id);
+            char cb[64];
+            if (customProfit != 0) {
+                snprintf(cb, sizeof(cb), "%s", UICommon::FormatCoin(customProfit * st.count).c_str());
+            } else {
+                cb[0] = '\0'; // Show nothing if no custom profit
+            }
+            
+            DropRow(id, nm, st.count, cb, kPurple, st.count, maxCV, iconUrl, st.details.loaded ? st.details.rarity : "", iconSz);
             cnt++;
         }
         UIContextMenu::RenderCurrencyContextMenu("DashDropMenu", UIContextMenu::ContextMenuType::General);

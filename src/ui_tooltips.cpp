@@ -153,6 +153,12 @@ namespace UITooltips
             ImGui::TextColored(countColor, "%s %lld", Localization::GetText("count_label"), opt.count);
         }
 
+        if (opt.showProfit)
+        {
+            ImVec4 profitColor = UICommon::ValueColor(opt.profit);
+            ImGui::TextColored(profitColor, "%s %s", Localization::GetText("profit_label"), UICommon::FormatCoin(opt.profit).c_str());
+        }
+
         if (opt.showRarity && !d.rarity.empty())
         {
             ImGui::TextColored(RarityColor(d.rarity), "%s", d.rarity.c_str());
@@ -178,6 +184,12 @@ namespace UITooltips
         {
             ImVec4 countColor = UICommon::ValueColor(opt.count);
             ImGui::TextColored(countColor, "%s %lld", Localization::GetText("count_label"), opt.count);
+        }
+
+        if (opt.showProfit)
+        {
+            ImVec4 profitColor = UICommon::ValueColor(opt.profit);
+            ImGui::TextColored(profitColor, "%s %s", Localization::GetText("profit_label"), UICommon::FormatCoin(opt.profit).c_str());
         }
 
         if (opt.showRarity && !rarity.empty())

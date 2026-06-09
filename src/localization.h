@@ -21,7 +21,15 @@ namespace Localization
         Italian,
         Polish,
         Portuguese,
-        Russian
+        Russian,
+        Danish,
+        Greek,
+        Finnish,
+        Hungarian,
+        Dutch,
+        Norwegian,
+        Romanian,
+        Swedish
     };
 
     // Initialize localization system
@@ -53,4 +61,12 @@ namespace Localization
     const std::unordered_map<std::string, const char*> GetPolishTranslations();
     const std::unordered_map<std::string, const char*> GetPortugueseTranslations();
     const std::unordered_map<std::string, const char*> GetRussianTranslations();
+    const std::unordered_map<std::string, const char*> GetDanishTranslations();
+    const std::unordered_map<std::string, const char*> GetGreekTranslations();
+    const std::unordered_map<std::string, const char*> GetFinnishTranslations();
+    const std::unordered_map<std::string, const char*> GetHungarianTranslations();
+    const std::unordered_map<std::string, const char*> GetDutchTranslations();
+    const std::unordered_map<std::string, const char*> GetNorwegianTranslations();
+    const std::unordered_map<std::string, const char*> GetRomanianTranslations();
+    const std::unordered_map<std::string, const char*> GetSwedishTranslations();
 }

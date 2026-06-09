@@ -58,6 +58,30 @@ namespace Localization
             case Language::Russian:
                 s_Translations = GetRussianTranslations();
                 break;
+            case Language::Danish:
+                s_Translations = GetDanishTranslations();
+                break;
+            case Language::Greek:
+                s_Translations = GetGreekTranslations();
+                break;
+            case Language::Finnish:
+                s_Translations = GetFinnishTranslations();
+                break;
+            case Language::Hungarian:
+                s_Translations = GetHungarianTranslations();
+                break;
+            case Language::Dutch:
+                s_Translations = GetDutchTranslations();
+                break;
+            case Language::Norwegian:
+                s_Translations = GetNorwegianTranslations();
+                break;
+            case Language::Romanian:
+                s_Translations = GetRomanianTranslations();
+                break;
+            case Language::Swedish:
+                s_Translations = GetSwedishTranslations();
+                break;
             default:
                 s_Translations = GetEnglishTranslations();
                 break;
@@ -93,6 +117,14 @@ namespace Localization
             case Language::Polish: return "Polish";
             case Language::Portuguese: return "Portuguese";
             case Language::Russian: return "Russian";
+            case Language::Danish: return "Danish";
+            case Language::Greek: return "Greek";
+            case Language::Finnish: return "Finnish";
+            case Language::Hungarian: return "Hungarian";
+            case Language::Dutch: return "Dutch";
+            case Language::Norwegian: return "Norwegian";
+            case Language::Romanian: return "Romanian";
+            case Language::Swedish: return "Swedish";
             default: return "English";
         }
     }
@@ -108,6 +140,14 @@ namespace Localization
         if (str == "Polish") return Language::Polish;
         if (str == "Portuguese") return Language::Portuguese;
         if (str == "Russian") return Language::Russian;
+        if (str == "Danish") return Language::Danish;
+        if (str == "Greek") return Language::Greek;
+        if (str == "Finnish") return Language::Finnish;
+        if (str == "Hungarian") return Language::Hungarian;
+        if (str == "Dutch") return Language::Dutch;
+        if (str == "Norwegian") return Language::Norwegian;
+        if (str == "Romanian") return Language::Romanian;
+        if (str == "Swedish") return Language::Swedish;
         return Language::English; // Default
     }
 }

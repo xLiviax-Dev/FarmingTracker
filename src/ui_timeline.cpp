@@ -1,5 +1,6 @@
 #include "ui_timeline.h"
 #include "item_tracker.h"
+#include "custom_profit.h"
 #include "session_history.h"
 #include "settings.h"
 #include "localization.h"
@@ -413,7 +414,25 @@ namespace UITimeline
                             ImGui::PushID(itemId);
                             
                             // itemId == 1 is the coin currency → format as G/S/C, everything else plain number
-                            std::string countStr = (itemId == 1) ? UICommon::FormatCoin(count) : std::to_string(count);
+                            // But show profit if custom profit is set
+                            long long currencyProfit = ItemTracker::GetStatProfit(ItemTracker::GetCurrencyStat(itemId)) / count * count; // This is a bit redundant but ensures we use the current session's count
+                            // Actually, just use GetStatProfit with a dummy stat to get the unit profit, or just check if it has custom profit.
+                            
+                            auto st = ItemTracker::GetCurrencyStat(itemId);
+                            long long totalProfit = ItemTracker::GetStatProfit(st);
+                            // We need to be careful: the 'st' from ItemTracker might have a different count than the 'count' in this timeline group.
+                            // So we calculate profit based on the unit profit from CustomProfitManager.
+                            long long unitProfit = CustomProfitManager::HasCustomProfit(itemId) ? CustomProfitManager::GetCustomProfit(itemId) : 0;
+                            long long displayProfit = unitProfit * count;
+
+                            std::string countStr;
+                            if (itemId == 1)
+                                countStr = UICommon::FormatCoin(count);
+                            else if (displayProfit != 0)
+                                countStr = UICommon::FormatCoin(displayProfit);
+                            else
+                                countStr = UICommon::FormatCompact(count);
+
                             float itemWidth = ImGui::CalcTextSize(countStr.c_str()).x + curIconSize + ImGui::GetStyle().ItemSpacing.x * 2.0f;
                             
                             if (firstCurrency)
@@ -440,6 +459,8 @@ namespace UITimeline
                                 UITooltips::CurrencyTooltipOptions opt;
                                 opt.showCount = true;
                                 opt.count = count;
+                                opt.showProfit = (displayProfit != 0);
+                                opt.profit = displayProfit;
                                 opt.showRarity = true;
                                 opt.showId = true;
                                 UITooltips::RenderCurrencyTooltipFallback(currencyNames[itemId], currencyRarities[itemId], itemId, opt);
@@ -463,14 +484,25 @@ namespace UITimeline
                     float iconSize = static_cast<float>(g_Settings.timelineIconSizeItems);
 
                     // Group item drops by itemId and sum counts within the same timestamp
+                    // Include items AND currencies that have a custom profit
                     std::map<int, SessionHistory::DropEntry> mergedItemMap;
                     std::vector<int> mergedItemOrder;
                     for (const auto& d : group)
                     {
-                        if (d.isCurrency) continue;
+                        bool isCustomProfitCurrency = d.isCurrency && CustomProfitManager::HasCustomProfit(d.itemId);
+                        if (d.isCurrency && !isCustomProfitCurrency) continue;
+
                         if (mergedItemMap.find(d.itemId) == mergedItemMap.end())
                         {
                             mergedItemMap[d.itemId] = d;
+                            // If it's a currency, ensure we have details for the icon row display
+                            if (d.isCurrency)
+                            {
+                                auto st = ItemTracker::GetCurrencyStat(d.itemId);
+                                mergedItemMap[d.itemId].iconUrl = st.details.iconUrl;
+                                mergedItemMap[d.itemId].rarity = st.details.rarity;
+                                mergedItemMap[d.itemId].itemName = st.details.name;
+                            }
                             mergedItemOrder.push_back(d.itemId);
                         }
                         else
@@ -530,36 +562,59 @@ namespace UITimeline
 
                         if (ImGui::IsItemHovered())
                         {
-                            Stat st = ItemTracker::GetItemStat(d.itemId);
-                            if (st.details.loaded)
+                            if (d.isCurrency)
                             {
-                                UITooltips::ItemTooltipOptions opt;
+                                UITooltips::CurrencyTooltipOptions opt;
                                 opt.showCount = true;
                                 opt.count = d.count;
-                                opt.showProfit = false;
-                                opt.showTrading = true;
-                                opt.showAccountFlags = true;
+                                long long unitProfit = CustomProfitManager::GetCustomProfit(d.itemId);
+                                opt.showProfit = (unitProfit != 0);
+                                opt.profit = unitProfit * d.count;
+                                opt.showRarity = true;
                                 opt.showId = true;
-                                UITooltips::RenderItemTooltip(st.details, d.itemId, opt);
+                                UITooltips::RenderCurrencyTooltipFallback(d.itemName, d.rarity, d.itemId, opt);
                             }
                             else
                             {
-                                UITooltips::ItemTooltipOptions opt;
-                                opt.showCount = true;
-                                opt.count = d.count;
-                                opt.showProfit = false;
-                                opt.showTrading = false;
-                                opt.showAccountFlags = false;
-                                opt.showId = true;
-                                UITooltips::RenderItemTooltipFallback(d.itemName, d.rarity, d.itemId, opt);
+                                Stat st = ItemTracker::GetItemStat(d.itemId);
+                                if (st.details.loaded)
+                                {
+                                    UITooltips::ItemTooltipOptions opt;
+                                    opt.showCount = true;
+                                    opt.count = d.count;
+                                    opt.showProfit = false;
+                                    opt.showTrading = true;
+                                    opt.showAccountFlags = true;
+                                    opt.showId = true;
+                                    UITooltips::RenderItemTooltip(st.details, d.itemId, opt);
+                                }
+                                else
+                                {
+                                    UITooltips::ItemTooltipOptions opt;
+                                    opt.showCount = true;
+                                    opt.count = d.count;
+                                    opt.showProfit = false;
+                                    opt.showTrading = false;
+                                    opt.showAccountFlags = false;
+                                    opt.showId = true;
+                                    UITooltips::RenderItemTooltipFallback(d.itemName, d.rarity, d.itemId, opt);
+                                }
                             }
                         }
                         
-                        // Right-click context menu for items
+                        // Right-click context menu
                         if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
                         {
-                            openItemMenuId = d.itemId;
-                            openItemMenuName = d.itemName;
+                            if (d.isCurrency)
+                            {
+                                openCurrencyMenuId = d.itemId;
+                                openCurrencyMenuName = d.itemName;
+                            }
+                            else
+                            {
+                                openItemMenuId = d.itemId;
+                                openItemMenuName = d.itemName;
+                            }
                         }
                         
                         ImGui::EndGroup();

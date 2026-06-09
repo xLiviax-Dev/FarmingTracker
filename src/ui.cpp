@@ -498,11 +498,11 @@ static void RenderPillTabBar(const std::vector<std::string>& order)
             if      (tab.key == "dashboard")       g_Settings.activeTab = 0;
             else if (tab.key == "drops")           g_Settings.activeTab = 1;
             else if (tab.key == "loot_filter")     g_Settings.activeTab = 2;
-            else if (tab.key == "session_history") g_Settings.activeTab = 4;
-            else if (tab.key == "custom_profit")   g_Settings.activeTab = 5;
-            else if (tab.key == "debug")           g_Settings.activeTab = 6;
-            else if (tab.key == "loot_log")        g_Settings.activeTab = 7;
-            else if (tab.key == "timeline")        g_Settings.activeTab = 8;
+            else if (tab.key == "session_history") g_Settings.activeTab = 3;
+            else if (tab.key == "custom_profit")   g_Settings.activeTab = 4;
+            else if (tab.key == "debug")           g_Settings.activeTab = 5;
+            else if (tab.key == "loot_log")        g_Settings.activeTab = 6;
+            else if (tab.key == "timeline")        g_Settings.activeTab = 7;
             SettingsManager::Save();
         }
     }

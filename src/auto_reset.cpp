@@ -226,11 +226,19 @@ void AutoReset::OnAddonLoad()
     {
         const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
         ItemTracker::SafeReset();
+        
+        // Update the next reset time BEFORE saving settings, 
+        // so the "past" reset time is not persisted and doesn't trigger again on next start.
+        UpdateNextResetDateTime();
+        
         ItemTracker::SaveData(addonDir);
         SettingsManager::Save();
     }
-
-    UpdateNextResetDateTime();
+    else
+    {
+        // Even if no reset happened, ensure we have a valid next reset time if missing
+        UpdateNextResetDateTime();
+    }
 }
 
 void AutoReset::OnAddonUnload()

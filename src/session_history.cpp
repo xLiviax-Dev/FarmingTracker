@@ -43,6 +43,13 @@ void SaveSession(const SessionData& session)
 {
     std::lock_guard<std::mutex> lock(s_Mutex);
 
+    {
+        std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
+        s_enabled = g_Settings.enableSessionHistory;
+        s_maxSessions = g_Settings.maxSessionHistory;
+        s_overwrite = g_Settings.overwriteSessionHistory;
+    }
+
     if (!s_enabled || s_addonDir.empty())
         return;
 

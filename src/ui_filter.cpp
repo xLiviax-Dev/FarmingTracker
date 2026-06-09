@@ -897,7 +897,7 @@ void RenderFilterTab()
     }
 
     ImGui::SameLine(0.0f, 4.0f);
-    if (UICommon::OrangeGradientButton("Open Folder", "##filter_open"))
+    if (UICommon::OrangeGradientButton(Localization::GetText("open_folder_button"), "##filter_open"))
     {
         std::string cmd = "explorer.exe \"" + effectivePath + "\"";
         system(cmd.c_str());

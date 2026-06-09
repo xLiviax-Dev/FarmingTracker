@@ -31,11 +31,21 @@ static void WorkerLoop()
     static std::string    s_LastApiKey;
     static std::string    s_LastLanguage;
     static auto           s_LastPriceUpdate = std::chrono::steady_clock::now();
+    static int            s_BackoffLevel = 0; // 0 = no backoff
 
     while (!s_Shutdown.load())
     {
+        // Exponential Backoff: increase wait time if we hit errors
+        int waitMs = 800;
+        if (s_BackoffLevel > 0) {
+            // Wait 2^level seconds, max 1 hour (3600s)
+            int backoffSec = (std::min)(3600, (int)std::pow(2, s_BackoffLevel));
+            waitMs = backoffSec * 1000;
+            Gw2Api::Log("API error backoff active - Waiting " + std::to_string(backoffSec) + "s", "warning");
+        }
+
         std::unique_lock<std::mutex> lk(s_CvMutex);
-        s_Cv.wait_for(lk, std::chrono::milliseconds(800), [] {
+        s_Cv.wait_for(lk, std::chrono::milliseconds(waitMs), [] {
             return s_Shutdown.load() || s_Wake.exchange(false);
         });
         lk.unlock();
@@ -51,10 +61,12 @@ static void WorkerLoop()
 
         std::string token;
         int priceUpdateIntervalMin;
+        std::string currentLanguage;
         {
             std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
             token = g_Settings.gw2ApiKey;
             priceUpdateIntervalMin = g_Settings.priceUpdateIntervalMin;
+            currentLanguage = g_Settings.language;
         }
 
         if (forceUpdate)
@@ -67,7 +79,16 @@ static void WorkerLoop()
             nlohmann::json tokenInfo;
             std::string err;
             if (Gw2Api::GetJson("/v2/tokeninfo", token, tokenInfo, err))
+            {
                 Gw2Api::Log("API Key validated successfully: " + tokenInfo.value("name", "unnamed"), "info");
+                
+                // Check permissions
+                std::string permErr;
+                if (!Gw2Api::CheckPermissions(token, permErr))
+                    Gw2Api::Log("API Key is missing permissions! " + permErr, "error");
+                else
+                    Gw2Api::Log("API Key permissions validated (inventories, progression)", "info");
+            }
             else
                 Gw2Api::Log("API Key validation failed: " + err, "error");
         }
@@ -89,20 +110,17 @@ static void WorkerLoop()
             s_CurrencyJsonCache.clear();
             s_LastLanguage.clear();
             s_ReconnectCount.store(0);
+            s_BackoffLevel = 0; // Reset backoff on new key
             Gw2Api::Log("Connecting to GW2 API with new API key", "info");
             forceUpdate = true;
         }
 
-        // g_Settings.language read with mutex
-        std::string currentLanguage;
-        {
-            std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
-            currentLanguage = g_Settings.language;
-        }
         if (currentLanguage != s_LastLanguage)
         {
+            // Clear old cache entries if we have more than 3 languages cached to save memory
+            if (s_CurrencyJsonCache.size() > 3) s_CurrencyJsonCache.clear();
+            
             s_LastLanguage = currentLanguage;
-            s_CurrencyJsonCache.clear();
             Gw2Api::Log("Language changed, clearing currency cache", "info");
             forceUpdate = true;
         }
@@ -111,8 +129,6 @@ static void WorkerLoop()
         std::vector<int> pending = ItemTracker::CollectPendingItemIds();
 
         // Throttle only when there is nothing to fetch right now.
-        // Important: pending item ids must be fetched immediately, otherwise names/icons appear "stuck"
-        // until the next interval or a forced update (e.g. language change).
         if (!forceUpdate &&
             elapsedMin < priceUpdateIntervalMin &&
             !needCurrencyTable &&
@@ -144,6 +160,7 @@ static void WorkerLoop()
                         cache = nlohmann::json::array();
                     s_Status.store(Gw2Status::Connected);
                     s_ReconnectCount.store(0);
+                    s_BackoffLevel = 0; // Success! Reset backoff
                     Gw2Api::Log("Connected - Currency data fetched successfully", "data");
                 }
                 else
@@ -152,6 +169,7 @@ static void WorkerLoop()
                     cache = nlohmann::json();
                     s_Status.store(Gw2Status::Error);
                     s_ReconnectCount.fetch_add(1);
+                    s_BackoffLevel = (std::min)(12, s_BackoffLevel + 1); // Max 2^12 = 4096s
                     if (s_LastLoggedStatus != Gw2Status::Error)
                     {
                         Gw2Api::Log("Error - Failed to fetch currency data", "error");
@@ -173,12 +191,14 @@ static void WorkerLoop()
             Gw2Api::Log("Failed to fetch item data: " + err, "error");
             s_Status.store(Gw2Status::Error);
             s_ReconnectCount.fetch_add(1);
+            s_BackoffLevel = (std::min)(12, s_BackoffLevel + 1);
             continue;
         }
 
-        ItemTracker::ApplyItemsFromApi(items, prices);
+        ItemTracker::ApplyItemsFromApi(pending, items, prices);
         s_Status.store(Gw2Status::Connected);
         s_ReconnectCount.store(0);
+        s_BackoffLevel = 0; // Success!
     }
 
     s_Status.store(Gw2Status::Disconnected);
@@ -202,28 +222,19 @@ void Gw2Fetcher::Shutdown()
 
     if (s_Thread.joinable())
     {
-        // Wait up to 35 seconds (slightly longer than max HTTP timeout of 30s)
-        // Use a separate watcher thread so we don't block indefinitely.
-        std::atomic<bool> joined{ false };
-        std::thread watcher([&joined]() {
-            s_Thread.join();
-            joined.store(true);
-        });
+        // Don't block the main thread for 35s. 
+        // We detached the thread if it takes too long, but we must cleanup handles first.
+        Gw2Api::Shutdown();
 
-        auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(35);
-        while (!joined.load() && std::chrono::steady_clock::now() < deadline)
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // Wait a reasonable amount of time (max 2s) for the thread to notice shutdown
+        auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+        while (s_Thread.joinable() && std::chrono::steady_clock::now() < deadline)
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-        if (joined.load())
+        if (s_Thread.joinable())
         {
-            watcher.join(); // watcher already returned
-        }
-        else
-        {
-            Gw2Api::Log("GW2 fetcher thread didn't shutdown within timeout — detaching", "warning");
-            watcher.detach();
-            if (s_Thread.joinable())
-                s_Thread.detach();
+            Gw2Api::Log("GW2 fetcher thread didn't shutdown quickly — detaching", "warning");
+            s_Thread.detach();
         }
     }
 }

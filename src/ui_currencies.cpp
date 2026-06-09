@@ -1,6 +1,8 @@
 #include "ui_currencies.h"
 #include "settings.h"
 #include "item_tracker.h"
+#include "custom_profit.h"
+#include "ui_common.h"
 #include "ignored_items.h"
 #include "localization.h"
 #include "ui_context_menu.h"
@@ -232,17 +234,20 @@ void RenderCurrenciesTab()
         else
         {
             // List View for Favorite Currencies
-            if (ImGui::BeginTable("##FavoriteCurrenciesTable", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+            if (ImGui::BeginTable("##FavoriteCurrenciesTable", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
             {
                 ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 70.f);
                 ImGui::TableSetupColumn(Localization::GetText("item"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 350.f);
                 ImGui::TableSetupColumn(Localization::GetText("count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 100.f);
+                ImGui::TableSetupColumn(Localization::GetText("profit"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 100.f);
                 ImGui::TableSetupColumn(Localization::GetText("value"), ImGuiTableColumnFlags_WidthStretch);
                 ImGui::TableHeadersRow();
 
                 for (auto& [id, st] : favoriteCurrencies)
                 {
                     if (st.count <= 0) continue;
+
+                    long long profit = ItemTracker::GetStatProfit(st);
 
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
@@ -255,6 +260,8 @@ void RenderCurrenciesTab()
                         UITooltips::CurrencyTooltipOptions opt;
                         opt.showCount = true;
                         opt.count = st.count;
+                        opt.showProfit = (profit != 0);
+                        opt.profit = profit;
                         opt.showId = true;
                         if (st.details.loaded)
                             UITooltips::RenderCurrencyTooltip(st.details, id, opt);
@@ -269,7 +276,26 @@ void RenderCurrenciesTab()
                     ImGui::Text("%lld", st.count);
 
                     ImGui::TableSetColumnIndex(3);
-                    ImGui::Text("%s", (id == 1) ? UICommon::FormatCoin(st.count).c_str() : UICommon::FormatCompact(st.count).c_str());
+                    if (id == 1)
+                    {
+                        ImGui::Text("%s", UICommon::FormatCoin(st.count).c_str());
+                    }
+                    else
+                    {
+                        long long customProfit = CustomProfitManager::GetCustomProfit(id);
+                        if (customProfit != 0)
+                            ImGui::Text("%s", UICommon::FormatCoin(customProfit * st.count).c_str());
+                        else
+                            ImGui::Text("-");
+                    }
+
+                    ImGui::TableSetColumnIndex(4);
+                    if (id == 1) 
+                        ImGui::Text("%s", UICommon::FormatCoin(st.count).c_str());
+                    else if (profit != 0)
+                        ImGui::Text("%s", UICommon::FormatCoin(profit).c_str());
+                    else
+                        ImGui::Text("%s", UICommon::FormatCompact(st.count).c_str());
                 }
                 ImGui::EndTable();
             }
@@ -635,11 +661,29 @@ void RenderCurrenciesTab()
             ImGui::TableSetColumnIndex(2);
             UICommon::AlignTableCellText(rowH);
             ImVec4 countColor = st.count > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.count < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
-            std::string countStr = (id == 1) ? UICommon::FormatCoin(st.count) : UICommon::FormatCompact(st.count);
+            std::string countStr = std::to_string(st.count);
             ImGui::TextColored(countColor, "%s", countStr.c_str());
-            if (id != 1 && ImGui::IsItemHovered())
+            if (ImGui::IsItemHovered())
             {
-                ImGui::SetTooltip("%lld", st.count);
+                if (id == 1)
+                    ImGui::SetTooltip("%s", UICommon::FormatCoin(st.count).c_str());
+                else
+                    ImGui::SetTooltip("%lld", st.count);
+            }
+
+            ImGui::TableSetColumnIndex(3);
+            UICommon::AlignTableCellText(rowH);
+            if (id == 1)
+            {
+                ImGui::Text("%s", UICommon::FormatCoin(st.count).c_str());
+            }
+            else
+            {
+                long long customProfit = CustomProfitManager::GetCustomProfit(id);
+                if (customProfit != 0)
+                    ImGui::Text("%s", UICommon::FormatCoin(customProfit * st.count).c_str());
+                else
+                    ImGui::Text("-");
             }
         };
 
@@ -664,12 +708,13 @@ void RenderCurrenciesTab()
                     {
                         if (ImGui::BeginTabItem(cat.c_str()))
                         {
-                            if (ImGui::BeginTable("##CurrenciesTable_v3_Tabs", 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+                            if (ImGui::BeginTable("##CurrenciesTable_v3_Tabs", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
                             {
                                 float iconColumnWidth = (static_cast<float>(g_Settings.iconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.iconSize) + 10.0f) : 70.0f;
                                 ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);
                                 ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 430.0f);
-                                ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthStretch);
+                                ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 100.0f);
+                                ImGui::TableSetupColumn(Localization::GetText("profit"), ImGuiTableColumnFlags_WidthStretch);
                                 ImGui::TableHeadersRow();
 
                                 for (auto& [id, st] : sortedCurrencies)
@@ -698,12 +743,13 @@ void RenderCurrenciesTab()
 
                     if (ImGui::CollapsingHeader(cat.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
                     {
-                        if (ImGui::BeginTable(("##CurrenciesTable_v3_" + cat).c_str(), 3, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+                        if (ImGui::BeginTable(("##CurrenciesTable_v3_" + cat).c_str(), 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
                         {
                             float iconColumnWidth = (static_cast<float>(g_Settings.iconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.iconSize) + 10.0f) : 70.0f;
                             ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);
                             ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 430.0f);
-                            ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthStretch);
+                            ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 100.0f);
+                            ImGui::TableSetupColumn(Localization::GetText("profit"), ImGuiTableColumnFlags_WidthStretch);
                             ImGui::TableHeadersRow();
 
                             for (auto& [id, st] : sortedCurrencies)
@@ -723,13 +769,14 @@ void RenderCurrenciesTab()
         else
         {
             // Table View for Currencies
-            int currencyTableColumnCount = 3;
+            int currencyTableColumnCount = 4;
             if (ImGui::BeginTable("##CurrenciesTable_v3", currencyTableColumnCount, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
             {
                 float iconColumnWidth = (static_cast<float>(g_Settings.iconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.iconSize) + 10.0f) : 70.0f;
                 ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);
                 ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 430.0f);
-                ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 100.0f);
+                ImGui::TableSetupColumn(Localization::GetText("profit"), ImGuiTableColumnFlags_WidthStretch);
                 ImGui::TableHeadersRow();
 
                 for (auto& [id, st] : sortedCurrencies)

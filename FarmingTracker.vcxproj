@@ -139,6 +139,14 @@
     <ClCompile Include="src\localization_pl.cpp" />
     <ClCompile Include="src\localization_pt.cpp" />
     <ClCompile Include="src\localization_ru.cpp" />
+    <ClCompile Include="src\localization_da.cpp" />
+    <ClCompile Include="src\localization_el.cpp" />
+    <ClCompile Include="src\localization_fi.cpp" />
+    <ClCompile Include="src\localization_hu.cpp" />
+    <ClCompile Include="src\localization_nl.cpp" />
+    <ClCompile Include="src\localization_no.cpp" />
+    <ClCompile Include="src\localization_ro.cpp" />
+    <ClCompile Include="src\localization_sv.cpp" />
     <ClCompile Include="src\magnetite_tracker.cpp" />
     <ClCompile Include="src\loot_logger.cpp" />
     <ClCompile Include="src\ui_loot_log.cpp" />

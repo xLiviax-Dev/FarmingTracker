@@ -28,6 +28,9 @@ namespace UITooltips
         bool showCount = false;
         long long count = 0;
 
+        bool showProfit = false;
+        long long profit = 0;
+
         bool showRarity = true;
         bool showId = true;
     };

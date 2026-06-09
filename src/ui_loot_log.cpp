@@ -90,7 +90,7 @@ namespace
         ImGui::SetNextItemWidth(220.f);
         ImGui::InputText("##LootSearch", s_SearchBuf, sizeof(s_SearchBuf));
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Filter by item name or map");
+            ImGui::SetTooltip("%s", Localization::GetText("filter_by_item_name_or_map"));
 
         ImGui::SameLine();
         ImGui::Checkbox("Items##filter",      &s_FilterItems);
@@ -113,7 +113,7 @@ namespace
         float btnW = 130.f;
         ImGui::SameLine(ImGui::GetContentRegionAvail().x - btnW
                         + ImGui::GetCursorPosX() - ImGui::GetStyle().ItemSpacing.x);
-        if (UICommon::OrangeGradientButton("Open log folder", "##open_log_folder"))
+        if (UICommon::OrangeGradientButton(Localization::GetText("open_log_folder"), "##open_log_folder"))
         {
             std::string folder = LootLogger::GetLogFolder();
             if (!folder.empty())
@@ -544,7 +544,7 @@ namespace
 
         // Change button (orange gradient)
         ImGui::SameLine(0, gap);
-        if (UICommon::OrangeGradientButton("Change", ("##ch_" + std::string(sublabel)).c_str()))
+        if (UICommon::OrangeGradientButton(Localization::GetText("change_button"), ("##ch_" + std::string(sublabel)).c_str()))
         {
             std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
             g_Settings.lootLogFolder.clear();

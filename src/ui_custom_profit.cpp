@@ -178,6 +178,7 @@ static void RenderTable(
     ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV
                           | ImGuiTableFlags_RowBg
                           | ImGuiTableFlags_ScrollY
+                          | ImGuiTableFlags_Resizable
                           | ImGuiTableFlags_SizingFixedFit;
 
     float availH = ImGui::GetContentRegionAvail().y - 4.0f;
@@ -263,6 +264,18 @@ static void RenderTable(
             else
             {
                 RenderCoinCompact(profit);
+                
+                // Show total profit (value * count) if session has count
+                if (st.count > 0)
+                {
+                    long long totalProfit = profit * st.count;
+                    ImGui::SameLine();
+                    ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), " (Total: ");
+                    ImGui::SameLine(0.0f, 0.0f);
+                    RenderCoinCompact(totalProfit);
+                    ImGui::SameLine(0.0f, 0.0f);
+                    ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), ")");
+                }
             }
 
             // ── Actions ──────────────────────────────────────────────────────

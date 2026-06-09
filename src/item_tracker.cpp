@@ -10,6 +10,7 @@
 #include "ui_notifications.h"
 #include "localization.h"
 #include "ui_common.h"
+#include "shared.h"
 #include "../include/nlohmann/json.hpp"
 
 #include <map>
@@ -429,8 +430,19 @@ static std::string ItemTypeToString(ItemType t)
 void ItemTracker::AddDrop(const std::map<int, long long>& items,
                           const std::map<int, long long>& currencies)
 {
+    struct LogEntry {
+        int id;
+        std::string name;
+        long long delta;
+        bool isCurrency;
+        std::string type;
+        std::string rarity;
+        long long price;
+    };
+    std::vector<LogEntry> logEntries;
+
     // Global Lock Order: 1. s_PersistentMutex, 4. s_SessionDropsMutex, 5. s_Mutex
-    // All locks released before ProcessPendingNotifications to avoid recursive s_Mutex deadlock.
+    // All locks released before processing notifications and logging to avoid deadlock and blocking.
     {
         std::lock_guard<std::mutex> pLock(s_PersistentMutex);
         std::lock_guard<std::mutex> dropsLock(s_SessionDropsMutex);
@@ -444,57 +456,36 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
         char timestamp[32];
         strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &tm);
 
+        // 1. Process Items
         for (auto& [id, delta] : items)
         {
+            // Session history entry
             SessionHistory::DropEntry drop;
             drop.itemId = id;
-            drop.itemName = ""; // Will be filled when saving
+            drop.itemName = ""; 
             drop.isCurrency = false;
             drop.rarity = "";
             drop.count = static_cast<int>(delta);
-            drop.totalValue = 0; // Will be calculated when saving
+            drop.totalValue = 0; 
             drop.magicFind = s_MagicFind.load();
             drop.timestamp = timestamp;
             {
-                std::lock_guard<std::mutex> lock(UICommon::s_AccountNameMutex);
+                std::lock_guard<std::mutex> accLock(UICommon::s_AccountNameMutex);
                 drop.characterName = UICommon::s_AccountNameBuf;
             }
             s_SessionDrops.push_back(drop);
-        }
 
-        for (auto& [id, delta] : currencies)
-        {
-            SessionHistory::DropEntry drop;
-            drop.itemId = id;
-            drop.itemName = ""; // Will be filled when saving
-            drop.isCurrency = true;
-            drop.rarity = "";
-            drop.count = static_cast<int>(delta);
-            drop.totalValue = 0; // Will be calculated when saving
-            drop.magicFind = s_MagicFind.load();
-            drop.timestamp = timestamp;
-            {
-                std::lock_guard<std::mutex> lock(UICommon::s_AccountNameMutex);
-                drop.characterName = UICommon::s_AccountNameBuf;
-            }
-            s_SessionDrops.push_back(drop);
-        }
-
-        for (auto& [id, delta] : items)
-        {
+            // Update stats
             bool isFavorite = s_PersistentFavoriteItems.count(id) > 0;
             bool isIgnored = IgnoredItemsManager::IsItemIgnored(id);
             
-            // Check if rarity toggle is active for this item
-            // NOTE: use find() NOT operator[] to avoid creating a blank Stat(apiId=0)
             auto existIt = s_Items.find(id);
             if (!isIgnored && existIt != s_Items.end() && existIt->second.details.loaded)
             {
                 std::string rarity = existIt->second.details.rarity;
                 bool shouldIgnore = false;
-                
                 {
-                    std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+                    std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
                     if (rarity == "Junk" && g_Settings.ignoredRarityToggleJunk) shouldIgnore = true;
                     else if (rarity == "Basic" && g_Settings.ignoredRarityToggleBasic) shouldIgnore = true;
                     else if (rarity == "Fine" && g_Settings.ignoredRarityToggleFine) shouldIgnore = true;
@@ -504,9 +495,7 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
                     else if (rarity == "Ascended" && g_Settings.ignoredRarityToggleAscended) shouldIgnore = true;
                     else if (rarity == "Legendary" && g_Settings.ignoredRarityToggleLegendary) shouldIgnore = true;
                 }
-                
-                if (shouldIgnore)
-                {
+                if (shouldIgnore) {
                     IgnoredItemsManager::IgnoreItem(id);
                     isIgnored = true;
                 }
@@ -514,129 +503,95 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
             
             UpdateOrInsert(s_Items, id, delta, StatType::Item, isIgnored, isFavorite);
             s_Items[id].lastMagicFind = s_MagicFind.load();
+
+            // Prepare logging info while under lock
+            if (delta > 0) {
+                const auto& st = s_Items[id];
+                LogEntry le;
+                le.id = id;
+                le.delta = delta;
+                le.isCurrency = false;
+                le.price = GetStatProfit(st);
+                if (st.details.loaded) {
+                    le.name = st.details.name;
+                    le.rarity = st.details.rarity;
+                    le.type = ItemTypeToString(st.details.itemType);
+                } else {
+                    le.name = "Item #" + std::to_string(id);
+                    le.rarity = "Unknown";
+                    le.type = "Unknown";
+                }
+                logEntries.push_back(le);
+            }
         }
 
+        // 2. Process Currencies
         for (auto& [id, delta] : currencies)
         {
+            // Session history entry
+            SessionHistory::DropEntry drop;
+            drop.itemId = id;
+            drop.itemName = ""; 
+            drop.isCurrency = true;
+            drop.rarity = "";
+            drop.count = static_cast<int>(delta);
+            drop.totalValue = 0; 
+            drop.magicFind = s_MagicFind.load();
+            drop.timestamp = timestamp;
+            {
+                std::lock_guard<std::mutex> accLock(UICommon::s_AccountNameMutex);
+                drop.characterName = UICommon::s_AccountNameBuf;
+            }
+            s_SessionDrops.push_back(drop);
+
+            // Update stats
             bool isFavorite = s_PersistentFavoriteCurrencies.count(id) > 0;
             bool isIgnored = IgnoredItemsManager::IsCurrencyIgnored(id);
             UpdateOrInsert(s_Currencies, id, delta, StatType::Currency, isIgnored, isFavorite);
             s_Currencies[id].lastMagicFind = s_MagicFind.load();
+
+            // Prepare logging info while under lock
+            if (delta > 0) {
+                const auto& st = s_Currencies[id];
+                LogEntry le;
+                le.id = id;
+                le.delta = delta;
+                le.isCurrency = true;
+                le.price = GetStatProfit(st);
+                if (st.details.loaded) {
+                    le.name = st.details.name;
+                    le.rarity = "";
+                    le.type = "Currency";
+                } else {
+                    le.name = "Currency #" + std::to_string(id);
+                    le.rarity = "";
+                    le.type = "Currency";
+                }
+                logEntries.push_back(le);
+            }
         }
     } // ← All locks released here
 
-    // Magnetite Tracker integration
+    // 3. Magnetite Tracker integration
     auto magIt = currencies.find(MagnetiteTracker::CURRENCY_ID);
     if (magIt != currencies.end() && magIt->second > 0)
         MagnetiteTracker::OnDrfShardsEarned(static_cast<int>(magIt->second));
 
-    // Loot Logger — log every drop to file immediately
-    // Map name and API token are resolved inside LogDrop (cached).
+    // 4. Loot Logger — process entries without blocking the main DRF thread
+    std::string apiToken;
     {
-        int mapId = s_LastKnownMapId.load();
-        std::string apiToken;
-        {
-            std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
-            apiToken = g_Settings.gw2ApiKey;
-        }
-
-        for (const auto& [id, delta] : items)
-        {
-            if (delta <= 0) continue;
-            auto it = s_Items.find(id);
-            
-            // Wait for item details to load (adaptive, max 500ms)
-            std::string name = "";
-            std::string rarity = "";
-            std::string itemType = "";
-            
-            if (it != s_Items.end())
-            {
-                // Wait up to 500ms for details to load
-                auto startTime = std::chrono::steady_clock::now();
-                const auto timeout = std::chrono::milliseconds(500);
-                
-                while (!it->second.details.loaded)
-                {
-                    auto now = std::chrono::steady_clock::now();
-                    if (now - startTime >= timeout)
-                        break;
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                }
-                
-                if (it->second.details.loaded)
-                {
-                    name = it->second.details.name;
-                    rarity = it->second.details.rarity;
-                    itemType = ItemTypeToString(it->second.details.itemType);
-                }
-                else
-                {
-                    // Fallback to item ID if name not loaded
-                    char idBuf[32];
-                    snprintf(idBuf, sizeof(idBuf), "Item #%d", id);
-                    name = idBuf;
-                }
-            }
-            else
-            {
-                char idBuf[32];
-                snprintf(idBuf, sizeof(idBuf), "Item #%d", id);
-                name = idBuf;
-            }
-            
-            long long price = (it != s_Items.end()) ? GetStatProfit(it->second) : -1;
-            LootLogger::LogDrop(id, name, delta, false, itemType, rarity, price,
-                                s_LastKnownMapId, LootLogger::ResolveMapName(s_LastKnownMapId, apiToken));
-        }
-
-        for (const auto& [id, delta] : currencies)
-        {
-            if (delta <= 0) continue;
-            auto it = s_Currencies.find(id);
-            
-            // Wait for currency details to load (adaptive, max 500ms)
-            std::string name = "";
-            
-            if (it != s_Currencies.end())
-            {
-                // Wait up to 500ms for details to load
-                auto startTime = std::chrono::steady_clock::now();
-                const auto timeout = std::chrono::milliseconds(500);
-                
-                while (!it->second.details.loaded)
-                {
-                    auto now = std::chrono::steady_clock::now();
-                    if (now - startTime >= timeout)
-                        break;
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                }
-                
-                if (it->second.details.loaded)
-                {
-                    name = it->second.details.name;
-                }
-                else
-                {
-                    // Fallback to currency ID if name not loaded
-                    char idBuf[32];
-                    snprintf(idBuf, sizeof(idBuf), "Currency #%d", id);
-                    name = idBuf;
-                }
-            }
-            else
-            {
-                char idBuf[32];
-                snprintf(idBuf, sizeof(idBuf), "Currency #%d", id);
-                name = idBuf;
-            }
-            
-            LootLogger::LogDrop(id, name, delta, true, "Currency", "", -1,
-                                s_LastKnownMapId, LootLogger::ResolveMapName(s_LastKnownMapId, apiToken));
-        }
+        std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
+        apiToken = g_Settings.gw2ApiKey;
     }
 
-    // Process notifications AFTER releasing all locks to avoid recursive s_Mutex deadlock
+    int mapId = s_LastKnownMapId.load();
+    for (const auto& le : logEntries)
+    {
+        LootLogger::LogDrop(le.id, le.name, le.delta, le.isCurrency, le.type, le.rarity, le.price,
+                            mapId, LootLogger::ResolveMapName(mapId, apiToken));
+    }
+
+    // 5. Process notifications AFTER releasing all locks
     ProcessPendingNotifications();
 }
 
@@ -763,8 +718,18 @@ void ItemTracker::SaveCurrentSession()
             sessionData.allDrops.push_back(drop);
         }
 
-        // Map name (placeholder - would need DRF or GW2 API for actual map)
-        sessionData.mapName = "Unknown";
+        // Map name
+        int mapId = s_LastKnownMapId.load();
+        std::string apiToken;
+        {
+            std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
+            apiToken = g_Settings.gw2ApiKey;
+        }
+        sessionData.mapName = LootLogger::ResolveMapName(mapId, apiToken);
+        if (sessionData.mapName == "Unknown" || sessionData.mapName.empty())
+        {
+            sessionData.mapName = "Map #" + std::to_string(mapId);
+        }
     }
 
     // Save session
@@ -2124,6 +2089,11 @@ void ItemTracker::SaveData(const char* addonDir)
     {
         file << data.dump(4);
         file.close();
+        if (APIDefs) APIDefs->Log(LOGL_INFO, "FarmingTracker", "Farming data saved successfully.");
+    }
+    else
+    {
+        if (APIDefs) APIDefs->Log(LOGL_CRITICAL, "FarmingTracker", ("Failed to open " + dataPath + " for writing!").c_str());
     }
 }
 
@@ -2136,13 +2106,18 @@ void ItemTracker::LoadData(const char* addonDir)
     
     std::ifstream file(dataPath);
     if (!file.is_open())
+    {
+        if (APIDefs) APIDefs->Log(LOGL_INFO, "FarmingTracker", "No existing farming data found (normal for first start).");
         return;
+    }
 
     try
     {
         nlohmann::json data;
         file >> data;
         file.close();
+        
+        if (APIDefs) APIDefs->Log(LOGL_INFO, "FarmingTracker", "Loading farming data...");
 
         // Clear existing persistent stores before loading from file to ensure a clean state
         {
@@ -2303,10 +2278,16 @@ void ItemTracker::LoadData(const char* addonDir)
                 s_SessionDrops.push_back(drop);
             }
         }
+        
+        if (APIDefs) APIDefs->Log(LOGL_INFO, "FarmingTracker", "Farming data loaded successfully.");
+    }
+    catch (const std::exception& e)
+    {
+        if (APIDefs) APIDefs->Log(LOGL_CRITICAL, "FarmingTracker", ("Failed to parse farming data: " + std::string(e.what())).c_str());
     }
     catch (...)
     {
-        // If loading fails, just continue with empty data
+        if (APIDefs) APIDefs->Log(LOGL_CRITICAL, "FarmingTracker", "Unknown error loading farming data!");
     }
 }
 
@@ -2575,7 +2556,7 @@ static std::string BuildIconUrl(const std::string& iconField)
     return "https://render.guildwars2.com/" + iconField;
 }
 
-void ItemTracker::ApplyItemsFromApi(const json& itemsArray, const json& pricesArray)
+void ItemTracker::ApplyItemsFromApi(const std::vector<int>& requestedIds, const json& itemsArray, const json& pricesArray)
 {
     if (!itemsArray.is_array() || !pricesArray.is_array()) return;
 
@@ -2584,10 +2565,12 @@ void ItemTracker::ApplyItemsFromApi(const json& itemsArray, const json& pricesAr
         std::lock_guard<std::mutex> pLock(s_PersistentMutex);
         std::lock_guard<std::mutex> lock(s_Mutex);
 
+        std::set<int> receivedItemIds;
         for (auto& item : itemsArray)
         {
             if (!item.contains("id")) continue;
             int id = item["id"].get<int>();
+            receivedItemIds.insert(id);
 
             // Check if this is an item or a salvage kit tracked as currency
             auto it = s_Items.find(id);
@@ -2678,6 +2661,31 @@ void ItemTracker::ApplyItemsFromApi(const json& itemsArray, const json& pricesAr
                 st->notificationPending = true; // already set, keep it
             // Details are now loaded; allow notification to fire
             st->notificationPending = true;
+        }
+
+        // --- Handle missing IDs (those that weren't returned by the API) ---
+        for (int id : requestedIds)
+        {
+            if (receivedItemIds.count(id) > 0) continue;
+
+            // If ID was requested but not returned, it's likely invalid for the /v2/items endpoint.
+            // We mark it as loaded so we stop asking the API for it every second.
+            auto it = s_Items.find(id);
+            if (it != s_Items.end())
+            {
+                it->second.details.loaded = true;
+                it->second.details.knownByApi = false;
+                
+                // Check if this ID might actually be a currency (like the user's ID 45 example)
+                if (s_Currencies.find(id) != s_Currencies.end())
+                {
+                    it->second.details.name = "ID " + std::to_string(id) + " is a Currency, not an Item!";
+                }
+                else
+                {
+                    it->second.details.name = "Unknown Item (" + std::to_string(id) + ")";
+                }
+            }
         }
 
         for (auto& pr : pricesArray)

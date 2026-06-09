@@ -10,7 +10,6 @@ namespace Localization
     const std::unordered_map<std::string, const char*> GetGreekTranslations()
     {
         static const std::unordered_map<std::string, const char*> translations = {
-            // Status texts
             {"status_disconnected", "Disconnected"},
             {"status_connecting", "Connecting..."},
             {"status_connected", "Connected"},
@@ -18,8 +17,6 @@ namespace Localization
             {"status_reconnecting", "Reconnecting..."},
             {"status_error", "Error"},
             {"status_unknown", "Unknown"},
-
-            // Mini Window
             {"mini_window_title", "Farming Tracker Mini"},
             {"profit", "Profit"},
             {"profit_per_hour", "Profit/Hour"},
@@ -27,22 +24,18 @@ namespace Localization
             {"tp_instant", "TP Instant"},
             {"total_items", "Total Items"},
             {"session", "Session"},
-
-            // Main Window
             {"main_window_title", "Farming Tracker"},
             {"drf_label", "DRF"},
             {"gw2_api_label", "GW2 API"},
             {"session_time_label", "Session Time"},
             {"reset_button", "Reset"},
             {"reset_tooltip", "Reset all farming counters (manual reset)"},
-
-            // Tabs
             {"tab_summary", "Dashboard"},
             {"tab_drops", "Drops"},
             {"tab_loot_filter", "Loot Filter"},
+            {"tab_dashboard", "Dashboard"},
             {"tab_items", "Items"},
             {"tab_currencies", "Currencies"},
-            {"tab_dashboard", "Dashboard"},
             {"tab_favorites", "Favorites"},
             {"tab_ignored", "Ignored"},
             {"tab_timeline", "Timeline"},
@@ -54,8 +47,6 @@ namespace Localization
             {"tab_filter", "Filter"},
             {"tab_custom_profit", "Custom Profit"},
             {"tab_debug", "Debug"},
-
-            // Summary Tab
             {"warning_drf_not_connected", "⚠️ DRF not connected"},
             {"warning_drf_not_connected_desc", "This plugin requires DRF for data transmission."},
             {"warning_drf_install", "Install DRF via Nexus Addon Manager or https://drf.rs/"},
@@ -81,9 +72,15 @@ namespace Localization
             {"date_tooltip", "Session start time"},
             {"duration_tooltip", "Session duration"},
             {"profit_tooltip", "Total session profit"},
-            {"profit_per_hour_tooltip", "Profit per hour"},
+            {"profit_per_hour_tooltip", "Profit per hour based on session duration"},
             {"drops_tooltip", "Number of drops"},
             {"best_drop_tooltip", "Most valuable drop of the session"},
+            {"best_drop_single", "Bester Drop (Einzelwert)"},
+            {"best_drop_total", "Bester Drop (Gesamtwert)"},
+            {"unit_value", "Einzelwert"},
+            {"total_value", "Gesamtwert"},
+            {"mini_window_show_best_drop_single", "Bester Drop (Einzelwert) anzeigen"},
+            {"mini_window_show_best_drop_total", "Bester Drop (Gesamtwert) anzeigen"},
             {"top_items_profit", "Top Items (Profit)"},
             {"top_items_profit_tooltip", "Top 5 items by profit value"},
             {"loading", "Loading..."},
@@ -104,8 +101,6 @@ namespace Localization
             {"export_json", "Export as JSON"},
             {"export_csv", "Export as CSV"},
             {"import_json", "Import from JSON"},
-
-            // Items Tab
             {"search_hint", "Search items..."},
             {"clear", "Clear"},
             {"sort_count_high", "Sort: |Count| high"},
@@ -133,24 +128,14 @@ namespace Localization
             {"nosell", "NoSell"},
             {"favorite", "Favorite"},
             {"ignore", "Ignore"},
-
-            // Currencies Tab
             {"search_currencies_hint", "Search currencies..."},
             {"api_id", "API ID"},
             {"currency_name", "Currency Name"},
             {"count", "Count"},
-
-            // Favorites Tab
-            {"unfavorite_item", "Απάντηση σε αγαπημένα"},
-            {"unfavorite_selected", "Απάντηση σε επιλεγμένα αγαπημένα"},
-            {"no_favorites_yet", "Δεν υπάρχουν ακόμη αγαπημένα. Κάντε δεξί κλικ σε ένα αντικείμενο για να το προσθέσετε."},
-            {"toggle_favorite_tooltip", "Εναλλαγή αγαπημένων"},
             {"profits", "Κέρδη"},
             {"profits_tooltip", "Συνολικά κέρδη από καλλιέργεια"},
             {"approx_profits", "Περίπου Κέρδη"},
             {"approx_gold_per_hour", "Περίπου Χρυσός ανά ώρα"},
-
-            // Profit Tab
             {"trading_profits", "Κέρδη Trading"},
             {"trading_profits_tooltip", "Κέρδη από Trading Post"},
             {"approx_trading_profits_listings", "Περίπου Κέρδη Trading (Λίστες)"},
@@ -164,22 +149,7 @@ namespace Localization
             {"efficiency_score_tooltip", "Πόσο από το μέγιστο δυνατό κέρδος επιτεύχθηκε (Αμεσος Πώληση vs. Λίστες TP)."},
             {"efficiency_score_desc", "Επιτεύχθηκε %.1f%% του μέγιστου κέρδους!"},
             {"session_duration_label", "Διάρκεια Σेशन"},
-            {"session_duration_tooltip", "Τρέχουσα διάρκεια σेशन καλλιέργειας"},
-            {"trading_profits_tooltip", "Profits from Trading Post"},
-            {"approx_trading_profits_listings", "Approx. Trading Profits (Listings)"},
-            {"approx_trading_profits_instant", "Approx. Trading Profits (Instant Sell)"},
-            {"trading_details", "Trading Details (Opportunity Cost)"},
-            {"trading_details_tooltip", "Opportunity cost of using items instead of selling"},
-            {"lost_profit_vs_tp_sell", "Lost Profit (vs TP Sell)"},
-            {"lost_profit_per_hour_vs_tp_sell", "Lost Profit Per Hour (vs TP Sell)"},
-            {"efficiency_score", "Efficiency Score"},
-            {"efficiency_score_label", "Efficiency Score:"},
-            {"efficiency_score_tooltip", "How much of the maximum possible profit you achieved (Instant Sell vs. TP Listings)."},
-            {"efficiency_score_desc", "You achieved %.1f%% of the maximum profit!"},
-            {"session_duration_label", "Session duration"},
             {"session_duration_tooltip", "Current farming session duration"},
-
-            // Filter Tab
             {"sell_method_filters", "Sell Method Filters"},
             {"sellable_to_vendor", "Sellable to vendor"},
             {"sellable_to_vendor_tooltip", "Show items sellable to vendor"},
@@ -311,8 +281,6 @@ namespace Localization
             {"currency_antiquated_ducat_tooltip", "Show antiquated ducat currency"},
             {"currency_aether_rich_sap", "Aether-Rich Sap"},
             {"currency_aether_rich_sap_tooltip", "Show aether-rich sap currency"},
-
-            // Additional Filters
             {"additional_filters", "Additional Filters"},
             {"account_bound", "Account-bound"},
             {"account_bound_tooltip", "Show account-bound items"},
@@ -330,16 +298,12 @@ namespace Localization
             {"ignored_items_tooltip", "Show ignored items"},
             {"not_ignored", "Not Ignored"},
             {"not_ignored_tooltip", "Show non-ignored items"},
-
-            // Range Filters
             {"range_filters", "Range Filters"},
             {"show_range_filters", "Show Range Filters"},
             {"filter_min_price", "Filter Min Price"},
             {"filter_max_price", "Filter Max Price"},
             {"filter_min_quantity", "Filter Min Quantity"},
             {"filter_max_quantity", "Filter Max Quantity"},
-
-            // Mini Window Settings
             {"mini_window_settings", "Mini Window"},
             {"show_profit", "Show Profit"},
             {"show_profit_tooltip", "Display total profit in mini window"},
@@ -355,17 +319,11 @@ namespace Localization
             {"show_session_duration_tooltip", "Display session duration in mini window"},
             {"window_click_through", "Window click through"},
             {"window_click_through_tooltip", "Allows clicking through the mini window to the game"},
-
-            // Main Window Settings
             {"main_window", "Main Window"},
             {"click_through", "Click through"},
             {"click_through_tooltip", "Allows clicking through the main window to the game"},
-
-            // Advanced UI Settings
             {"advanced_ui_settings", "Advanced UI Settings"},
             {"no_advanced_ui_settings", "(No advanced UI settings available)"},
-
-            // Display Settings
             {"display_settings", "Display Settings"},
             {"show_item_icons", "Show Item Icons"},
             {"show_item_icons_tooltip", "Display item icons in the list"},
@@ -375,8 +333,6 @@ namespace Localization
             {"enable_grid_view_tooltip", "Display items in a grid layout instead of list"},
             {"grid_icon_size", "Grid Icon Size"},
             {"grid_icon_size_tooltip", "Size of icons in grid view"},
-
-            // Count Display Settings
             {"count_display_settings", "Count Display Settings"},
             {"count_text_color", "Count Text Color"},
             {"count_text_color_tooltip", "Color of count text"},
@@ -386,8 +342,6 @@ namespace Localization
             {"count_font_size_tooltip", "Size of count font"},
             {"count_horizontal_alignment", "Count Horizontal Alignment"},
             {"count_horizontal_alignment_tooltip", "Horizontal alignment of count text"},
-
-            // Gradient Background Settings
             {"gradient_background_settings", "Gradient Background Settings"},
             {"enable_gradient_backgrounds", "Enable Gradient Backgrounds"},
             {"enable_gradient_backgrounds_tooltip", "Enable gradient background for windows"},
@@ -395,45 +349,31 @@ namespace Localization
             {"gradient_top_color_tooltip", "Top color of gradient background"},
             {"gradient_bottom_color", "Gradient Bottom Color"},
             {"gradient_bottom_color_tooltip", "Bottom color of gradient background"},
-
-            // Custom Profit System
             {"custom_profit_system", "Custom Profit System"},
             {"enable_custom_profit", "Enable Custom Profit"},
             {"enable_custom_profit_tooltip", "Enable custom profit values for items"},
-
-            // Search
             {"search_settings", "Search"},
             {"enable_search", "Enable Search"},
             {"enable_search_tooltip", "Enable search functionality"},
-
-            // Ignored Items
             {"ignored_items_settings", "Ignored Items"},
             {"enable_ignored_items", "Enable Ignored Items"},
             {"enable_ignored_items_tooltip", "Enable ignored items functionality"},
-
-            // Auto Reset
             {"auto_reset_settings", "Auto Reset"},
             {"enable_auto_reset", "Enable Auto Reset"},
             {"enable_auto_reset_tooltip", "Automatically reset farming session after a duration"},
             {"auto_reset_duration", "Auto Reset Duration (minutes)"},
             {"auto_reset_duration_tooltip", "Duration in minutes before auto reset"},
-
-            // DRF Settings
             {"drf_settings", "DRF Settings"},
             {"drf_token", "DRF Token"},
             {"drf_token_label", "DRF Token:"},
             {"drf_token_tooltip", "Your DRF authentication token"},
             {"edit_token", "Edit Token"},
             {"save_token", "Save Token"},
-
-            // GW2 API Settings
             {"gw2_api_settings", "GW2 API Settings"},
             {"gw2_api_key", "GW2 API Key"},
             {"gw2_api_key_tooltip", "Your GW2 API key for item details"},
             {"edit_key", "Edit Key"},
             {"save_key", "Save Key"},
-
-            // Language Settings
             {"language_settings", "Language"},
             {"language_tooltip", "Select interface language"},
             {"language_english", "English"},
@@ -446,8 +386,6 @@ namespace Localization
             {"language_polish", "Polski"},
             {"language_portuguese", "Português"},
             {"language_russian", "Русский"},
-
-            // Additional hardcoded strings found in UI
             {"farming_tracker_title", "Farming Tracker"},
             {"no_accounts_configured", "No accounts configured"},
             {"no_profiles_created", "No profiles created yet"},
@@ -467,7 +405,7 @@ namespace Localization
             {"tp_sell_profit_label", "TP Sell Profit:"},
             {"tp_sell_profit_tooltip", "Total profit if all items were sold at current TP listing prices (minus 15% fee)"},
             {"vendor_profit_label", "Vendor Profit:"},
-            {"profit_per_hour_label", "Profit Per Hour:"},
+            {"profit_per_hour_label", "Profit Per Hour"},
             {"opportunity_cost_profit_label", "Opportunity Cost Profit:"},
             {"opportunity_cost_profit_per_hour_label", "Opportunity Cost Profit/Hour:"},
             {"custom_profit_feature_placeholder", "Feature implemented - UI follows"},
@@ -500,6 +438,8 @@ namespace Localization
             {"enable_session_history_tab_tooltip", "Show the Session History tab"},
             {"enable_timeline_tab", "Enable Timeline Tab"},
             {"enable_timeline_tab_tooltip", "Show the Timeline tab with detailed drop history"},
+            {"enable_loot_log_tab", "Loot Log Tab aktivieren"},
+            {"enable_loot_log_tab_tooltip", "Zeigt den Loot Log Tab"},
             {"enable_filter_tab", "Enable Filter Tab"},
             {"enable_filter_tab_tooltip", "Show the Filter tab"},
             {"lock_tab_order", "Lock Tab Order"},
@@ -523,7 +463,7 @@ namespace Localization
             {"appearance_settings", "Appearance"},
             {"enable_tooltips", "Enable Tooltips"},
             {"enable_tooltips_tooltip", "Show tooltips when hovering over UI elements"},
-            {"enable_grid_view_tooltip", "Display items in a grid layout instead of a list"},
+            {"enable_grid_view_tooltip", "Display items in a grid layout instead of list"},
             {"favorites_first_tooltip", "Show favorite items at the top of the list"},
             {"group_by_rarity_tooltip", "Group items by their rarity"},
             {"show_rarity_as_tabs_tooltip", "Display each rarity as a separate tab"},
@@ -572,11 +512,11 @@ namespace Localization
             {"context_menu_unignore", "Remove from Ignored"},
             {"context_menu_copy_name", "Copy Name"},
             {"context_menu_copy_id", "Copy ID"},
-            {"sell_method_filters_label", "Sell Method Filters:"},
+            {"rarity_tooltip", "Filter items by minimum rarity"},
             {"api_knowledge_filters_label", "API Knowledge Filters:"},
             {"additional_filters_label", "Additional Filters:"},
             {"item_type_filters_label", "Item Type Filters:"},
-            {"currency_filters_label", "Currency Filters:"},
+            {"currency_filters_label", "Currency Filters"},
             {"price_range", "Price Range (Copper):"},
             {"quantity_range", "Quantity Range:"},
             {"debug_info", "Debug Information"},
@@ -598,24 +538,24 @@ namespace Localization
             {"currency_label", "Currency %d: %s (Count: "},
             {"custom_profit_items", "Custom Profit Items (First 5):"},
             {"custom_profit_item", "Item %d: %s (Custom Profit: "},
-            {"no_custom_profit_items", "(No custom profit items)"},
+            {"no_custom_profit_items", "(No items with custom profit)"},
             {"ignored_items_debug", "Ignored Items (First 5):"},
             {"yes_label", "Yes"},
             {"no_label", "No"},
             {"profits_label", "Profits:"},
-            {"profits_tooltip", "Total profits from farming"},
+            {"profits_tooltip", "Συνολικά κέρδη από καλλιέργεια"},
             {"approx_profits_label", "Approx. Profits:"},
             {"approx_profits_tooltip", "Total profit from MAX(Vendor, TP Sell with 15% fee) or Custom Profit"},
             {"approx_gold_per_hour_label", "Approx. Gold Per Hour:"},
             {"approx_gold_per_hour_tooltip", "Profit per hour based on session duration"},
             {"trading_profits_label", "Trading Profits:"},
-            {"trading_profits_tooltip", "Profits from selling items on Trading Post"},
+            {"trading_profits_tooltip", "Κέρδη από Trading Post"},
             {"approx_trading_profits_listings_label", "Approx. Trading Profits (Listings):"},
             {"approx_trading_profits_listings_tooltip", "Total profit if sold via TP listings (15% fee deducted)"},
             {"approx_trading_profits_instant_label", "Approx. Trading Profits (Instant Sell):"},
             {"approx_trading_profits_instant_tooltip", "Total profit if sold via TP instant buy orders (15% fee deducted)"},
             {"trading_details_label", "Trading Details (Opportunity Cost):"},
-            {"trading_details_tooltip", "Profit lost by not selling via TP listings"},
+            {"trading_details_tooltip", "Κόστος ευκαιρίας από τη χρήση αντικειμένων αντί για πώληση"},
             {"lost_profit_vs_tp_sell_label", "Lost Profit (vs TP Sell):"},
             {"lost_profit_vs_tp_sell_tooltip", "Opportunity cost: Profit lost by not selling via TP (with 15% fee)"},
             {"lost_profit_per_hour_vs_tp_sell_label", "Lost Profit Per Hour (vs TP Sell):"},
@@ -636,7 +576,7 @@ namespace Localization
             {"manage_favorite_currencies", "Manage favorite currencies"},
             {"favorite_currencies_label", "Favorite currencies:"},
             {"clear_all_favorite_currencies", "Clear all favorite currencies"},
-            {"filter_active",   "Active"},
+            {"filter_active", "Active"},
             {"filter_inactive", "Inactive"},
             {"filter_all", "All"},
             {"filter_none", "None"},
@@ -647,7 +587,7 @@ namespace Localization
             {"api_knowledge_filters_label", "API Knowledge Filters:"},
             {"additional_filters_label", "Additional Filters:"},
             {"item_type_filters_label", "Item Type Filters:"},
-            {"currency_filters_label", "Currency Filters:"},
+            {"currency_filters_label", "Currency Filters"},
             {"price_range", "Price Range (Copper):"},
             {"quantity_range", "Quantity Range:"},
             {"debug_connection_status", "Connection Status"},
@@ -694,7 +634,7 @@ namespace Localization
             {"api_key_tooltip", "GW2 API Key Status"},
             {"not_set", "Not set"},
             {"set", "Set"},
-            {"drf_token_tooltip", "DRF Token Status"},
+            {"drf_token_tooltip", "Your DRF authentication token"},
             {"toggle_hotkey_label", "Toggle Hotkey: %s"},
             {"toggle_hotkey_tooltip", "Main window toggle hotkey"},
             {"auto_reset_mode_label", "Auto-Reset Mode: %d"},
@@ -713,7 +653,7 @@ namespace Localization
             {"close_button", "Close"},
             {"rarity_label", "Rarity: %s"},
             {"type_label", "Type: %d"},
-            {"account_bound_label", "Account-bound: %s"},
+            {"account_bound_label", "Account Bound: %s"},
             {"nosell_label", "NoSell: %s"},
             {"yes_label", "Yes"},
             {"no_label", "No"},
@@ -723,600 +663,733 @@ namespace Localization
             {"sort_count_low", "Sort: |Count| low"},
             {"sort_name_az", "Sort: Name A–Z"},
             {"sort_name_za", "Sort: Name Z–A"},
+            {"sort_profit_high", "Ταξινόμηση: Κέρδος high"},
+            {"sort_profit_low", "Ταξινόμηση: Κέρδος low"},
+            {"sort_rarity_high", "Ταξινόμηση: Rarity high to low"},
+            {"sort_rarity_low", "Ταξινόμηση: Rarity low to high"},
+            {"sort_tooltip", "Sort items by count, ID, or name"},
+            {"group_by_rarity", "Ομαδοποίηση by Rarity"},
+            {"group_by_type", "Ομαδοποίηση by Category"},
+            {"show_type_as_tabs", "Εμφάνιση as Καρτέλαs"},
+            {"show_rarity_as_tabs", "Εμφάνιση as Καρτέλαs"},
+            {"enable_favorites", "Ενεργοποίηση Favorites"},
+            {"rarity_name_basic", "Basic"},
+            {"rarity_name_fine", "Fine"},
+            {"rarity_name_masterwork", "Masterwork"},
+            {"rarity_name_rare", "Rare"},
+            {"rarity_name_exotic", "Exotic"},
+            {"rarity_name_ascended", "Ascended"},
+            {"rarity_name_legendary", "Legendary"},
+            {"rarity_name_junk", "Junk"},
+            {"rarity_name_unknown", "Unknown"},
+            {"main_window_opacity", "Main Παράθυρο Transparency"},
+            {"main_window_opacity_tooltip", "Main window background transparency (0-100%)"},
+            {"mini_window_opacity", "Mini Παράθυρο Transparency"},
+            {"mini_window_opacity_tooltip", "Mini window background transparency (0-100%)"},
+            {"accent_color", "Accent Χρώμα (Buttons, Καρτέλαs, UI)"},
+            {"accent_color_tooltip", "Accent color for buttons, tabs, and UI elements"},
+            {"stat_total_profit", "Σύνολο Κέρδος"},
+            {"stat_avg_profit_per_hour", "Avg Κέρδος/h"},
+            {"stat_best_session", "Καλύτερο Συνεδρία"},
+            {"stat_total_time", "Σύνολο Χρόνος"},
+            {"session_profit_trend", "Κέρδος Trend"},
+            {"session_note", "Όχιte"},
+            {"session_search_hint", "Αναζήτηση sessions, items, notes..."},
+            {"showing", "Εμφάνισηing"},
+            {"sessions_selected", "sessions selected"},
+            {"clear_compare_selection", "Εκκαθάριση selection"},
+            {"session_history", "Συνεδρία Ιστορικό"},
+            {"tab_sessions", "Συνεδρίαs"},
+            {"tab_summaries", "Summaries"},
+            {"summaries_coming_soon", "Summaries feature coming soon..."},
+            {"summaries_label", "Summaries"},
+            {"summaries_tooltip", "Daily/Weekly/Monthly profit summaries"},
+            {"show_summaries", "Εμφάνιση Summaries"},
+            {"show_summaries_tooltip", "Εμφάνιση daily/weekly/monthly profit summaries"},
+            {"best_drop", "Καλύτερο Drop"},
+            {"best_drop_tooltip", "Most valuable drop of the session"},
+            {"enable_best_drop_highlight", "Highlight Καλύτερο Drop"},
+            {"enable_best_drop_highlight_tooltip", "Highlight the most valuable drop with a golden border in the Αντικείμενα tab"},
+            {"enable_best_drop_in_mini_window", "Εμφάνιση Καλύτερο Drop in Mini Παράθυρο"},
+            {"enable_best_drop_in_mini_window_tooltip", "Εμφάνιση the most valuable drop in the mini window overlay"},
+            {"export_history", "Εξαγωγή Ιστορικό"},
+            {"export_history_tooltip", "Εξαγωγή session history to a JSON file"},
+            {"import_history", "Εισαγωγή Ιστορικό"},
+            {"import_history_tooltip", "Εισαγωγή session history from a JSON file"},
+            {"full_backup", "Full Αντίγραφο ασφαλείας"},
+            {"full_backup_tooltip", "Αντίγραφο ασφαλείας all data (settings, session history, favorites, ignored items, custom profit) to a JSON file"},
+            {"full_restore", "Full Επαναφορά"},
+            {"full_restore_tooltip", "Επαναφορά all data from a backup JSON file"},
+            {"backup", "Αντίγραφο ασφαλείας"},
+            {"restore", "Επαναφορά"},
+            {"summary_period", "Period:"},
+            {"summary_today", "Today"},
+            {"summary_this_week", "This Week"},
+            {"summary_this_month", "This Month"},
+            {"total_profit", "Total Profit"},
+            {"profit_per_hour", "Profit/Hour"},
+            {"total_drops", "Σύνολο Drops"},
+            {"session_count", "Συνεδρία Πλήθος"},
+            {"total_duration", "Σύνολο Διάρκεια"},
+            {"comparison_previous_period", "Comparison with previous period:"},
+            {"profit_change", "Κέρδος Change"},
+            {"top_drops", "Κορυφαίο Drops"},
+            {"item", "Item"},
+            {"count", "Count"},
+            {"value", "Τιμή"},
+            {"enable_session_history", "Ενεργοποίηση Συνεδρία Ιστορικό"},
+            {"enable_session_history_tooltip", "Αποθήκευση farming session history for later viewing"},
+            {"sessions_stored", "Συνεδρίαs Stored"},
+            {"max_session_history", "Max Συνεδρίαs"},
+            {"max_session_history_tooltip", "Maximum number of sessions to save (1-50). Oldest session is deleted when limit is reached if overwrite is enabled."},
+            {"overwrite_session_history", "Overwrite Συνεδρίαs"},
+            {"overwrite_session_history_tooltip", "If enabled, oldest session is deleted when limit is reached"},
+            {"enable_session_timeline", "Ενεργοποίηση Συνεδρία Χρονολόγιο"},
+            {"enable_session_timeline_tooltip", "Αποθήκευση detailed drop timeline with timestamps for session details"},
+            {"save_all_items_confirm", "Ενεργοποίηση session timeline?"},
+            {"save_all_items_warning", "This will significantly increase file size!"},
+            {"yes_enable", "Ναι, Ενεργοποίηση"},
+            {"date", "Ημερομηνία"},
+            {"duration", "Διάρκεια"},
+            {"drops", "Drops"},
+            {"map", "Map"},
+            {"clear_history", "Εκκαθάριση Ιστορικό"},
+            {"clear_history_tooltip", "Διαγραφή all saved session history"},
+            {"clear_history_confirm", "Εκκαθάριση all session history?"},
+            {"clear_history_warning", "This action cannot be undone!"},
+            {"yes_clear", "Ναι, Εκκαθάριση"},
+            {"no_cancel", "Όχι, Ακύρωση"},
+            {"clear_all_custom_profits_warning", "Όλα custom profit values will be deleted. This action cannot be undone."},
+            {"no_sessions_recorded", "Όχι sessions recorded yet."},
+            {"unknown_map", "Unknown"},
+            {"tab_session_history", "Συνεδρία Ιστορικό"},
+            {"save_current_session", "Αποθήκευση Current Συνεδρία"},
+            {"save_current_session_tooltip", "Αποθήκευση the current farming session without resetting"},
+            {"rarity_all", "Rarity: all"},
+            {"rarity_basic", "Rarity: Basic+"},
+            {"rarity_fine", "Rarity: Fine+"},
+            {"rarity_masterwork", "Rarity: Masterwork+"},
+            {"rarity_rare", "Rarity: Rare+"},
+            {"rarity_exotic", "Rarity: Exotic+"},
+            {"rarity_ascended", "Rarity: Ascended+"},
+            {"rarity_legendary", "Rarity: Legendary only"},
+            {"rarity_tooltip", "Filter items by minimum rarity"},
+            {"search_items_hint", "Αναζήτηση items..."},
+            {"mass_actions_label", "Mass Actions"},
+            {"mass_actions_ignore_junk", "Ignore all Junk items"},
+            {"mass_actions_ignore_basic", "Ignore all Basic items"},
+            {"mass_actions_ignore_fine", "Ignore all Fine items"},
+            {"mass_actions_ignore_masterwork", "Ignore all Masterwork items"},
+            {"mass_actions_ignore_rare", "Ignore all Rare items"},
+            {"mass_actions_ignore_exotic", "Ignore all Exotic items"},
+            {"mass_actions_ignore_ascended", "Ignore all Ascended items"},
+            {"mass_actions_ignore_legendary", "Ignore all Legendary items"},
+            {"mass_actions_clear_ignore", "Εκκαθάριση ignore list"},
+            {"column_icon", "Εικονίδιο"},
+            {"column_name", "Name"},
+            {"column_count", "Πλήθος"},
+            {"column_profit", "Κέρδος"},
+            {"column_favorite", "Favorite"},
+            {"column_ignore", "Ignore"},
+            {"toggle_favorite", "Toggle favorite"},
+            {"toggle_ignore", "Toggle ignore"},
+            {"vendor_value_format", "Vendor Τιμή: %s"},
+            {"tp_sell_gross_format", "TP Sell (Gross): %s"},
+            {"tp_sell_net_format", "TP Sell (Net): %s"},
+            {"tp_buy_gross_format", "TP Buy (Gross): %s"},
+            {"tp_buy_net_format", "TP Buy (Net): %s"},
+            {"favorites_settings", "Favorites Ρυθμίσεις"},
+            {"enable_favorites_tab", "Ενεργοποίηση Favorites Καρτέλα"},
+            {"enable_favorites_tab_tooltip", "Εμφάνισηs a separate favorites tab"},
+            {"favorites_first", "Favorites First"},
+            {"favorites_first_tooltip", "Show favorite items at the top of the list"},
+            {"enable_favorite_text_color", "Ενεργοποίηση favorite text color"},
+            {"enable_favorite_text_color_tooltip", "Highlights favorite items/currencies with custom text color"},
+            {"text_color", "Text Χρώμα"},
+            {"enable_favorite_row_color", "Ενεργοποίηση favorite row color"},
+            {"enable_favorite_row_color_tooltip", "Highlights favorite items/currencies with custom row background color"},
+            {"row_color", "Row Χρώμα"},
+            {"filter_favorite", "Favorite"},
+            {"filter_favorite_tooltip", "Εμφάνιση favorite items (outside Favorites tab)"},
+            {"filter_not_favorite", "Όχιt Favorite"},
+            {"filter_not_favorite_tooltip", "Εμφάνιση items that are not marked as favorite"},
+            {"filter_research_notes", "Research Όχιtes"},
+            {"filter_research_notes_tooltip", "Εμφάνιση research notes currency"},
+            {"range_filters", "Range Filters"},
+            {"range_filters_tooltip", "Εμφάνιση price and quantity range filters"},
+            {"filter_min_price", "Filter Min Price"},
+            {"filter_min_price_tooltip", "Minimum price filter (0 = disabled)"},
+            {"filter_max_price", "Filter Max Price"},
+            {"filter_max_price_tooltip", "Maximum price filter (0 = disabled)"},
+            {"quantity_range", "Quantity Range:"},
+            {"filter_min_quantity", "Filter Min Quantity"},
+            {"filter_max_quantity", "Filter Max Quantity"},
+            {"column_label", "Ετικέτα"},
+            {"column_value", "Τιμή"},
+            {"column_item", "Item"},
+            {"column_count", "Πλήθος"},
+            {"column_currency", "Currency"},
+            {"top_items_profit_header", "Κορυφαίο 5 Αντικείμενα by Κέρδος"},
+            {"top_items_count_header", "Κορυφαίο 5 Αντικείμενα (Πλήθος)"},
+            {"top_currencies_count_header", "Κορυφαίο 5 Νομίσματα (Πλήθος)"},
+            {"favorite_items_header", "Favorite Αντικείμενα"},
+            {"currencies_header", "Νομίσματα"},
+            {"items_header", "Αντικείμενα"},
+            {"top_items_profit_tooltip", "Top 5 items by profit value"},
+            {"top_items_count_tooltip", "Top 5 items by count"},
+            {"top_currencies_count_tooltip", "Κορυφαίο 5 currencies by count"},
+            {"show_main_window", "Εμφάνιση main window"},
+            {"reset_all", "Επαναφορά Όλα"},
+            {"reset_all_tooltip", "Επαναφορά all settings to default values"},
+            {"export", "Export"},
+            {"export_backup_settings", "Export & Backup"},
+            {"export_tooltip", "Export farming data to file"},
+            {"import", "Εισαγωγή"},
+            {"import_tooltip", "Εισαγωγή settings from a JSON file"},
+            {"save", "Αποθήκευση"},
+            {"save_tooltip", "Αποθήκευση current settings"},
+            {"general_settings", "Γενικά Ρυθμίσεις"},
+            {"performance_settings", "Performance Ρυθμίσεις"},
+            {"enable_icon_cache", "Ενεργοποίηση Εικονίδιο Cache"},
+            {"enable_icon_cache_tooltip", "Cache item icons on disk to speed up loading after the first session"},
+            {"icon_cache_max_icons", "Max Cached Εικονίδιοs"},
+            {"icon_cache_max_icons_tooltip", "Maximum number of icons to keep in cache (older icons are deleted when limit is reached)"},
+            {"session_details", "Συνεδρία Details"},
+            {"actions", "Actions"},
+            {"details", "Details"},
+            {"time", "Χρόνος"},
+            {"item", "Item"},
+            {"quantity", "Quantity"},
+            {"value", "Τιμή"},
+            {"filter_items", "Φίλτρο Αντικείμενα"},
+            {"filter_rarity", "Φίλτρο Rarity"},
+            {"min_value", "Min Τιμή"},
+            {"search_items", "Αναζήτηση Αντικείμενα"},
+            {"export_csv", "Export as CSV"},
+            {"no_items_in_session", "Όχι items in this session"},
+            {"main_window_settings", "Main Παράθυρο"},
+            {"account_management", "Λογαριασμός Management"},
+            {"add_account", "+ Προσθήκη Λογαριασμός"},
+            {"remove_account", "- Αφαίρεση Λογαριασμός"},
+            {"save_account", "Αποθήκευση Λογαριασμός"},
+            {"reload_drf_token", "Reload DRF Token"},
+            {"reload_gw2_api_key", "Reload GW2 API Key"},
+            {"reset_settings", "Αυτόματο Επαναφορά"},
+            {"visual_settings", "Visual Ρυθμίσεις"},
+            {"gradient_backgrounds", "Gradient backgrounds"},
+            {"gradient_backgrounds_tooltip", "Ενεργοποίησηs smooth gradient backgrounds for a more modern look"},
+            {"top_gradient_color", "Κορυφαίο"},
+            {"top_gradient_color_tooltip", "Κορυφαίο gradient color"},
+            {"bottom_gradient_color", "Bottom"},
+            {"bottom_gradient_color_tooltip", "Bottom gradient color"},
+            {"show_item_icons", "Show Item Icons"},
+            {"show_item_icons_tooltip", "Display item icons in the list"},
+            {"icon_size", "Εικονίδιο size"},
+            {"icon_size_tooltip", "Μέγεθος of item icons in pixels (16-96)"},
+            {"rarity_border_thickness", "Rarity Περίγραμμα Thickness"},
+            {"rarity_border_thickness_tooltip", "Adjust the thickness of rarity borders (1.0 - 10.0)"},
+            {"enable_grid_view_items", "Ενεργοποίηση Grid View (Αντικείμενα)"},
+            {"enable_grid_view_items_tooltip", "Toggle between list and grid view in Αντικείμενα tab"},
+            {"grid_icon_size_items", "Grid Εικονίδιο size (Αντικείμενα)"},
+            {"grid_icon_size_items_tooltip", "Μέγεθος of icons in grid view for Αντικείμενα (16-128)"},
+            {"enable_grid_view_currencies", "Ενεργοποίηση Grid View (Νομίσματα)"},
+            {"enable_grid_view_currencies_tooltip", "Toggle between list and grid view in Νομίσματα tab"},
+            {"grid_icon_size_currencies", "Grid Εικονίδιο size (Νομίσματα)"},
+            {"grid_icon_size_currencies_tooltip", "Μέγεθος of icons in grid view for Νομίσματα (16-128)"},
+            {"timeline_icon_size_items", "Χρονολόγιο Εικονίδιο Μέγεθος (Αντικείμενα)"},
+            {"timeline_icon_size_items_tooltip", "Μέγεθος of item icons in Χρονολόγιο tab (16-96)"},
+            {"timeline_icon_size_currencies", "Χρονολόγιο Εικονίδιο Μέγεθος (Νομίσματα)"},
+            {"timeline_icon_size_currencies_tooltip", "Μέγεθος of currency icons in Χρονολόγιο tab (16-48)"},
+            {"show_mini_window", "Εμφάνιση mini window"},
+            {"show_mini_window_tooltip", "Εμφάνισηs a small overlay widget with key statistics"},
+            {"mini_window_show_profit", "Εμφάνιση Κέρδος"},
+            {"mini_window_show_profit_tooltip", "Display total profit in mini window"},
+            {"mini_window_show_profit_per_hour", "Εμφάνιση Κέρδος/Hour"},
+            {"mini_window_show_profit_per_hour_tooltip", "Display profit per hour in mini window"},
+            {"mini_window_show_tp_sell", "Εμφάνιση TP Sell (Listings)"},
+            {"mini_window_show_tp_sell_tooltip", "Display TP sell profit (listings) in mini window"},
+            {"mini_window_show_tp_instant", "Εμφάνιση TP Instant (Instant Sell)"},
+            {"mini_window_show_tp_instant_tooltip", "Display TP instant sell profit in mini window"},
+            {"mini_window_show_total_items", "Εμφάνιση Σύνολο Αντικείμενα"},
+            {"mini_window_show_total_items_tooltip", "Display total item count in mini window"},
+            {"mini_window_show_session_duration", "Εμφάνιση Συνεδρία Διάρκεια"},
+            {"mini_window_show_session_duration_tooltip", "Display session duration in mini window"},
+            {"mini_window_click_through", "Παράθυρο click through"},
+            {"mini_window_click_through_tooltip", "Όλαows clicking through the mini window to the game"},
+            {"mini_window_hide_title_bar", "Απόκρυψη Mini Παράθυρο Title Bar"},
+            {"mini_window_hide_title_bar_tooltip", "Απόκρυψη the title bar of the mini window"},
+            {"mini_window_locked", "Κλείδωμα Mini Παράθυρο"},
+            {"mini_window_locked_tooltip", "Fix the mini window position and size (no longer movable or resizable)"},
+            {"main_window_click_through", "Click through"},
+            {"main_window_click_through_tooltip", "Όλαows clicking through the main window to the game"},
+            {"settings_profiles", "Ρυθμίσεις Profiles"},
+            {"select_profile", "Επιλογή a profile to apply its settings"},
+            {"create_new_profile", "Create New Profile:"},
+            {"create_new_profile_tooltip", "Create a new profile with current settings"},
+            {"create", "Create"},
+            {"update_profile", "Ενημέρωση Profile"},
+            {"update_profile_tooltip", "Ενημέρωση current profile with current settings"},
+            {"delete_profile", "Διαγραφή Profile"},
+            {"delete_profile_tooltip", "Διαγραφή current profile"},
+            {"automatic_backups", "Αυτόματοmatic Αντίγραφο ασφαλείαςs"},
+            {"enable_automatic_backups", "Ενεργοποίηση automatic backups"},
+            {"notification_settings", "Ειδοποίηση Ρυθμίσεις"},
+            {"enable_notifications", "Ενεργοποίηση notifications"},
+            {"enable_notifications_tooltip", "Ενεργοποίηση in-game notifications"},
+            {"show_notification_setup", "Setup Mode (Positioning)"},
+            {"show_notification_setup_tooltip", "Makes the notification window visible so you can move it"},
+            {"notification_duration", "Display Διάρκεια"},
+            {"notification_duration_tooltip", "How long the notification stays visible (seconds)"},
+            {"notification_triggers", "Ειδοποίηση Triggers"},
+            {"notification_min_value", "Min. Τιμή (Gold)"},
+            {"notification_min_value_tooltip", "Trigger notification if item value is at least this amount"},
+            {"notification_min_rarity", "Min. Rarity"},
+            {"notification_min_rarity_tooltip", "Trigger notification if item rarity is at least this level"},
+            {"notification_combine_logic", "Combine Φίλτροs (AND)"},
+            {"notification_combine_logic_tooltip", "If enabled, BOTH conditions (Τιμή AND Rarity) must be met. If disabled, ANY one of them is enough."},
+            {"notification_include_non_profit", "Include Όχιn-Κέρδος Αντικείμενα"},
+            {"notification_include_non_profit_tooltip", "If enabled, items with no gold value (0c) will also trigger alerts if they meet the rarity requirement."},
+            {"notification_include_agony", "Include Agony Infusions"},
+            {"notification_include_agony_tooltip", "If enabled, Agony Infusions (+1 to +30) will also trigger an alert."},
+            {"notification_precursor_alert", "Pre-Cursor Alert"},
+            {"notification_precursor_alert_tooltip", "Always notify when a Pre-Cursor is found (ignores Τιμή/Rarity filters)"},
+            {"notification_infusion_alert", "Infusion Alert"},
+            {"notification_infusion_alert_tooltip", "Always notify when an Infusion is found (ignores Τιμή/Rarity filters)"},
+            {"notification_stacking", "Stack Ειδοποίησηs"},
+            {"notification_stacking_tooltip", "Εμφάνιση multiple notifications at once instead of replacing the old one immediately"},
+            {"notification_play_sound", "Αναπαραγωγή Ήχος"},
+            {"notification_play_sound_tooltip", "Αναπαραγωγή a sound effect when a notification appears"},
+            {"notification_volume", "Master Ένταση"},
+            {"notification_volume_tooltip", "Ένταση for notification sounds"},
+            {"sound_standard", "Standard Ήχος"},
+            {"sound_precursor", "Pre-Cursor Ήχος"},
+            {"sound_infusion", "Infusion Ήχος"},
+            {"sound_alert", "Alert Ήχος"},
+            {"sound_path_hint", "Path to sound file (empty = default)"},
+            {"sound_test", "Δοκιμή"},
+            {"notification_setup_hint", "[Drag to reposition notifications]"},
+            {"browse_for_file", "Browse for file..."},
+            {"rare_drop_label", "Rare Drop!"},
+            {"precursor_drop_label", "Pre-Cursor Drop!"},
+            {"infusion_drop_label", "Infusion Drop!"},
+            {"test_item_label", "Δοκιμή Item"},
+            {"notification_general", "Γενικά Ρυθμίσεις"},
+            {"notification_item_alerts", "Item Alerts"},
+            {"notification_session_alerts", "Progress & Χρόνος"},
+            {"trigger_drops", "Item Drops"},
+            {"trigger_profit_goal", "Κέρδος Goal"},
+            {"trigger_time_reset", "Χρόνος & Επαναφορά"},
+            {"profit_goal_reached_title", "Κέρδος Goal Reached"},
+            {"profit_goal_reached_msg", "You have reached your profit goal of %d gold!"},
+            {"session_complete_title", "Συνεδρία Complete"},
+            {"session_complete_msg", "You have been farming for %d hours!"},
+            {"profit_goal_amount", "Goal Amount (Gold)"},
+            {"reset_warning_title", "Επαναφορά Προειδοποίηση"},
+            {"reset_warning_msg", "The tracker will reset in %d minutes!"},
+            {"auto_reset_done_title", "Επαναφορά Complete"},
+            {"auto_reset_done_msg", "The tracker has been reset."},
+            {"enable_automatic_backups_tooltip", "Αυτόματοmatically create backups before changes"},
+            {"backup_frequency", "Αντίγραφο ασφαλείας frequency"},
+            {"backup_frequency_tooltip", "How often to create automatic backups"},
+            {"max_backups", "Max Αντίγραφο ασφαλείαςs"},
+            {"max_backups_tooltip", "Maximum number of backups to keep (1-20)"},
+            {"notification_settings", "Ειδοποίηση Ρυθμίσεις"},
+            {"enable_notifications", "Ενεργοποίηση notifications"},
+            {"enable_notifications_tooltip", "Ενεργοποίηση in-game notifications"},
+            {"notify_profit_goal", "Όχιtify when profit goal reached"},
+            {"notify_profit_goal_tooltip", "Όχιtify when you reach your profit goal"},
+            {"profit_goal_gold", "Κέρδος goal (gold)"},
+            {"profit_goal_gold_tooltip", "Κέρδος goal in gold coins (1-1000)"},
+            {"notify_reset_warning", "Όχιtify before reset"},
+            {"notify_reset_warning_tooltip", "Όχιtify before automatic reset occurs"},
+            {"reset_warning_minutes", "Επαναφορά Προειδοποίηση (Minutes)"},
+            {"reset_warning_minutes_tooltip", "Minutes before reset to show warning (1-60)"},
+            {"notify_session_complete", "Όχιtify after session duration"},
+            {"notify_session_complete_tooltip", "Όχιtify after farming for a certain duration"},
+            {"session_complete_hours", "Συνεδρία Complete (Hours)"},
+            {"session_complete_hours_tooltip", "Hours of farming before notification (1-24)"},
+            {"filter_sellable_to_vendor", "Sellable to vendor"},
+            {"filter_sellable_to_vendor_tooltip", "Εμφάνιση items sellable to vendor"},
+            {"filter_sellable_on_tp", "Sellable on TP"},
+            {"filter_sellable_on_tp_tooltip", "Εμφάνιση items sellable on Trading Post"},
+            {"filter_custom_profit", "Has custom profit"},
+            {"filter_custom_profit_tooltip", "Εμφάνιση items with custom profit set"},
+            {"filter_known_by_api", "Known by API"},
+            {"filter_known_by_api_tooltip", "Εμφάνιση items known by GW2 API"},
+            {"filter_unknown_by_api", "Unknown by API"},
+            {"filter_unknown_by_api_tooltip", "Εμφάνιση items not known by GW2 API"},
+            {"show_ignored_items", "Εμφάνιση ignored items"},
+            {"show_ignored_items_tooltip", "Εμφάνιση ignored items/currencies in Αντικείμενα and Νομίσματα tabs (disable to hide). Difference from 'Ignored' filter: This filter controls display in Αντικείμενα/Νομίσματα tabs, the 'Ignored' filter controls display in Φίλτρο tab."},
+            {"filter_type_armor", "Armor"},
+            {"filter_type_armor_tooltip", "Εμφάνιση armor items"},
+            {"filter_type_backpack", "Backpack"},
+            {"filter_type_backpack_tooltip", "Εμφάνιση backpack items"},
+            {"type_backpack", "Backpack"},
+            {"filter_type_bag", "Bag"},
+            {"filter_type_bag_tooltip", "Εμφάνιση bags"},
+            {"filter_type_container", "Container"},
+            {"currency_cat_common", "Common"},
+            {"currency_cat_fractal", "Fractals"},
+            {"currency_cat_raid_strike", "Raids & Strikes"},
+            {"currency_cat_wvw", "WvW"},
+            {"currency_cat_pvp", "PvP"},
+            {"currency_cat_map", "Map Νομίσματα"},
+            {"currency_cat_janthir", "Janthir Wilds"},
+            {"currency_cat_other", "Other"},
+            {"currency_group_by_category", "Ομαδοποίηση by category"},
+            {"currency_show_as_tabs", "Εμφάνιση as tabs"},
+            {"filter_type_container_tooltip", "Εμφάνιση containers"},
+            {"filter_type_consumable", "Consumable"},
+            {"filter_type_consumable_tooltip", "Εμφάνιση consumable items"},
+            {"filter_type_crafting_material", "Crafting Material"},
+            {"filter_type_crafting_material_tooltip", "Εμφάνιση crafting materials"},
+            {"filter_type_gathering_tool", "Gathering Tool"},
+            {"filter_type_gathering_tool_tooltip", "Εμφάνιση gathering tools"},
+            {"filter_type_gizmo", "Gizmo"},
+            {"filter_type_gizmo_tooltip", "Εμφάνιση gizmo items"},
+            {"filter_type_gizmo_container", "Gizmo Container"},
+            {"filter_type_gizmo_container_tooltip", "Εμφάνιση gizmo container items"},
+            {"type_gizmo_container", "Gizmo Container"},
+            {"filter_type_mini_pet", "Mini Pet"},
+            {"filter_type_mini_pet_tooltip", "Εμφάνιση mini pets"},
+            {"filter_type_tool", "Tool"},
+            {"filter_type_tool_tooltip", "Εμφάνιση tool items"},
+            {"type_tool", "Tool"},
+            {"filter_type_trinket", "Trinket"},
+            {"filter_type_trinket_tooltip", "Εμφάνιση trinket items"},
+            {"filter_type_trophy", "Trophy"},
+            {"filter_type_trophy_tooltip", "Εμφάνιση trophy items"},
+            {"type_trophy", "Trophy"},
+            {"filter_type_unlock", "Ξεκλείδωμα"},
+            {"filter_type_unlock_tooltip", "Εμφάνιση unlock items"},
+            {"type_unlock", "Ξεκλείδωμα"},
+            {"filter_type_upgrade_component", "Upgrade Component"},
+            {"filter_type_upgrade_component_tooltip", "Εμφάνιση upgrade components"},
+            {"type_upgrade_component", "Upgrade Component"},
+            {"filter_type_weapon", "Weapon"},
+            {"filter_type_weapon_tooltip", "Εμφάνιση weapon items"},
+            {"filter_karma", "Karma"},
+            {"filter_karma_tooltip", "Εμφάνιση karma currency"},
+            {"filter_laurel", "Laurel"},
+            {"filter_laurel_tooltip", "Εμφάνιση laurel currency"},
+            {"filter_gem", "Gem"},
+            {"filter_gem_tooltip", "Εμφάνιση gem currency"},
+            {"filter_fractal_relic", "Fractal Relic"},
+            {"filter_fractal_relic_tooltip", "Εμφάνιση fractal relic currency"},
+            {"filter_badge_of_honor", "Badge of Honor"},
+            {"filter_badge_of_honor_tooltip", "Εμφάνιση badge of honor currency"},
+            {"filter_guild_commendation", "Guild Commendation"},
+            {"filter_guild_commendation_tooltip", "Εμφάνιση guild commendation currency"},
+            {"filter_transmutation_charge", "Transmutation Charge"},
+            {"filter_transmutation_charge_tooltip", "Εμφάνιση transmutation charge currency"},
+            {"filter_spirit_shards", "Spirit Shards"},
+            {"filter_spirit_shards_tooltip", "Εμφάνιση spirit shards currency"},
+            {"filter_unbound_magic", "Unbound Magic"},
+            {"filter_unbound_magic_tooltip", "Εμφάνιση unbound magic currency"},
+            {"filter_volatile_magic", "Volatile Magic"},
+            {"filter_volatile_magic_tooltip", "Εμφάνιση volatile magic currency"},
+            {"filter_airship_parts", "Airship Parts"},
+            {"filter_airship_parts_tooltip", "Εμφάνιση airship parts currency"},
+            {"filter_geode", "Geode"},
+            {"filter_geode_tooltip", "Εμφάνιση geode currency"},
+            {"filter_ley_line_crystals", "Ley-Line Crystals"},
+            {"filter_ley_line_crystals_tooltip", "Εμφάνιση ley-line crystals currency"},
+            {"filter_trade_contracts", "Trade Contracts"},
+            {"filter_trade_contracts_tooltip", "Εμφάνιση trade contracts currency"},
+            {"filter_elegy_mosaic", "Elegy Mosaic"},
+            {"filter_elegy_mosaic_tooltip", "Εμφάνιση elegy mosaic currency"},
+            {"filter_uncommon_coins", "Uncommon Coins"},
+            {"filter_uncommon_coins_tooltip", "Εμφάνιση uncommon coins currency"},
+            {"filter_astral_acclaim", "Astral Acclaim"},
+            {"filter_astral_acclaim_tooltip", "Εμφάνιση astral acclaim currency"},
+            {"total_tracked_items", "Σύνολο number of tracked items"},
+            {"total_tracked_items_tooltip", "Σύνολο number of tracked items"},
+            {"total_tracked_currencies", "Σύνολο number of tracked currencies"},
+            {"total_tracked_currencies_tooltip", "Σύνολο number of tracked currencies"},
+            {"total_custom_profit", "Σύνολο custom profit"},
+            {"total_custom_profit_tooltip", "Σύνολο custom profit"},
+            {"total_tp_sell_profit", "Σύνολο TP sell profit"},
+            {"total_tp_sell_profit_tooltip", "Σύνολο TP sell profit"},
+            {"total_vendor_sell_profit", "Σύνολο vendor sell profit"},
+            {"total_vendor_sell_profit_tooltip", "Σύνολο vendor sell profit"},
+            {"profit_per_hour_calculation", "Κέρδος per hour calculation"},
+            {"profit_per_hour_calculation_tooltip", "Κέρδος per hour calculation"},
+            {"opportunity_cost_vs_tp_sell", "Opportunity cost vs TP sell"},
+            {"opportunity_cost_vs_tp_sell_tooltip", "Opportunity cost vs TP sell"},
+            {"opportunity_cost_per_hour", "Opportunity cost per hour"},
+            {"opportunity_cost_per_hour_tooltip", "Opportunity cost per hour"},
+            {"first_5_tracked_items", "First 5 tracked items and currencies with details"},
+            {"first_5_tracked_items_tooltip", "First 5 tracked items and currencies with details"},
+            {"first_5_custom_profit", "First 5 items with custom profit set"},
+            {"first_5_custom_profit_tooltip", "First 5 items with custom profit set"},
+            {"first_5_ignored_items", "First 5 ignored items"},
+            {"first_5_ignored_items_tooltip", "First 5 ignored items"},
+            {"debug_settings", "Αποσφαλμάτωση Ρυθμίσεις"},
+            {"enable_debug_tab", "Ενεργοποίηση Αποσφαλμάτωση Καρτέλα"},
+            {"enable_debug_tab_tooltip", "Εμφάνισηs the debug tab with additional information"},
+            {"gold_format", "Gold: %lld"},
+            {"count_format", "Πλήθος: %lld"},
+            {"unfavorite_item", "Απάντηση σε αγαπημένα"},
+            {"unfavorite_selected", "Απάντηση σε επιλεγμένα αγαπημένα"},
+            {"no_favorites_yet", "Δεν υπάρχουν ακόμη αγαπημένα. Κάντε δεξί κλικ σε ένα αντικείμενο για να το προσθέσετε."},
+            {"toggle_favorite_tooltip", "Εναλλαγή αγαπημένων"},
+            {"toggle_ignore_tooltip", "Toggle ignore"},
+            {"filter_account_bound", "Λογαριασμός-bound"},
+            {"filter_account_bound_tooltip", "Εμφάνιση account-bound items"},
+            {"filter_not_account_bound", "Όχιt Λογαριασμός-bound"},
+            {"filter_not_account_bound_tooltip", "Εμφάνιση non-account-bound items"},
+            {"filter_nosell", "ΌχιSell"},
+            {"filter_nosell_tooltip", "Εμφάνιση ΌχιSell items"},
+            {"filter_not_nosell", "Όχιt ΌχιSell"},
+            {"filter_not_nosell_tooltip", "Εμφάνιση sellable items"},
+            {"filter_ignored", "Ignored"},
+            {"filter_ignored_tooltip", "Εμφάνιση ignored items"},
+            {"filter_not_ignored", "Όχιt Ignored"},
+            {"filter_not_ignored_tooltip", "Εμφάνιση non-ignored items"},
+            {"api_key_invalid_format", "(Invalid Format: 9 Blocks required)"},
+            {"export_logs", "Εξαγωγή Logs"},
+            {"magic_find_abbreviation", "MF: %d%%"},
+            {"filter_pristine_fractal_relics", "Pristine Fractal Relics"},
+            {"filter_pristine_fractal_relics_tooltip", "Εμφάνιση pristine fractal relics currency"},
+            {"filter_unstable_fractal_essence", "Unstable Fractal Essence"},
+            {"filter_unstable_fractal_essence_tooltip", "Εμφάνιση unstable fractal essence currency"},
+            {"filter_magnetite_shards", "Magnetite Shards"},
+            {"filter_magnetite_shards_tooltip", "Εμφάνιση magnetite shards currency"},
+            {"filter_gaeting_crystals", "Gaeting Crystals"},
+            {"filter_gaeting_crystals_tooltip", "Εμφάνιση gaeting crystals currency"},
+            {"filter_prophet_shards", "Prophet Shards"},
+            {"filter_prophet_shards_tooltip", "Εμφάνιση prophet shards currency"},
+            {"filter_green_prophet_shards", "Green Prophet Shards"},
+            {"custom_profit_edit_tooltip", "Edit profit value"},
+            {"custom_profit_confirm_tooltip", "Save changes"},
+            {"custom_profit_remove_tooltip", "Remove custom profit value for this item"},
+            {"custom_profit_import_tooltip", "Loads custom_profit_import.json from the addon folder"},
+            {"cancel_tooltip", "Cancel action"},
+            {"export_json_tooltip", "Export to JSON format"},
+            {"export_csv_tooltip", "Export to CSV format"},
+            {"import_json_tooltip", "Import from JSON format"},
+            {"import_csv_tooltip", "Import from CSV format"},
+            {"import_ignored_json_tooltip", "Import ignored items from JSON"},
+            {"import_items_json_tooltip", "Import items from JSON"},
+            {"import_currencies_json_tooltip", "Import currencies from JSON"},
+            {"import_favorites_json_tooltip", "Import favorites from JSON"},
+            {"toggle_favorites_tooltip", "Toggle favorites section"},
+            {"toggle_magnetite_tooltip", "Toggle magnetite section"},
+            {"open_folder_tooltip", "Open folder in Explorer"},
+            {"close_button_tooltip", "Close this window"},
+            {"clear_all_custom_profits_tooltip", "Clear all custom profit values"},
+            {"clear_all_ignored_tooltip", "Clear all ignored items"},
+            {"load_save_tooltip", "Load or save settings"},
+            {"mass_actions_tooltip", "Mass actions for items"},
+            {"group_by_rarity_tooltip", "Group items by their rarity"},
+            {"clear_search_tooltip", "Εκκαθάρισηs the current search"},
+            {"filter_green_prophet_shards_tooltip", "Εμφάνιση green prophet shards currency"},
+            {"filter_wvw_skirmish_tickets", "WvW Skirmish Tickets"},
+            {"filter_wvw_skirmish_tickets_tooltip", "Εμφάνιση WvW skirmish tickets currency"},
+            {"filter_proofs_of_heroics", "Proofs of Heroics"},
+            {"filter_proofs_of_heroics_tooltip", "Εμφάνιση proofs of heroics currency"},
+            {"filter_pvp_league_tickets", "PvP League Tickets"},
+            {"filter_pvp_league_tickets_tooltip", "Εμφάνιση PvP league tickets currency"},
+            {"filter_ascended_shards_of_glory", "Ascended Shards of Glory"},
+            {"filter_ascended_shards_of_glory_tooltip", "Εμφάνιση ascended shards of glory currency"},
+            {"filter_tyrian_defense_seal", "Tyrian Defense Seal"},
+            {"filter_tyrian_defense_seal_tooltip", "Εμφάνιση tyrian defense seal currency"},
+            {"filter_testimony_of_desert_heroics", "Δοκιμήimony of Desert Heroics"},
+            {"filter_testimony_of_desert_heroics_tooltip", "Εμφάνιση testimony of desert heroics currency"},
+            {"filter_testimony_of_jade_heroics", "Δοκιμήimony of Jade Heroics"},
+            {"filter_testimony_of_jade_heroics_tooltip", "Εμφάνιση testimony of jade heroics currency"},
+            {"filter_testimony_of_castoran_heroics", "Δοκιμήimony of Castoran Heroics"},
+            {"filter_testimony_of_castoran_heroics_tooltip", "Εμφάνιση testimony of castoran heroics currency"},
+            {"filter_legendary_insight", "Legendary Insight"},
+            {"filter_legendary_insight_tooltip", "Εμφάνιση legendary insight currency"},
+            {"filter_tales_of_dungeon_delving", "Tales of Dungeon Delving"},
+            {"filter_tales_of_dungeon_delving_tooltip", "Εμφάνιση tales of dungeon delving currency"},
+            {"filter_imperial_favor", "Imperial Favor"},
+            {"filter_imperial_favor_tooltip", "Εμφάνιση imperial favor currency"},
+            {"filter_canach_coins", "Canach Coins"},
+            {"filter_canach_coins_tooltip", "Εμφάνιση canach coins currency"},
+            {"filter_ancient_coin", "Ancient Coin"},
+            {"filter_ancient_coin_tooltip", "Εμφάνιση ancient coin currency"},
+            {"filter_unusual_coin", "Unusual Coin"},
+            {"filter_unusual_coin_tooltip", "Εμφάνιση unusual coin currency"},
+            {"filter_jade_sliver", "Jade Sliver"},
+            {"filter_jade_sliver_tooltip", "Εμφάνιση jade sliver currency"},
+            {"filter_static_charge", "Static Charge"},
+            {"filter_static_charge_tooltip", "Εμφάνιση static charge currency"},
+            {"filter_pinch_of_stardust", "Pinch of Stardust"},
+            {"filter_pinch_of_stardust_tooltip", "Εμφάνιση pinch of stardust currency"},
+            {"filter_calcified_gasp", "Calcified Gasp"},
+            {"filter_calcified_gasp_tooltip", "Εμφάνιση calcified gasp currency"},
+            {"filter_ursus_oblige", "Ursus Oblige"},
+            {"filter_ursus_oblige_tooltip", "Εμφάνιση ursus oblige currency"},
+            {"filter_gaeting_crystal_janthir", "Gaeting Crystal (Janthir)"},
+            {"filter_gaeting_crystal_janthir_tooltip", "Εμφάνιση gaeting crystal (janthir) currency"},
+            {"filter_antiquated_ducat", "Antiquated Ducat"},
+            {"filter_antiquated_ducat_tooltip", "Εμφάνιση antiquated ducat currency"},
+            {"filter_aether_rich_sap", "Aether-Rich Sap"},
+            {"filter_aether_rich_sap_tooltip", "Εμφάνιση aether-rich sap currency"},
+            {"reset_all", "Επαναφορά Όλα"},
+            {"reset_all_tooltip", "Επαναφορά all settings to default values"},
+            {"reset_confirm", "Are you sure you want to reset all settings to defaults?"},
+            {"reset_warning", "This action cannot be undone."},
+            {"yes_reset", "Ναι, Επαναφορά"},
+            {"cancel", "Ακύρωση"},
+            {"export", "Export"},
+            {"export_tooltip", "Export farming data to file"},
+            {"export_settings", "Export Settings to File:"},
+            {"import", "Εισαγωγή"},
+            {"import_settings", "Import Settings from File:"},
+            {"save", "Αποθήκευση"},
+            {"save_tooltip", "Αποθήκευση current settings"},
+            {"general_settings", "Γενικά Ρυθμίσεις"},
+            {"account_management", "Λογαριασμός Management"},
+            {"account_prefix", "Λογαριασμός"},
+            {"remove_account", "- Αφαίρεση Λογαριασμός"},
+            {"save_account", "Αποθήκευση Λογαριασμός"},
+            {"reconnect_drf_token", "Reconnect to DRF with the current token"},
+            {"reload_gw2_api_key_tooltip", "Reload GW2 API key for item data fetching"},
+            {"reset_settings", "Αυτόματο Επαναφορά"},
+            {"auto_reset_never", "Never (manual Επαναφορά only)"},
+            {"auto_reset_on_load", "Ενεργό addon load"},
+            {"auto_reset_daily", "Daily reset (00:00 UTC)"},
+            {"auto_reset_weekly", "Weekly (Mon 07:30 UTC)"},
+            {"auto_reset_weekly_na_wvw", "Weekly NA WvW (Sat 02:00 UTC)"},
+            {"auto_reset_weekly_eu_wvw", "Weekly EU WvW (Fri 18:00 UTC)"},
+            {"auto_reset_weekly_map_bonus", "Weekly map bonus (Thu 20:00 UTC)"},
+            {"auto_reset_minutes_unload", "Minutes after last unload"},
+            {"auto_reset_custom_days", "Προσαρμοσμένο (days)"},
+            {"auto_reset_tooltip", "When to automatically reset farming counters"},
+            {"minutes_after_unload_tooltip", "Minutes after addon unload before automatic reset"},
+            {"reset_interval_days", "Επαναφορά interval (days)"},
+            {"reset_interval_days_tooltip", "Προσαρμοσμένο reset interval in days (1-30 days)"},
+            {"top_gradient_color", "Κορυφαίο"},
+            {"top_gradient_color_tooltip", "Κορυφαίο gradient color"},
+            {"bottom_gradient_color", "Bottom"},
+            {"bottom_gradient_color_tooltip", "Bottom gradient color"},
+            {"icon_size", "Εικονίδιο size"},
+            {"icon_size_tooltip", "Μέγεθος of item icons in pixels (16-96)"},
+            {"border_size", "Περίγραμμα Μέγεθος"},
+            {"border_size_tooltip", "Adjust the thickness of rarity borders (1.0 - 10.0)"},
+            {"enable_grid_view_items_tooltip", "Toggle between list and grid view in Αντικείμενα tab"},
+            {"grid_icon_size_items", "Grid Εικονίδιο size (Αντικείμενα)"},
+            {"grid_icon_size_items_tooltip", "Μέγεθος of icons in grid view for Αντικείμενα (16-128)"},
+            {"grid_icon_size_currencies", "Grid Εικονίδιο size (Νομίσματα)"},
+            {"grid_icon_size_currencies_tooltip", "Μέγεθος of icons in grid view for Νομίσματα (16-128)"},
+            {"show_mini_window", "Εμφάνιση mini window"},
+            {"show_mini_window_tooltip", "Εμφάνισηs a small overlay widget with key statistics"},
+            {"mini_window_show_profit", "Εμφάνιση Κέρδος"},
+            {"mini_window_show_profit_tooltip", "Display total profit in mini window"},
+            {"mini_window_show_profit_per_hour", "Εμφάνιση Κέρδος/Hour"},
+            {"mini_window_show_profit_per_hour_tooltip", "Display profit per hour in mini window"},
+            {"mini_window_show_tp_sell", "Εμφάνιση TP Sell (Listings)"},
+            {"mini_window_show_tp_sell_tooltip", "Display TP sell profit (listings) in mini window"},
+            {"mini_window_show_tp_instant", "Εμφάνιση TP Instant (Instant Sell)"},
+            {"mini_window_show_tp_instant_tooltip", "Display TP instant sell profit in mini window"},
+            {"mini_window_show_total_items", "Εμφάνιση Σύνολο Αντικείμενα"},
+            {"mini_window_show_total_items_tooltip", "Display total item count in mini window"},
+            {"mini_window_show_session_duration", "Εμφάνιση Συνεδρία Διάρκεια"},
+            {"mini_window_show_session_duration_tooltip", "Display session duration in mini window"},
+            {"mini_window_click_through", "Παράθυρο click through"},
+            {"mini_window_click_through_tooltip", "Όλαows clicking through the mini window to the game"},
+            {"main_window_label", "Main Window:"},
+            {"main_window_click_through", "Click through"},
+            {"main_window_click_through_tooltip", "Όλαows clicking through the main window to the game"},
+            {"settings_profiles", "Ρυθμίσεις Profiles"},
+            {"default_no_profile", "Προεπιλογή (Όχι Profile)"},
+            {"select_profile_tooltip", "Επιλογή a profile to apply its settings"},
+            {"create", "Create"},
+            {"create_tooltip", "Create a new profile with current settings"},
+            {"update_profile", "Ενημέρωση Profile"},
+            {"update_profile_tooltip", "Ενημέρωση current profile with current settings"},
+            {"delete_profile", "Διαγραφή Profile"},
+            {"delete_profile_tooltip", "Διαγραφή current profile"},
+            {"automatic_backups", "Αυτόματοmatic Αντίγραφο ασφαλείαςs"},
+            {"enable_automatic_backups", "Ενεργοποίηση automatic backups"},
+            {"enable_automatic_backups_tooltip", "Αυτόματοmatically create backups before changes"},
+            {"backup_frequency", "Αντίγραφο ασφαλείας frequency"},
+            {"backup_frequency_tooltip", "How often to create automatic backups"},
+            {"backup_manual_only", "Χειροκίνητο only"},
+            {"backup_daily", "Daily"},
+            {"backup_weekly", "Weekly"},
+            {"max_backup_count", "Max backup count"},
+            {"max_backup_count_tooltip", "Maximum number of backups to keep (1-20)"},
+            {"notification_settings", "Ειδοποίηση Ρυθμίσεις"},
+            {"enable_notifications", "Ενεργοποίηση notifications"},
+            {"enable_notifications_tooltip", "Ενεργοποίηση in-game notifications"},
+            {"profit_goal", "Profit Goal:"},
+            {"notify_profit_goal", "Όχιtify when profit goal reached"},
+            {"notify_profit_goal_tooltip", "Όχιtify when you reach your profit goal"},
+            {"profit_goal_gold", "Κέρδος goal (gold)"},
+            {"profit_goal_gold_tooltip", "Κέρδος goal in gold coins (1-1000)"},
+            {"reset_warning_label", "Reset Warning:"},
+            {"notify_reset_warning", "Όχιtify before reset"},
+            {"notify_reset_warning_tooltip", "Όχιtify before automatic reset occurs"},
+            {"warning_minutes", "Προειδοποίηση minutes"},
+            {"warning_minutes_tooltip", "Minutes before reset to show warning (1-60)"},
+            {"session_complete", "Session Complete:"},
+            {"notify_session_complete", "Όχιtify after session duration"},
+            {"notify_session_complete_tooltip", "Όχιtify after farming for a certain duration"},
+            {"session_hours", "Συνεδρία hours"},
+            {"session_hours_tooltip", "Hours of farming before notification (1-24)"},
+            {"search_currencies_hint", "Search currencies..."},
+            {"clear_search", "Εκκαθάριση"},
+            {"clear_search_tooltip", "Εκκαθάρισηs the current search"},
+            {"currency_group_by_category_tooltip", "Ομαδοποίηση currencies by category with collapsible sections or tabs"},
+            {"currency_show_as_tabs_tooltip", "Εμφάνιση category groups as tabs instead of collapsible sections"},
+            {"currency_table_favorite_tooltip", "Προσθήκη/remove favorite. Favorites appear in the Favorites tab. Tip: Right-click the icon/name for more actions."},
+            {"currency_table_ignore_tooltip", "Προσθήκη/remove ignored. Ignored currencies appear in the Ignored tab. Tip: Right-click the icon/name for more actions."},
+            {"time_ago_seconds", "%llds ago"},
+            {"search_favorite_items_hint", "Αναζήτηση favorite items..."},
+            {"search_favorite_currencies_hint", "Αναζήτηση favorite currencies..."},
+            {"clear_search_favorites", "Εκκαθάριση"},
+            {"filter_min_quantity_tooltip", "Minimum quantity filter (0 = disabled)"},
+            {"filter_max_quantity_tooltip", "Maximum quantity filter (0 = disabled)"},
+            {"sell_method_filters_label", "Sell Method Filters:"},
+            {"notification_general", "Γενικά Ρυθμίσεις"},
+            {"notification_item_alerts", "Item Alerts"},
+            {"notification_session_alerts", "Progress & Χρόνος"},
+            {"trigger_drops", "Item Drops"},
+            {"trigger_profit_goal", "Κέρδος Goal"},
+            {"trigger_time_reset", "Χρόνος & Επαναφορά"},
+            {"profit_goal_reached_title", "Κέρδος Goal Reached"},
+            {"profit_goal_reached_msg", "You have reached your profit goal of %d gold!"},
+            {"session_complete_title", "Συνεδρία Complete"},
+            {"session_complete_msg", "You have been farming for %d hours!"},
+            {"profit_goal_amount", "Goal Amount (Gold)"},
+            {"reset_warning_title", "Επαναφορά Προειδοποίηση"},
+            {"reset_warning_msg", "The tracker will reset in %d minutes!"},
             {"last_reset_label", "Reset"},
             {"last_reset_tooltip", "Time since last reset"},
-            {"custom_profit_edit_tooltip",    "Edit profit value"},
+            {"custom_profit_edit_tooltip", "Edit profit value"},
             {"custom_profit_confirm_tooltip", "Save changes"},
-            {"accent_color", "Accent Χρώμα (Buttons, Καρτέλαs, UI)"}
-            {"accent_color_tooltip", "Accent color for buttons, tabs, and UI elements"}
-            {"account_management", "Λογαριασμός Management"}
-            {"account_prefix", "Λογαριασμός"}
-            {"actions", "Actions"}
-            {"add_account", "+ Προσθήκη Λογαριασμός"}
-            {"api_key_invalid_format", "(Invalid Format: 9 Blocks required)"}
-            {"auto_reset_custom_days", "Προσαρμοσμένο (days)"}
-            {"auto_reset_daily", "Daily reset (00:00 UTC)"}
-            {"auto_reset_done_msg", "The tracker has been reset."}
-            {"auto_reset_done_title", "Επαναφορά Complete"}
-            {"auto_reset_minutes_unload", "Minutes after last unload"}
-            {"auto_reset_never", "Never (manual Επαναφορά only)"}
-            {"auto_reset_on_load", "Ενεργό addon load"}
-            {"auto_reset_tooltip", "When to automatically reset farming counters"}
-            {"auto_reset_weekly", "Weekly (Mon 07:30 UTC)"}
-            {"auto_reset_weekly_eu_wvw", "Weekly EU WvW (Fri 18:00 UTC)"}
-            {"auto_reset_weekly_map_bonus", "Weekly map bonus (Thu 20:00 UTC)"}
-            {"auto_reset_weekly_na_wvw", "Weekly NA WvW (Sat 02:00 UTC)"}
-            {"automatic_backups", "Αυτόματοmatic Αντίγραφο ασφαλείαςs"}
-            {"backup", "Αντίγραφο ασφαλείας"}
-            {"backup_daily", "Daily"}
-            {"backup_frequency", "Αντίγραφο ασφαλείας frequency"}
-            {"backup_frequency_tooltip", "How often to create automatic backups"}
-            {"backup_manual_only", "Χειροκίνητο only"}
-            {"backup_weekly", "Weekly"}
-            {"best_drop", "Καλύτερο Drop"}
-            {"border_size", "Περίγραμμα Μέγεθος"}
-            {"border_size_tooltip", "Adjust the thickness of rarity borders (1.0 - 10.0)"}
-            {"bottom_gradient_color", "Bottom"}
-            {"bottom_gradient_color_tooltip", "Bottom gradient color"}
-            {"browse_for_file", "Browse for file..."}
-            {"cancel", "Ακύρωση"}
-            {"clear_all_custom_profits_warning", "Όλα custom profit values will be deleted. This action cannot be undone."}
-            {"clear_compare_selection", "Εκκαθάριση selection"}
-            {"clear_history", "Εκκαθάριση Ιστορικό"}
-            {"clear_history_confirm", "Εκκαθάριση all session history?"}
-            {"clear_history_tooltip", "Διαγραφή all saved session history"}
-            {"clear_history_warning", "This action cannot be undone!"}
-            {"clear_search", "Εκκαθάριση"}
-            {"clear_search_favorites", "Εκκαθάριση"}
-            {"clear_search_tooltip", "Εκκαθάρισηs the current search"}
-            {"column_count", "Πλήθος"}
-            {"column_currency", "Currency"}
-            {"column_favorite", "Favorite"}
-            {"column_icon", "Εικονίδιο"}
-            {"column_ignore", "Ignore"}
-            {"column_item", "Item"}
-            {"column_label", "Ετικέτα"}
-            {"column_name", "Name"}
-            {"column_profit", "Κέρδος"}
-            {"column_value", "Τιμή"}
-            {"comparison_previous_period", "Comparison with previous period:"}
-            {"count_format", "Πλήθος: %lld"}
-            {"create", "Create"}
-            {"create_new_profile_tooltip", "Create a new profile with current settings"}
-            {"create_tooltip", "Create a new profile with current settings"}
-            {"currencies_header", "Νομίσματα"}
-            {"currency_cat_common", "Common"}
-            {"currency_cat_fractal", "Fractals"}
-            {"currency_cat_janthir", "Janthir Wilds"}
-            {"currency_cat_map", "Map Νομίσματα"}
-            {"currency_cat_other", "Other"}
-            {"currency_cat_pvp", "PvP"}
-            {"currency_cat_raid_strike", "Raids & Strikes"}
-            {"currency_cat_wvw", "WvW"}
-            {"currency_group_by_category", "Ομαδοποίηση by category"}
-            {"currency_group_by_category_tooltip", "Ομαδοποίηση currencies by category with collapsible sections or tabs"}
-            {"currency_show_as_tabs", "Εμφάνιση as tabs"}
-            {"currency_show_as_tabs_tooltip", "Εμφάνιση category groups as tabs instead of collapsible sections"}
-            {"currency_table_favorite_tooltip", "Προσθήκη/remove favorite. Favorites appear in the Favorites tab. Tip: Right-click the icon/name for more actions."}
-            {"currency_table_ignore_tooltip", "Προσθήκη/remove ignored. Ignored currencies appear in the Ignored tab. Tip: Right-click the icon/name for more actions."}
-            {"date", "Ημερομηνία"}
-            {"debug_settings", "Αποσφαλμάτωση Ρυθμίσεις"}
-            {"default_no_profile", "Προεπιλογή (Όχι Profile)"}
-            {"delete_profile", "Διαγραφή Profile"}
-            {"delete_profile_tooltip", "Διαγραφή current profile"}
-            {"details", "Details"}
-            {"drops", "Drops"}
-            {"duration", "Διάρκεια"}
-            {"enable_automatic_backups", "Ενεργοποίηση automatic backups"}
-            {"enable_automatic_backups_tooltip", "Αυτόματοmatically create backups before changes"}
-            {"enable_best_drop_highlight", "Highlight Καλύτερο Drop"}
-            {"enable_best_drop_highlight_tooltip", "Highlight the most valuable drop with a golden border in the Αντικείμενα tab"}
-            {"enable_best_drop_in_mini_window", "Εμφάνιση Καλύτερο Drop in Mini Παράθυρο"}
-            {"enable_best_drop_in_mini_window_tooltip", "Εμφάνιση the most valuable drop in the mini window overlay"}
-            {"enable_debug_tab", "Ενεργοποίηση Αποσφαλμάτωση Καρτέλα"}
-            {"enable_debug_tab_tooltip", "Εμφάνισηs the debug tab with additional information"}
-            {"enable_favorite_row_color", "Ενεργοποίηση favorite row color"}
-            {"enable_favorite_row_color_tooltip", "Highlights favorite items/currencies with custom row background color"}
-            {"enable_favorite_text_color", "Ενεργοποίηση favorite text color"}
-            {"enable_favorite_text_color_tooltip", "Highlights favorite items/currencies with custom text color"}
-            {"enable_favorites", "Ενεργοποίηση Favorites"}
-            {"enable_favorites_tab", "Ενεργοποίηση Favorites Καρτέλα"}
-            {"enable_favorites_tab_tooltip", "Εμφάνισηs a separate favorites tab"}
-            {"enable_grid_view_currencies", "Ενεργοποίηση Grid View (Νομίσματα)"}
-            {"enable_grid_view_currencies_tooltip", "Toggle between list and grid view in Νομίσματα tab"}
-            {"enable_grid_view_items", "Ενεργοποίηση Grid View (Αντικείμενα)"}
-            {"enable_grid_view_items_tooltip", "Toggle between list and grid view in Αντικείμενα tab"}
-            {"enable_icon_cache", "Ενεργοποίηση Εικονίδιο Cache"}
-            {"enable_icon_cache_tooltip", "Cache item icons on disk to speed up loading after the first session"}
-            {"enable_notifications", "Ενεργοποίηση notifications"}
-            {"enable_notifications_tooltip", "Ενεργοποίηση in-game notifications"}
-            {"enable_session_history", "Ενεργοποίηση Συνεδρία Ιστορικό"}
-            {"enable_session_history_tooltip", "Αποθήκευση farming session history for later viewing"}
-            {"enable_session_timeline", "Ενεργοποίηση Συνεδρία Χρονολόγιο"}
-            {"enable_session_timeline_tooltip", "Αποθήκευση detailed drop timeline with timestamps for session details"}
-            {"export_history", "Εξαγωγή Ιστορικό"}
-            {"export_history_tooltip", "Εξαγωγή session history to a JSON file"}
-            {"export_logs", "Εξαγωγή Logs"}
-            {"favorite_items_header", "Favorite Αντικείμενα"}
-            {"favorites_first", "Favorites First"}
-            {"favorites_first_tooltip", "Εμφάνισηs favorites first in item/currency lists"}
-            {"favorites_settings", "Favorites Ρυθμίσεις"}
-            {"filter_account_bound", "Λογαριασμός-bound"}
-            {"filter_account_bound_tooltip", "Εμφάνιση account-bound items"}
-            {"filter_aether_rich_sap", "Aether-Rich Sap"}
-            {"filter_aether_rich_sap_tooltip", "Εμφάνιση aether-rich sap currency"}
-            {"filter_airship_parts", "Airship Parts"}
-            {"filter_airship_parts_tooltip", "Εμφάνιση airship parts currency"}
-            {"filter_ancient_coin", "Ancient Coin"}
-            {"filter_ancient_coin_tooltip", "Εμφάνιση ancient coin currency"}
-            {"filter_antiquated_ducat", "Antiquated Ducat"}
-            {"filter_antiquated_ducat_tooltip", "Εμφάνιση antiquated ducat currency"}
-            {"filter_ascended_shards_of_glory", "Ascended Shards of Glory"}
-            {"filter_ascended_shards_of_glory_tooltip", "Εμφάνιση ascended shards of glory currency"}
-            {"filter_astral_acclaim", "Astral Acclaim"}
-            {"filter_astral_acclaim_tooltip", "Εμφάνιση astral acclaim currency"}
-            {"filter_badge_of_honor", "Badge of Honor"}
-            {"filter_badge_of_honor_tooltip", "Εμφάνιση badge of honor currency"}
-            {"filter_calcified_gasp", "Calcified Gasp"}
-            {"filter_calcified_gasp_tooltip", "Εμφάνιση calcified gasp currency"}
-            {"filter_canach_coins", "Canach Coins"}
-            {"filter_canach_coins_tooltip", "Εμφάνιση canach coins currency"}
-            {"filter_custom_profit", "Has custom profit"}
-            {"filter_custom_profit_tooltip", "Εμφάνιση items with custom profit set"}
-            {"filter_elegy_mosaic", "Elegy Mosaic"}
-            {"filter_elegy_mosaic_tooltip", "Εμφάνιση elegy mosaic currency"}
-            {"filter_favorite", "Favorite"}
-            {"filter_favorite_tooltip", "Εμφάνιση favorite items (outside Favorites tab)"}
-            {"filter_fractal_relic", "Fractal Relic"}
-            {"filter_fractal_relic_tooltip", "Εμφάνιση fractal relic currency"}
-            {"filter_gaeting_crystal_janthir", "Gaeting Crystal (Janthir)"}
-            {"filter_gaeting_crystal_janthir_tooltip", "Εμφάνιση gaeting crystal (janthir) currency"}
-            {"filter_gaeting_crystals", "Gaeting Crystals"}
-            {"filter_gaeting_crystals_tooltip", "Εμφάνιση gaeting crystals currency"}
-            {"filter_gem", "Gem"}
-            {"filter_gem_tooltip", "Εμφάνιση gem currency"}
-            {"filter_geode", "Geode"}
-            {"filter_geode_tooltip", "Εμφάνιση geode currency"}
-            {"filter_green_prophet_shards", "Green Prophet Shards"}
-            {"filter_green_prophet_shards_tooltip", "Εμφάνιση green prophet shards currency"}
-            {"filter_guild_commendation", "Guild Commendation"}
-            {"filter_guild_commendation_tooltip", "Εμφάνιση guild commendation currency"}
-            {"filter_ignored", "Ignored"}
-            {"filter_ignored_tooltip", "Εμφάνιση ignored items"}
-            {"filter_imperial_favor", "Imperial Favor"}
-            {"filter_imperial_favor_tooltip", "Εμφάνιση imperial favor currency"}
-            {"filter_items", "Φίλτρο Αντικείμενα"}
-            {"filter_jade_sliver", "Jade Sliver"}
-            {"filter_jade_sliver_tooltip", "Εμφάνιση jade sliver currency"}
-            {"filter_karma_tooltip", "Εμφάνιση karma currency"}
-            {"filter_known_by_api", "Known by API"}
-            {"filter_known_by_api_tooltip", "Εμφάνιση items known by GW2 API"}
-            {"filter_laurel", "Laurel"}
-            {"filter_laurel_tooltip", "Εμφάνιση laurel currency"}
-            {"filter_legendary_insight", "Legendary Insight"}
-            {"filter_legendary_insight_tooltip", "Εμφάνιση legendary insight currency"}
-            {"filter_ley_line_crystals", "Ley-Line Crystals"}
-            {"filter_ley_line_crystals_tooltip", "Εμφάνιση ley-line crystals currency"}
-            {"filter_magnetite_shards", "Magnetite Shards"}
-            {"filter_magnetite_shards_tooltip", "Εμφάνιση magnetite shards currency"}
-            {"filter_max_price_tooltip", "Maximum price filter (0 = disabled)"}
-            {"filter_max_quantity_tooltip", "Maximum quantity filter (0 = disabled)"}
-            {"filter_min_price_tooltip", "Minimum price filter (0 = disabled)"}
-            {"filter_min_quantity_tooltip", "Minimum quantity filter (0 = disabled)"}
-            {"filter_nosell", "ΌχιSell"}
-            {"filter_nosell_tooltip", "Εμφάνιση ΌχιSell items"}
-            {"filter_not_account_bound", "Όχιt Λογαριασμός-bound"}
-            {"filter_not_account_bound_tooltip", "Εμφάνιση non-account-bound items"}
-            {"filter_not_favorite", "Όχιt Favorite"}
-            {"filter_not_favorite_tooltip", "Εμφάνιση items that are not marked as favorite"}
-            {"filter_not_ignored", "Όχιt Ignored"}
-            {"filter_not_ignored_tooltip", "Εμφάνιση non-ignored items"}
-            {"filter_not_nosell", "Όχιt ΌχιSell"}
-            {"filter_not_nosell_tooltip", "Εμφάνιση sellable items"}
-            {"filter_pinch_of_stardust", "Pinch of Stardust"}
-            {"filter_pinch_of_stardust_tooltip", "Εμφάνιση pinch of stardust currency"}
-            {"filter_pristine_fractal_relics", "Pristine Fractal Relics"}
-            {"filter_pristine_fractal_relics_tooltip", "Εμφάνιση pristine fractal relics currency"}
-            {"filter_proofs_of_heroics", "Proofs of Heroics"}
-            {"filter_proofs_of_heroics_tooltip", "Εμφάνιση proofs of heroics currency"}
-            {"filter_prophet_shards", "Prophet Shards"}
-            {"filter_prophet_shards_tooltip", "Εμφάνιση prophet shards currency"}
-            {"filter_pvp_league_tickets", "PvP League Tickets"}
-            {"filter_pvp_league_tickets_tooltip", "Εμφάνιση PvP league tickets currency"}
-            {"filter_rarity", "Φίλτρο Rarity"}
-            {"filter_research_notes", "Research Όχιtes"}
-            {"filter_research_notes_tooltip", "Εμφάνιση research notes currency"}
-            {"filter_sellable_on_tp", "Sellable on TP"}
-            {"filter_sellable_on_tp_tooltip", "Εμφάνιση items sellable on Trading Post"}
-            {"filter_sellable_to_vendor", "Sellable to vendor"}
-            {"filter_sellable_to_vendor_tooltip", "Εμφάνιση items sellable to vendor"}
-            {"filter_spirit_shards", "Spirit Shards"}
-            {"filter_spirit_shards_tooltip", "Εμφάνιση spirit shards currency"}
-            {"filter_static_charge", "Static Charge"}
-            {"filter_static_charge_tooltip", "Εμφάνιση static charge currency"}
-            {"filter_tales_of_dungeon_delving", "Tales of Dungeon Delving"}
-            {"filter_tales_of_dungeon_delving_tooltip", "Εμφάνιση tales of dungeon delving currency"}
-            {"filter_testimony_of_castoran_heroics", "Δοκιμήimony of Castoran Heroics"}
-            {"filter_testimony_of_castoran_heroics_tooltip", "Εμφάνιση testimony of castoran heroics currency"}
-            {"filter_testimony_of_desert_heroics", "Δοκιμήimony of Desert Heroics"}
-            {"filter_testimony_of_desert_heroics_tooltip", "Εμφάνιση testimony of desert heroics currency"}
-            {"filter_testimony_of_jade_heroics", "Δοκιμήimony of Jade Heroics"}
-            {"filter_testimony_of_jade_heroics_tooltip", "Εμφάνιση testimony of jade heroics currency"}
-            {"filter_trade_contracts", "Trade Contracts"}
-            {"filter_trade_contracts_tooltip", "Εμφάνιση trade contracts currency"}
-            {"filter_transmutation_charge", "Transmutation Charge"}
-            {"filter_transmutation_charge_tooltip", "Εμφάνιση transmutation charge currency"}
-            {"filter_type_armor", "Armor"}
-            {"filter_type_armor_tooltip", "Εμφάνιση armor items"}
-            {"filter_type_backpack", "Backpack"}
-            {"filter_type_backpack_tooltip", "Εμφάνιση backpack items"}
-            {"filter_type_bag", "Bag"}
-            {"filter_type_bag_tooltip", "Εμφάνιση bags"}
-            {"filter_type_consumable", "Consumable"}
-            {"filter_type_consumable_tooltip", "Εμφάνιση consumable items"}
-            {"filter_type_container", "Container"}
-            {"filter_type_container_tooltip", "Εμφάνιση containers"}
-            {"filter_type_crafting_material", "Crafting Material"}
-            {"filter_type_crafting_material_tooltip", "Εμφάνιση crafting materials"}
-            {"filter_type_gathering_tool", "Gathering Tool"}
-            {"filter_type_gathering_tool_tooltip", "Εμφάνιση gathering tools"}
-            {"filter_type_gizmo", "Gizmo"}
-            {"filter_type_gizmo_container", "Gizmo Container"}
-            {"filter_type_gizmo_container_tooltip", "Εμφάνιση gizmo container items"}
-            {"filter_type_gizmo_tooltip", "Εμφάνιση gizmo items"}
-            {"filter_type_mini_pet", "Mini Pet"}
-            {"filter_type_mini_pet_tooltip", "Εμφάνιση mini pets"}
-            {"filter_type_tool", "Tool"}
-            {"filter_type_tool_tooltip", "Εμφάνιση tool items"}
-            {"filter_type_trinket", "Trinket"}
-            {"filter_type_trinket_tooltip", "Εμφάνιση trinket items"}
-            {"filter_type_trophy", "Trophy"}
-            {"filter_type_trophy_tooltip", "Εμφάνιση trophy items"}
-            {"filter_type_unlock", "Ξεκλείδωμα"}
-            {"filter_type_unlock_tooltip", "Εμφάνιση unlock items"}
-            {"filter_type_upgrade_component", "Upgrade Component"}
-            {"filter_type_upgrade_component_tooltip", "Εμφάνιση upgrade components"}
-            {"filter_type_weapon", "Weapon"}
-            {"filter_type_weapon_tooltip", "Εμφάνιση weapon items"}
-            {"filter_tyrian_defense_seal", "Tyrian Defense Seal"}
-            {"filter_tyrian_defense_seal_tooltip", "Εμφάνιση tyrian defense seal currency"}
-            {"filter_unbound_magic", "Unbound Magic"}
-            {"filter_unbound_magic_tooltip", "Εμφάνιση unbound magic currency"}
-            {"filter_uncommon_coins", "Uncommon Coins"}
-            {"filter_uncommon_coins_tooltip", "Εμφάνιση uncommon coins currency"}
-            {"filter_unknown_by_api", "Unknown by API"}
-            {"filter_unknown_by_api_tooltip", "Εμφάνιση items not known by GW2 API"}
-            {"filter_unstable_fractal_essence", "Unstable Fractal Essence"}
-            {"filter_unstable_fractal_essence_tooltip", "Εμφάνιση unstable fractal essence currency"}
-            {"filter_unusual_coin", "Unusual Coin"}
-            {"filter_unusual_coin_tooltip", "Εμφάνιση unusual coin currency"}
-            {"filter_ursus_oblige", "Ursus Oblige"}
-            {"filter_ursus_oblige_tooltip", "Εμφάνιση ursus oblige currency"}
-            {"filter_volatile_magic", "Volatile Magic"}
-            {"filter_volatile_magic_tooltip", "Εμφάνιση volatile magic currency"}
-            {"filter_wvw_skirmish_tickets", "WvW Skirmish Tickets"}
-            {"filter_wvw_skirmish_tickets_tooltip", "Εμφάνιση WvW skirmish tickets currency"}
-            {"first_5_custom_profit", "First 5 items with custom profit set"}
-            {"first_5_custom_profit_tooltip", "First 5 items with custom profit set"}
-            {"first_5_ignored_items", "First 5 ignored items"}
-            {"first_5_ignored_items_tooltip", "First 5 ignored items"}
-            {"first_5_tracked_items", "First 5 tracked items and currencies with details"}
-            {"first_5_tracked_items_tooltip", "First 5 tracked items and currencies with details"}
-            {"full_backup", "Full Αντίγραφο ασφαλείας"}
-            {"full_backup_tooltip", "Αντίγραφο ασφαλείας all data (settings, session history, favorites, ignored items, custom profit) to a JSON file"}
-            {"full_restore", "Full Επαναφορά"}
-            {"full_restore_tooltip", "Επαναφορά all data from a backup JSON file"}
-            {"general_settings", "Γενικά Ρυθμίσεις"}
-            {"gold_format", "Gold: %lld"}
-            {"gradient_backgrounds", "Gradient backgrounds"}
-            {"gradient_backgrounds_tooltip", "Ενεργοποίησηs smooth gradient backgrounds for a more modern look"}
-            {"grid_icon_size_currencies", "Grid Εικονίδιο size (Νομίσματα)"}
-            {"grid_icon_size_currencies_tooltip", "Μέγεθος of icons in grid view for Νομίσματα (16-128)"}
-            {"grid_icon_size_items", "Grid Εικονίδιο size (Αντικείμενα)"}
-            {"grid_icon_size_items_tooltip", "Μέγεθος of icons in grid view for Αντικείμενα (16-128)"}
-            {"group_by_rarity", "Ομαδοποίηση by Rarity"}
-            {"group_by_type", "Ομαδοποίηση by Category"}
-            {"icon_cache_max_icons", "Max Cached Εικονίδιοs"}
-            {"icon_cache_max_icons_tooltip", "Maximum number of icons to keep in cache (older icons are deleted when limit is reached)"}
-            {"icon_size", "Εικονίδιο size"}
-            {"icon_size_tooltip", "Μέγεθος of item icons in pixels (16-96)"}
-            {"import", "Εισαγωγή"}
-            {"import_history", "Εισαγωγή Ιστορικό"}
-            {"import_history_tooltip", "Εισαγωγή session history from a JSON file"}
-            {"import_tooltip", "Εισαγωγή settings from a JSON file"}
-            {"infusion_drop_label", "Infusion Drop!"}
-            {"item", "Item"}
-            {"items_header", "Αντικείμενα"}
-            {"magic_find_abbreviation", "MF: %d%%"}
-            {"main_window_click_through", "Click through"}
-            {"main_window_click_through_tooltip", "Όλαows clicking through the main window to the game"}
-            {"main_window_opacity", "Main Παράθυρο Transparency"}
-            {"main_window_opacity_tooltip", "Main window background transparency (0-100%)"}
-            {"main_window_settings", "Main Παράθυρο"}
-            {"map", "Map"}
-            {"mass_actions_clear_ignore", "Εκκαθάριση ignore list"}
-            {"mass_actions_ignore_ascended", "Ignore all Ascended items"}
-            {"mass_actions_ignore_basic", "Ignore all Basic items"}
-            {"mass_actions_ignore_exotic", "Ignore all Exotic items"}
-            {"mass_actions_ignore_fine", "Ignore all Fine items"}
-            {"mass_actions_ignore_junk", "Ignore all Junk items"}
-            {"mass_actions_ignore_legendary", "Ignore all Legendary items"}
-            {"mass_actions_ignore_masterwork", "Ignore all Masterwork items"}
-            {"mass_actions_ignore_rare", "Ignore all Rare items"}
-            {"mass_actions_label", "Mass Actions"}
-            {"max_backup_count", "Max backup count"}
-            {"max_backup_count_tooltip", "Maximum number of backups to keep (1-20)"}
-            {"max_backups", "Max Αντίγραφο ασφαλείαςs"}
-            {"max_backups_tooltip", "Maximum number of backups to keep (1-20)"}
-            {"max_session_history", "Max Συνεδρίαs"}
-            {"max_session_history_tooltip", "Maximum number of sessions to save (1-50). Oldest session is deleted when limit is reached if overwrite is enabled."}
-            {"min_value", "Min Τιμή"}
-            {"mini_window_click_through", "Παράθυρο click through"}
-            {"mini_window_click_through_tooltip", "Όλαows clicking through the mini window to the game"}
-            {"mini_window_hide_title_bar", "Απόκρυψη Mini Παράθυρο Title Bar"}
-            {"mini_window_hide_title_bar_tooltip", "Απόκρυψη the title bar of the mini window"}
-            {"mini_window_locked", "Κλείδωμα Mini Παράθυρο"}
-            {"mini_window_locked_tooltip", "Fix the mini window position and size (no longer movable or resizable)"}
-            {"mini_window_opacity", "Mini Παράθυρο Transparency"}
-            {"mini_window_opacity_tooltip", "Mini window background transparency (0-100%)"}
-            {"mini_window_show_profit", "Εμφάνιση Κέρδος"}
-            {"mini_window_show_profit_per_hour", "Εμφάνιση Κέρδος/Hour"}
-            {"mini_window_show_profit_per_hour_tooltip", "Display profit per hour in mini window"}
-            {"mini_window_show_profit_tooltip", "Display total profit in mini window"}
-            {"mini_window_show_session_duration", "Εμφάνιση Συνεδρία Διάρκεια"}
-            {"mini_window_show_session_duration_tooltip", "Display session duration in mini window"}
-            {"mini_window_show_total_items", "Εμφάνιση Σύνολο Αντικείμενα"}
-            {"mini_window_show_total_items_tooltip", "Display total item count in mini window"}
-            {"mini_window_show_tp_instant", "Εμφάνιση TP Instant (Instant Sell)"}
-            {"mini_window_show_tp_instant_tooltip", "Display TP instant sell profit in mini window"}
-            {"mini_window_show_tp_sell", "Εμφάνιση TP Sell (Listings)"}
-            {"mini_window_show_tp_sell_tooltip", "Display TP sell profit (listings) in mini window"}
-            {"minutes_after_unload_tooltip", "Minutes after addon unload before automatic reset"}
-            {"no_cancel", "Όχι, Ακύρωση"}
-            {"no_items_in_session", "Όχι items in this session"}
-            {"no_sessions_recorded", "Όχι sessions recorded yet."}
-            {"notification_combine_logic", "Combine Φίλτροs (AND)"}
-            {"notification_combine_logic_tooltip", "If enabled, BOTH conditions (Τιμή AND Rarity) must be met. If disabled, ANY one of them is enough."}
-            {"notification_duration", "Display Διάρκεια"}
-            {"notification_duration_tooltip", "How long the notification stays visible (seconds)"}
-            {"notification_general", "Γενικά Ρυθμίσεις"}
-            {"notification_include_agony", "Include Agony Infusions"}
-            {"notification_include_agony_tooltip", "If enabled, Agony Infusions (+1 to +30) will also trigger an alert."}
-            {"notification_include_non_profit", "Include Όχιn-Κέρδος Αντικείμενα"}
-            {"notification_include_non_profit_tooltip", "If enabled, items with no gold value (0c) will also trigger alerts if they meet the rarity requirement."}
-            {"notification_infusion_alert", "Infusion Alert"}
-            {"notification_infusion_alert_tooltip", "Always notify when an Infusion is found (ignores Τιμή/Rarity filters)"}
-            {"notification_item_alerts", "Item Alerts"}
-            {"notification_min_rarity", "Min. Rarity"}
-            {"notification_min_rarity_tooltip", "Trigger notification if item rarity is at least this level"}
-            {"notification_min_value", "Min. Τιμή (Gold)"}
-            {"notification_min_value_tooltip", "Trigger notification if item value is at least this amount"}
-            {"notification_play_sound", "Αναπαραγωγή Ήχος"}
-            {"notification_play_sound_tooltip", "Αναπαραγωγή a sound effect when a notification appears"}
-            {"notification_precursor_alert", "Pre-Cursor Alert"}
-            {"notification_precursor_alert_tooltip", "Always notify when a Pre-Cursor is found (ignores Τιμή/Rarity filters)"}
-            {"notification_session_alerts", "Progress & Χρόνος"}
-            {"notification_settings", "Ειδοποίηση Ρυθμίσεις"}
-            {"notification_setup_hint", "[Drag to reposition notifications]"}
-            {"notification_stacking", "Stack Ειδοποίησηs"}
-            {"notification_stacking_tooltip", "Εμφάνιση multiple notifications at once instead of replacing the old one immediately"}
-            {"notification_triggers", "Ειδοποίηση Triggers"}
-            {"notification_volume", "Master Ένταση"}
-            {"notification_volume_tooltip", "Ένταση for notification sounds"}
-            {"notify_profit_goal", "Όχιtify when profit goal reached"}
-            {"notify_profit_goal_tooltip", "Όχιtify when you reach your profit goal"}
-            {"notify_reset_warning", "Όχιtify before reset"}
-            {"notify_reset_warning_tooltip", "Όχιtify before automatic reset occurs"}
-            {"notify_session_complete", "Όχιtify after session duration"}
-            {"notify_session_complete_tooltip", "Όχιtify after farming for a certain duration"}
-            {"opportunity_cost_per_hour", "Opportunity cost per hour"}
-            {"opportunity_cost_per_hour_tooltip", "Opportunity cost per hour"}
-            {"opportunity_cost_vs_tp_sell", "Opportunity cost vs TP sell"}
-            {"opportunity_cost_vs_tp_sell_tooltip", "Opportunity cost vs TP sell"}
-            {"overwrite_session_history", "Overwrite Συνεδρίαs"}
-            {"overwrite_session_history_tooltip", "If enabled, oldest session is deleted when limit is reached"}
-            {"performance_settings", "Performance Ρυθμίσεις"}
-            {"precursor_drop_label", "Pre-Cursor Drop!"}
-            {"profit_change", "Κέρδος Change"}
-            {"profit_goal_amount", "Goal Amount (Gold)"}
-            {"profit_goal_gold", "Κέρδος goal (gold)"}
-            {"profit_goal_gold_tooltip", "Κέρδος goal in gold coins (1-1000)"}
-            {"profit_goal_reached_msg", "You have reached your profit goal of %d gold!"}
-            {"profit_goal_reached_title", "Κέρδος Goal Reached"}
-            {"profit_per_hour_calculation", "Κέρδος per hour calculation"}
-            {"profit_per_hour_calculation_tooltip", "Κέρδος per hour calculation"}
-            {"quantity", "Quantity"}
-            {"range_filters_tooltip", "Εμφάνιση price and quantity range filters"}
-            {"rare_drop_label", "Rare Drop!"}
-            {"rarity_border_thickness", "Rarity Περίγραμμα Thickness"}
-            {"rarity_border_thickness_tooltip", "Adjust the thickness of rarity borders (1.0 - 10.0)"}
-            {"rarity_name_ascended", "Ascended"}
-            {"rarity_name_basic", "Basic"}
-            {"rarity_name_exotic", "Exotic"}
-            {"rarity_name_fine", "Fine"}
-            {"rarity_name_junk", "Junk"}
-            {"rarity_name_legendary", "Legendary"}
-            {"rarity_name_masterwork", "Masterwork"}
-            {"rarity_name_rare", "Rare"}
-            {"rarity_name_unknown", "Unknown"}
-            {"reconnect_drf_token", "Reconnect to DRF with the current token"}
-            {"reload_drf_token", "Reload DRF Token"}
-            {"reload_gw2_api_key", "Reload GW2 API Key"}
-            {"reload_gw2_api_key_tooltip", "Reload GW2 API key for item data fetching"}
-            {"remove_account", "- Αφαίρεση Λογαριασμός"}
-            {"reset_all", "Επαναφορά Όλα"}
-            {"reset_all_tooltip", "Επαναφορά all settings to default values"}
-            {"reset_interval_days", "Επαναφορά interval (days)"}
-            {"reset_interval_days_tooltip", "Προσαρμοσμένο reset interval in days (1-30 days)"}
-            {"reset_settings", "Αυτόματο Επαναφορά"}
-            {"reset_warning_minutes", "Επαναφορά Προειδοποίηση (Minutes)"}
-            {"reset_warning_minutes_tooltip", "Minutes before reset to show warning (1-60)"}
-            {"reset_warning_msg", "The tracker will reset in %d minutes!"}
-            {"reset_warning_title", "Επαναφορά Προειδοποίηση"}
-            {"restore", "Επαναφορά"}
-            {"row_color", "Row Χρώμα"}
-            {"save", "Αποθήκευση"}
-            {"save_account", "Αποθήκευση Λογαριασμός"}
-            {"save_all_items_confirm", "Ενεργοποίηση session timeline?"}
-            {"save_all_items_warning", "This will significantly increase file size!"}
-            {"save_current_session", "Αποθήκευση Current Συνεδρία"}
-            {"save_current_session_tooltip", "Αποθήκευση the current farming session without resetting"}
-            {"save_tooltip", "Αποθήκευση current settings"}
-            {"search_favorite_currencies_hint", "Αναζήτηση favorite currencies..."}
-            {"search_favorite_items_hint", "Αναζήτηση favorite items..."}
-            {"search_items", "Αναζήτηση Αντικείμενα"}
-            {"search_items_hint", "Αναζήτηση items..."}
-            {"select_profile", "Επιλογή a profile to apply its settings"}
-            {"select_profile_tooltip", "Επιλογή a profile to apply its settings"}
-            {"session_complete_hours", "Συνεδρία Complete (Hours)"}
-            {"session_complete_hours_tooltip", "Hours of farming before notification (1-24)"}
-            {"session_complete_msg", "You have been farming for %d hours!"}
-            {"session_complete_title", "Συνεδρία Complete"}
-            {"session_count", "Συνεδρία Πλήθος"}
-            {"session_details", "Συνεδρία Details"}
-            {"session_history", "Συνεδρία Ιστορικό"}
-            {"session_hours", "Συνεδρία hours"}
-            {"session_hours_tooltip", "Hours of farming before notification (1-24)"}
-            {"session_note", "Όχιte"}
-            {"session_profit_trend", "Κέρδος Trend"}
-            {"session_search_hint", "Αναζήτηση sessions, items, notes..."}
-            {"sessions_selected", "sessions selected"}
-            {"sessions_stored", "Συνεδρίαs Stored"}
-            {"settings_profiles", "Ρυθμίσεις Profiles"}
-            {"show_ignored_items", "Εμφάνιση ignored items"}
-            {"show_ignored_items_tooltip", "Εμφάνιση ignored items/currencies in Αντικείμενα and Νομίσματα tabs (disable to hide). Difference from 'Ignored' filter: This filter controls display in Αντικείμενα/Νομίσματα tabs, the 'Ignored' filter controls display in Φίλτρο tab."}
-            {"show_main_window", "Εμφάνιση main window"}
-            {"show_mini_window", "Εμφάνιση mini window"}
-            {"show_mini_window_tooltip", "Εμφάνισηs a small overlay widget with key statistics"}
-            {"show_notification_setup", "Setup Mode (Positioning)"}
-            {"show_notification_setup_tooltip", "Makes the notification window visible so you can move it"}
-            {"show_rarity_as_tabs", "Εμφάνιση as Καρτέλαs"}
-            {"show_summaries", "Εμφάνιση Summaries"}
-            {"show_summaries_tooltip", "Εμφάνιση daily/weekly/monthly profit summaries"}
-            {"show_type_as_tabs", "Εμφάνιση as Καρτέλαs"}
-            {"showing", "Εμφάνισηing"}
-            {"sort_profit_high", "Ταξινόμηση: Κέρδος high"}
-            {"sort_profit_low", "Ταξινόμηση: Κέρδος low"}
-            {"sort_rarity_high", "Ταξινόμηση: Rarity high to low"}
-            {"sort_rarity_low", "Ταξινόμηση: Rarity low to high"}
-            {"sound_alert", "Alert Ήχος"}
-            {"sound_infusion", "Infusion Ήχος"}
-            {"sound_path_hint", "Path to sound file (empty = default)"}
-            {"sound_precursor", "Pre-Cursor Ήχος"}
-            {"sound_standard", "Standard Ήχος"}
-            {"sound_test", "Δοκιμή"}
-            {"stat_avg_profit_per_hour", "Avg Κέρδος/h"}
-            {"stat_best_session", "Καλύτερο Συνεδρία"}
-            {"stat_total_profit", "Σύνολο Κέρδος"}
-            {"stat_total_time", "Σύνολο Χρόνος"}
-            {"summaries_coming_soon", "Summaries feature coming soon..."}
-            {"summaries_label", "Summaries"}
-            {"summaries_tooltip", "Daily/Weekly/Monthly profit summaries"}
-            {"summary_period", "Period:"}
-            {"summary_this_month", "This Month"}
-            {"summary_this_week", "This Week"}
-            {"summary_today", "Today"}
-            {"tab_session_history", "Συνεδρία Ιστορικό"}
-            {"tab_sessions", "Συνεδρίαs"}
-            {"tab_summaries", "Summaries"}
-            {"test_item_label", "Δοκιμή Item"}
-            {"text_color", "Text Χρώμα"}
-            {"time", "Χρόνος"}
-            {"time_ago_seconds", "%llds ago"}
-            {"timeline_icon_size_currencies", "Χρονολόγιο Εικονίδιο Μέγεθος (Νομίσματα)"}
-            {"timeline_icon_size_currencies_tooltip", "Μέγεθος of currency icons in Χρονολόγιο tab (16-48)"}
-            {"timeline_icon_size_items", "Χρονολόγιο Εικονίδιο Μέγεθος (Αντικείμενα)"}
-            {"timeline_icon_size_items_tooltip", "Μέγεθος of item icons in Χρονολόγιο tab (16-96)"}
-            {"toggle_favorite", "Toggle favorite"}
-            {"toggle_favorite_tooltip", "Toggle favorite"}
-            {"toggle_ignore", "Toggle ignore"}
-            {"toggle_ignore_tooltip", "Toggle ignore"}
-            {"top_currencies_count_header", "Κορυφαίο 5 Νομίσματα (Πλήθος)"}
-            {"top_currencies_count_tooltip", "Κορυφαίο 5 currencies by count"}
-            {"top_drops", "Κορυφαίο Drops"}
-            {"top_gradient_color", "Κορυφαίο"}
-            {"top_gradient_color_tooltip", "Κορυφαίο gradient color"}
-            {"top_items_count_header", "Κορυφαίο 5 Αντικείμενα (Πλήθος)"}
-            {"top_items_profit_header", "Κορυφαίο 5 Αντικείμενα by Κέρδος"}
-            {"total_custom_profit", "Σύνολο custom profit"}
-            {"total_custom_profit_tooltip", "Σύνολο custom profit"}
-            {"total_drops", "Σύνολο Drops"}
-            {"total_duration", "Σύνολο Διάρκεια"}
-            {"total_tp_sell_profit", "Σύνολο TP sell profit"}
-            {"total_tp_sell_profit_tooltip", "Σύνολο TP sell profit"}
-            {"total_tracked_currencies", "Σύνολο number of tracked currencies"}
-            {"total_tracked_currencies_tooltip", "Σύνολο number of tracked currencies"}
-            {"total_tracked_items", "Σύνολο number of tracked items"}
-            {"total_tracked_items_tooltip", "Σύνολο number of tracked items"}
-            {"total_vendor_sell_profit", "Σύνολο vendor sell profit"}
-            {"total_vendor_sell_profit_tooltip", "Σύνολο vendor sell profit"}
-            {"tp_buy_gross_format", "TP Buy (Gross): %s"}
-            {"tp_buy_net_format", "TP Buy (Net): %s"}
-            {"tp_sell_gross_format", "TP Sell (Gross): %s"}
-            {"tp_sell_net_format", "TP Sell (Net): %s"}
-            {"trigger_drops", "Item Drops"}
-            {"trigger_profit_goal", "Κέρδος Goal"}
-            {"trigger_time_reset", "Χρόνος & Επαναφορά"}
-            {"type_backpack", "Backpack"}
-            {"type_gizmo_container", "Gizmo Container"}
-            {"type_tool", "Tool"}
-            {"type_trophy", "Trophy"}
-            {"type_unlock", "Ξεκλείδωμα"}
-            {"type_upgrade_component", "Upgrade Component"}
-            {"unknown_map", "Unknown"}
-            {"update_profile", "Ενημέρωση Profile"}
-            {"update_profile_tooltip", "Ενημέρωση current profile with current settings"}
-            {"value", "Τιμή"}
-            {"vendor_value_format", "Vendor Τιμή: %s"}
-            {"visual_settings", "Visual Ρυθμίσεις"}
-            {"warning_minutes", "Προειδοποίηση minutes"}
-            {"warning_minutes_tooltip", "Minutes before reset to show warning (1-60)"}
-            {"yes_clear", "Ναι, Εκκαθάριση"}
-            {"yes_enable", "Ναι, Ενεργοποίηση"}
-            {"yes_reset", "Ναι, Επαναφορά"},
-
-            // Drops Tab
+            {"disable_complex_visuals", "Disable Complex Visuals on Low Performance"},
+            {"disable_complex_visuals_tooltip", "Disables rarity borders, sparklines and other visual effects to improve performance"},
             {"settings_tab", "Ρυθμίσεις"},
-        
-            // Missing keys from English
-            {"backup_path_default_tooltip", "Default: addon directory"}
-            {"backup_path_label", "Backup folder:"}
-            {"browse_for_folder_tooltip", "Browse for folder"}
-            {"current_or_last_recorded", "Current or last recorded"}
-            {"custom_profit_import_tooltip", "Loads custom_profit_import.json from the addon folder"}
-            {"disable_complex_visuals", "Disable Complex Visuals on Low Performance"}
-            {"disable_complex_visuals_tooltip", "Disables rarity borders, sparklines and other visual effects to improve performance"}
-            {"efficiency_score_desc_short", "instant vs. listing"}
-            {"enable_drops_tab", "Enable Drops Tab"}
-            {"enable_drops_tab_tooltip", "Show the Drops tab"}
+            {"tab_loot_log", "Loot Log"},
+            {"backup_path_default_tooltip", "Default: addon directory"},
+            {"backup_path_label", "Backup folder:"},
+            {"browse_for_folder_tooltip", "Browse for folder"},
+            {"current_or_last_recorded", "Current or last recorded"},
+            {"custom_profit_import_tooltip", "Loads custom_profit_import.json from the addon folder"},
+            {"efficiency_score_desc_short", "instant vs. listing"},
+            {"enable_drops_tab", "Enable Drops Tab"},
+            {"enable_drops_tab_tooltip", "Show the Drops tab"},
             {"entries_label", "entries"},
             {"open_folder_tooltip", "Open folder in Explorer"},
-
-            // Custom Profit Tab
-            {"custom_profit_edit_tooltip",    "Edit profit value"},
-            {"custom_profit_confirm_tooltip", "Save changes"},
-            {"custom_profit_remove_tooltip",  "Remove custom profit"},
-
-            // Common Tooltips
-            {"cancel_tooltip",               "Cancel action"},
-            {"export_json_tooltip",           "Export to JSON format"},
-            {"export_csv_tooltip",            "Export to CSV format"},
-            {"import_json_tooltip",           "Import from JSON format"},
-            {"import_csv_tooltip",            "Import from CSV format"},
-            {"import_ignored_json_tooltip",   "Import ignored items from JSON"},
-            {"import_items_json_tooltip",     "Import items from JSON"},
-            {"import_currencies_json_tooltip","Import currencies from JSON"},
-            {"import_favorites_json_tooltip", "Import favorites from JSON"},
-            {"toggle_favorites_tooltip",      "Toggle favorites section"},
-            {"toggle_magnetite_tooltip",      "Toggle magnetite section"},
-            {"close_button_tooltip",          "Close this window"},
-            {"clear_all_custom_profits_tooltip", "Clear all custom profit entries"},
-            {"clear_all_ignored_tooltip",     "Clear all ignored items"},
-            {"load_save_tooltip",             "Load or save settings"},
-            {"mass_actions_tooltip",          "Mass actions for items"},
-            {"group_by_rarity_tooltip",       "Group items by rarity"},
-            {"clear_search_tooltip",          "Clear search field"}
-};
+            {"magnetite_weekly_progress", "Weekly progress:"},
+            {"magnetite_api_check_cooldown", "API check cooldown (minutes):"},
+            {"magnetite_last_wallet_check", "Last wallet check: %s"},
+            {"magnetite_wallet_not_queried", "Wallet API not yet queried this session."},
+            {"enable_magnetite_tracker", "Enable Magnetite Shard weekly tracker"},
+            {"enable_magnetite_tracker_tooltip", "Tracks Magnetite Shards earned this week via DRF and GW2 wallet API."},
+            {"individual_volume", "Individual volume"},
+            {"earned_this_week", "Earned this week:"},
+            {"remaining", "Remaining:"},
+            {"open_log_folder", "Open log folder"},
+            {"change_button", "Change"},
+            {"filter_by_item_name_or_map", "Filter by item name or map"},
+            {"open_folder_button", "Open Folder"},
+        };
         return translations;
     }
 }

@@ -18,6 +18,9 @@ namespace Gw2Api
 
     bool FetchAccountName(const std::string& token, std::string& accountName, std::string& error);
 
+    // Checks if the token has the required permissions (inventories, progression)
+    bool CheckPermissions(const std::string& token, std::string& error);
+
     // Returns the GW2 API language code for the current UI language (e.g. "de", "en")
     std::string GetLanguageCode();
     struct Gw2ApiLogEntry
@@ -32,4 +35,5 @@ namespace Gw2Api
     void ClearLogs();
     int GetRequestCount();
     void ResetRequestCount();
+    void Shutdown();
 }

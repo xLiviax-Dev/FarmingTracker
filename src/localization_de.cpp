@@ -433,6 +433,14 @@ namespace Localization
             {"language_polish", "Polski"},
             {"language_portuguese", "Português"},
             {"language_russian", "Русский"},
+            {"language_danish", "Dansk"},
+            {"language_greek", "Ελληνικά"},
+            {"language_finnish", "Suomi"},
+            {"language_hungarian", "Magyar"},
+            {"language_dutch", "Nederlands"},
+            {"language_norwegian", "Norsk"},
+            {"language_romanian", "Română"},
+            {"language_swedish", "Svenska"},
 
             // Additional hardcoded strings found in UI
             {"farming_tracker_title", "Farming Tracker"},
@@ -1493,6 +1501,8 @@ namespace Localization
 
             // Loot Log Tab
             {"tab_loot_log", "Loot Log"},
+            {"live_log_tab", "Live Log"},
+            {"tab_live_log", "Live Log"},
 
             // Missing keys from English
             {"backup_path_default_tooltip", "Standard: Addon-Verzeichnis"},
@@ -1504,7 +1514,28 @@ namespace Localization
             {"enable_drops_tab", "Drops-Tab aktivieren"},
             {"enable_drops_tab_tooltip", "Zeigt den Drops-Tab an"},
             {"entries_label", "Einträge"},
-            {"open_folder_tooltip", "Ordner im Explorer öffnen"}
+            {"open_folder_tooltip", "Ordner im Explorer öffnen"},
+
+            // Magnetite Tracker
+            {"magnetite_weekly_progress", "Wöchentlicher Fortschritt:"},
+            {"magnetite_api_check_cooldown", "API-Check-Cooldown (Minuten):"},
+            {"magnetite_last_wallet_check", "Letzte Wallet-Prüfung: %s"},
+            {"magnetite_wallet_not_queried", "Wallet-API wurde diese Sitzung noch nicht abgefragt."},
+            {"enable_magnetite_tracker", "Wöchentlichen Magnetite-Shard-Tracker aktivieren"},
+            {"enable_magnetite_tracker_tooltip", "Verfolgt Magnetite-Shards, die diese Woche über DRF und GW2-Wallet-API verdient wurden."},
+            {"individual_volume", "Individuelle Lautstärke"},
+
+            // Profit Tab
+            {"earned_this_week", "Diese Woche verdient:"},
+            {"remaining", "Verbleibend:"},
+
+            // Loot Log
+            {"open_log_folder", "Log-Ordner öffnen"},
+            {"change_button", "Ändern"},
+            {"filter_by_item_name_or_map", "Nach Item-Name oder Karte filtern"},
+
+            // Filter
+            {"open_folder_button", "Ordner öffnen"}
         };
         return translations;
     }

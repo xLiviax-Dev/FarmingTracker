@@ -103,12 +103,12 @@ struct Settings
     float mainWindowHeight = 600.0f;
 
     // Tab Settings
-    int activeTab = 0; // 0=Drops, 1=Loot Filter, 2=Session History, 3=Custom Profit, 4=Debug, 5=Loot Log, 6=Timeline
+    int activeTab = 0; // 0=Dashboard, 1=Drops, 2=Loot Filter, 3=Session History, 4=Custom Profit, 5=Debug, 6=Loot Log, 7=Timeline
 
     // Main Tab Visibility
     bool enableDashboardTab = true;
-    bool enableDropsTab = false;
-    bool enableSessionHistoryTab = false;
+    bool enableDropsTab = true;
+    bool enableSessionHistoryTab = true;
     bool lockTabOrder = false;
     bool enableTimelineTab = true;
     std::vector<std::string> mainTabOrder = {"dashboard", "timeline", "drops", "loot_filter", "loot_log", "session_history", "custom_profit", "debug"};
