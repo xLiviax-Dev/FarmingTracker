@@ -301,4 +301,17 @@ int GetWeeklyEarned()
     return g_Settings.magnetiteWeeklyEarned;
 }
 
+void SetWeeklyEarned(int amount)
+{
+    std::lock_guard<std::mutex> lock(s_Mutex);
+    {
+        std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
+        g_Settings.magnetiteWeeklyEarned = (std::max)(0, (std::min)(amount, WEEKLY_CAP));
+        // Reset the snapshot as well so API corrections are calculated from the new baseline
+        g_Settings.magnetiteWeeklyEarnedAtLastCheck = g_Settings.magnetiteWeeklyEarned;
+    }
+    SettingsManager::Save();
+    Gw2Api::Log("MagnetiteTracker: manual update — weekly earned set to " + std::to_string(GetWeeklyEarned()), "info");
+}
+
 } // namespace MagnetiteTracker

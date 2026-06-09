@@ -107,4 +107,7 @@ namespace MagnetiteTracker
     // Returns empty string on failure.
     std::string UtcToLocal(const std::string& utcIso);
 
+    // Manually update the weekly earned count.
+    void SetWeeklyEarned(int amount);
+
 } // namespace MagnetiteTracker

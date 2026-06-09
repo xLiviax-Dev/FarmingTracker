@@ -395,6 +395,7 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     j["maxBackupCount"] = s.maxBackupCount;
     j["backupFrequency"] = s.backupFrequency;
     j["autoBackupPath"] = s.autoBackupPath;
+    j["lastBackupTimestamp"] = s.lastBackupTimestamp;
     j["enableNotifications"] = s.enableNotifications;
     j["showNotificationSetup"] = s.showNotificationSetup;
     j["notificationPosX"] = s.notificationPosX;
@@ -725,6 +726,7 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     if (j.contains("maxBackupCount")) s.maxBackupCount = j["maxBackupCount"].get<int>();
     if (j.contains("backupFrequency")) s.backupFrequency = j["backupFrequency"].get<int>();
     if (j.contains("autoBackupPath")) s.autoBackupPath = j["autoBackupPath"].get<std::string>();
+    if (j.contains("lastBackupTimestamp")) s.lastBackupTimestamp = j["lastBackupTimestamp"].get<std::string>();
     if (j.contains("enableNotifications")) s.enableNotifications = j["enableNotifications"].get<bool>();
     if (j.contains("showNotificationSetup")) s.showNotificationSetup = j["showNotificationSetup"].get<bool>();
     if (j.contains("notificationPosX")) s.notificationPosX = j["notificationPosX"].get<float>();

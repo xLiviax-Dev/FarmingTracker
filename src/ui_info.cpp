@@ -396,6 +396,7 @@ void Render()
         "Improved custom profit display for currencies",
         "Improved stability",
         "Added new languages and improved translations (with the help of AI)",
+        "Added a feature in the settings that allows users to manually adjust magnetite shards",
     };
     ImGui::Spacing();
     for (auto& n : notes_v2002)

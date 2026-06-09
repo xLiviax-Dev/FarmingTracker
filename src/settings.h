@@ -429,6 +429,7 @@ struct Settings
     int maxBackupCount = 5; // Maximum number of backups to keep
     int backupFrequency = 1; // Backup frequency (0 = manual only, 1 = daily, 2 = weekly)
     std::string autoBackupPath = ""; // Empty = addon directory
+    std::string lastBackupTimestamp = ""; // ISO-8601 UTC of last automatic backup
 
     // UI Reset Flag (not persisted)
     bool resetTableSettings = false;

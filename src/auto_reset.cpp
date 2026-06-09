@@ -4,6 +4,7 @@
 #include "settings.h"
 #include "item_tracker.h"
 #include "shared.h"
+#include "backup_restore.h"
 #include "ui_notifications.h"
 #include "localization.h"
 #include <mutex>
@@ -265,6 +266,9 @@ void AutoReset::OnAddonUnload()
 
 void AutoReset::Tick()
 {
+    // Run backup check
+    BackupRestore::Tick();
+
     int mode, sessionCompleteHours, resetWarningMinutes;
     bool notifySessionComplete, notifyResetWarning;
     std::string nextResetStr;

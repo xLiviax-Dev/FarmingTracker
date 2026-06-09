@@ -21,6 +21,7 @@
 #include <commdlg.h>
 #include <shlobj.h>
 #include <shellapi.h>
+#include <thread>
 #pragma comment(lib, "comdlg32.lib")
 #pragma comment(lib, "shell32.lib")
 
@@ -421,6 +422,72 @@ static void RenderPage_General()
         EndSection();
     }
 
+    if (BeginSection("magnetite", Localization::GetText("magnetite_tracker"), false, "magnetite"))
+    {
+        if (ImGui::Checkbox(Localization::GetText("enable_magnetite_tracker"), &g_Settings.enableMagnetiteTracker)) SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_magnetite_tracker_tooltip"));
+
+        if (g_Settings.enableMagnetiteTracker)
+        {
+            ImGui::Spacing();
+            LabelText(Localization::GetText("magnetite_weekly_earned"));
+            int earned = MagnetiteTracker::GetWeeklyEarned();
+            ImGui::SetNextItemWidth(120.0f);
+            if (ImGui::InputInt("##MagnetiteManual", &earned))
+            {
+                MagnetiteTracker::SetWeeklyEarned(earned);
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("magnetite_manual_edit_tooltip"));
+            ImGui::SameLine();
+            ImGui::Text("/ %d", MagnetiteTracker::WEEKLY_CAP);
+
+            ImGui::Spacing();
+            ImGui::Text("%s", Localization::GetText("magnetite_api_check_cooldown")); ImGui::SameLine();
+            ImGui::SetNextItemWidth(85.0f);
+            if (ImGui::InputInt("##MagCooldown", &g_Settings.magnetiteApiCheckCooldownMin, 1, 5))
+            { g_Settings.magnetiteApiCheckCooldownMin = std::max(1, std::min(60, g_Settings.magnetiteApiCheckCooldownMin)); SettingsManager::Save(); }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Minimum time between wallet API checks. Default: 10 min.");
+            
+            ImGui::Spacing();
+            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.55f,0.10f,0.10f,0.40f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.70f,0.13f,0.13f,0.70f));
+            ImGui::PushStyleColor(ImGuiCol_Text,          ImVec4(1.00f,1.00f,1.00f,1.00f));
+            if (ImGui::Button("Reset weekly counter##MagReset")) ImGui::OpenPopup("MagResetConfirm");
+            ImGui::PopStyleColor(3);
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Manually resets the weekly counter to 0.");
+            if (ImGui::BeginPopup("MagResetConfirm")) {
+                ImGui::TextUnformatted(Localization::GetText("reset_confirm"));
+                ImGui::TextUnformatted("This will reset the weekly Magnetite Shard counter to 0.");
+                ImGui::Spacing();
+                if (ImGui::Button(Localization::GetText("yes_reset"))) { MagnetiteTracker::OnWeeklyReset(); ImGui::CloseCurrentPopup(); }
+                ImGui::SameLine();
+                if (ImGui::Button(Localization::GetText("no_cancel"))) ImGui::CloseCurrentPopup();
+                ImGui::EndPopup();
+            }
+            ImGui::Spacing();
+            std::string lastCheck;
+            { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); lastCheck = g_Settings.magnetiteLastApiCheckUtc; }
+            if (!lastCheck.empty()) ImGui::Text(Localization::GetText("magnetite_last_wallet_check"), MagnetiteTracker::UtcToLocal(lastCheck).c_str());
+            else ImGui::TextDisabled("%s", Localization::GetText("magnetite_wallet_not_queried"));
+        }
+        EndSection();
+    }
+
+    if (BeginSection("seshist", Localization::GetText("session_history"), false, "session_history"))
+    {
+        if (ImGui::Checkbox(Localization::GetText("enable_session_history"), &g_Settings.enableSessionHistory))
+        { SettingsManager::Save(); SessionHistory::SetEnabled(g_Settings.enableSessionHistory); }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_session_history_tooltip"));
+        if (ImGui::Checkbox(Localization::GetText("overwrite_session_history"), &g_Settings.overwriteSessionHistory))
+        { SettingsManager::Save(); SessionHistory::SetOverwrite(g_Settings.overwriteSessionHistory); }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("overwrite_session_history_tooltip"));
+        LabelText(Localization::GetText("max_session_history"));
+        if (ImGui::SliderInt("##MaxSessHist", &g_Settings.maxSessionHistory, 1, 50, "%d"))
+        { SettingsManager::Save(); SessionHistory::SetMaxSessions(g_Settings.maxSessionHistory); }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("max_session_history_tooltip"));
+        EndSection();
+    }
+
     ImGui::PopStyleColor(2);
 }
 
@@ -795,21 +862,6 @@ static void RenderPage_DataReset()
         EndSection();
     }
 
-    if (BeginSection("seshist", Localization::GetText("session_history"), false, "session_history"))
-    {
-        if (ImGui::Checkbox(Localization::GetText("enable_session_history"), &g_Settings.enableSessionHistory))
-        { SettingsManager::Save(); SessionHistory::SetEnabled(g_Settings.enableSessionHistory); }
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_session_history_tooltip"));
-        if (ImGui::Checkbox(Localization::GetText("overwrite_session_history"), &g_Settings.overwriteSessionHistory))
-        { SettingsManager::Save(); SessionHistory::SetOverwrite(g_Settings.overwriteSessionHistory); }
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("overwrite_session_history_tooltip"));
-        LabelText(Localization::GetText("max_session_history"));
-        if (ImGui::SliderInt("##MaxSessHist", &g_Settings.maxSessionHistory, 1, 50, "%d"))
-        { SettingsManager::Save(); SessionHistory::SetMaxSessions(g_Settings.maxSessionHistory); }
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("max_session_history_tooltip"));
-        EndSection();
-    }
-
     ImGui::PopStyleColor(2);
 }
 
@@ -1023,46 +1075,6 @@ static void RenderPage_Performance()
         EndSection();
     }
 
-    if (BeginSection("magnetite", "Magnetite Shard Tracker", false, "magnetite"))
-    {
-        if (ImGui::Checkbox(Localization::GetText("enable_magnetite_tracker"), &g_Settings.enableMagnetiteTracker)) SettingsManager::Save();
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_magnetite_tracker_tooltip"));
-        if (g_Settings.enableMagnetiteTracker)
-        {
-            int earned = MagnetiteTracker::GetWeeklyEarned();
-            ImGui::Text("%s", Localization::GetText("magnetite_weekly_progress")); ImGui::SameLine();
-            ImGui::TextColored(ImVec4(0.75f,0.55f,1.f,1.f), "%d / %d", earned, MagnetiteTracker::WEEKLY_CAP);
-            ImGui::Spacing();
-            ImGui::Text("%s", Localization::GetText("magnetite_api_check_cooldown")); ImGui::SameLine();
-            ImGui::SetNextItemWidth(85.0f);
-            if (ImGui::InputInt("##MagCooldown", &g_Settings.magnetiteApiCheckCooldownMin, 1, 5))
-            { g_Settings.magnetiteApiCheckCooldownMin = std::max(1, std::min(60, g_Settings.magnetiteApiCheckCooldownMin)); SettingsManager::Save(); }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Minimum time between wallet API checks. Default: 10 min.");
-            ImGui::Spacing();
-            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.55f,0.10f,0.10f,0.40f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.70f,0.13f,0.13f,0.70f));
-            ImGui::PushStyleColor(ImGuiCol_Text,          ImVec4(1.00f,1.00f,1.00f,1.00f));
-            if (ImGui::Button("Reset weekly counter##MagReset")) ImGui::OpenPopup("MagResetConfirm");
-            ImGui::PopStyleColor(3);
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Manually resets the weekly counter to 0.");
-            if (ImGui::BeginPopup("MagResetConfirm")) {
-                ImGui::TextUnformatted(Localization::GetText("reset_confirm"));
-                ImGui::TextUnformatted("This will reset the weekly Magnetite Shard counter to 0.");
-                ImGui::Spacing();
-                if (ImGui::Button(Localization::GetText("yes_reset"))) { MagnetiteTracker::OnWeeklyReset(); ImGui::CloseCurrentPopup(); }
-                ImGui::SameLine();
-                if (ImGui::Button(Localization::GetText("no_cancel"))) ImGui::CloseCurrentPopup();
-                ImGui::EndPopup();
-            }
-            ImGui::Spacing();
-            std::string lastCheck;
-            { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); lastCheck = g_Settings.magnetiteLastApiCheckUtc; }
-            if (!lastCheck.empty()) ImGui::Text(Localization::GetText("magnetite_last_wallet_check"), MagnetiteTracker::UtcToLocal(lastCheck).c_str());
-            else ImGui::TextDisabled("%s", Localization::GetText("magnetite_wallet_not_queried"));
-        }
-        EndSection();
-    }
-
     ImGui::PopStyleColor(2);
 }
 
@@ -1122,8 +1134,11 @@ static void RenderPage_Export()
             ImGui::Spacing();
             LabelText(Localization::GetText("backup_path_label"));
             static char s_BackupPathBuf[MAX_PATH] = "";
-            static bool s_BackupPathInit = false;
-            if (!s_BackupPathInit) { strncpy_s(s_BackupPathBuf, g_Settings.autoBackupPath.c_str(), sizeof(s_BackupPathBuf)-1); s_BackupPathInit = true; }
+            static std::string s_LastAutoBackupPath = "___INIT___"; // force first update
+            if (s_LastAutoBackupPath != g_Settings.autoBackupPath) {
+                strncpy_s(s_BackupPathBuf, g_Settings.autoBackupPath.c_str(), sizeof(s_BackupPathBuf)-1);
+                s_LastAutoBackupPath = g_Settings.autoBackupPath;
+            }
             float browseW = 28.0f, openW = 28.0f, gap = 4.0f;
             float inputW  = ImGui::GetContentRegionAvail().x - browseW - openW - gap * 2.0f;
             ImGui::SetNextItemWidth(inputW);
@@ -1133,21 +1148,44 @@ static void RenderPage_Export()
             ImGui::SameLine(0, gap);
             if (ImGui::Button("...##BackupBrowse", ImVec2(browseW, 0)))
             {
-                BROWSEINFOA bi = {};
-                bi.lpszTitle = "Select backup folder";
-                bi.ulFlags   = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_NONEWFOLDERBUTTON;
-                std::string cur = g_Settings.autoBackupPath.empty() ? (APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : "") : g_Settings.autoBackupPath;
-                struct BD { const char* p; } bd; bd.p = cur.c_str();
-                bi.lParam = reinterpret_cast<LPARAM>(&bd);
-                bi.lpfn   = [](HWND hwnd, UINT msg, LPARAM, LPARAM lp) -> int {
-                    if (msg == BFFM_INITIALIZED) { auto* d = reinterpret_cast<BD*>(lp);
-                        if (d && d->p && d->p[0]) SendMessageA(hwnd, BFFM_SETSELECTIONA, TRUE, reinterpret_cast<LPARAM>(d->p)); } return 0; };
-                LPITEMIDLIST pidl = SHBrowseForFolderA(&bi);
-                if (pidl) { char fp[MAX_PATH] = {};
-                    if (SHGetPathFromIDListA(pidl, fp))
-                    { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
-                      g_Settings.autoBackupPath = fp; strncpy_s(s_BackupPathBuf, fp, sizeof(s_BackupPathBuf)-1); SettingsManager::Save(); }
-                    CoTaskMemFree(pidl); }
+                std::string initialPath = g_Settings.autoBackupPath.empty() ? (APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : "") : g_Settings.autoBackupPath;
+                
+                std::thread([initialPath]() {
+                    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+                    
+                    BROWSEINFOA bi = {};
+                    bi.lpszTitle = "Select backup folder";
+                    // Removed BIF_NEWDIALOGSTYLE to prevent crashes in some environments
+                    bi.ulFlags   = BIF_RETURNONLYFSDIRS | BIF_USENEWUI | BIF_NONEWFOLDERBUTTON;
+                    
+                    struct BD { const char* p; } bd; 
+                    bd.p = initialPath.c_str();
+                    bi.lParam = reinterpret_cast<LPARAM>(&bd);
+                    bi.lpfn   = [](HWND hwnd, UINT msg, LPARAM, LPARAM lp) -> int {
+                        if (msg == BFFM_INITIALIZED) { 
+                            auto* d = reinterpret_cast<BD*>(lp);
+                            if (d && d->p && d->p[0]) 
+                                SendMessageA(hwnd, BFFM_SETSELECTIONA, TRUE, reinterpret_cast<LPARAM>(d->p)); 
+                        } 
+                        return 0; 
+                    };
+
+                    LPITEMIDLIST pidl = SHBrowseForFolderA(&bi);
+                    if (pidl)
+                    {
+                        char fp[MAX_PATH] = {};
+                        if (SHGetPathFromIDListA(pidl, fp))
+                        {
+                            std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+                            g_Settings.autoBackupPath = fp;
+                            // Note: s_BackupPathBuf cannot be updated easily from here as it's static in RenderPage_Export
+                            // But it will be updated on the next frame because of g_Settings.autoBackupPath
+                            SettingsManager::Save();
+                        }
+                        CoTaskMemFree(pidl);
+                    }
+                    CoUninitialize();
+                }).detach();
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("browse_for_folder_tooltip"));
             ImGui::SameLine(0, gap);
@@ -1157,6 +1195,55 @@ static void RenderPage_Export()
                 if (!p.empty()) ShellExecuteA(NULL, "explore", p.c_str(), NULL, NULL, SW_SHOWNORMAL);
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("open_folder_tooltip"));
+
+            ImGui::Spacing();
+            if (UICommon::OrangeGradientButton(Localization::GetText("backup_now_button"), "##ManualBackupBtn"))
+            {
+                if (BackupRestore::CreateManualBackup())
+                {
+                    UINotifications::AddGenericNotification(Localization::GetText("backup_success_title"), Localization::GetText("backup_success_msg"), "", "Fine");
+                }
+                else
+                {
+                    UINotifications::AddGenericNotification(Localization::GetText("backup_failed_title"), Localization::GetText("backup_failed_msg"), "", "Junk", true);
+                }
+            }
+            ImGui::SameLine();
+            if (UICommon::OrangeGradientButton(Localization::GetText("restore_backup_button"), "##ManualRestoreBtn"))
+            {
+                std::string initialPath = g_Settings.autoBackupPath.empty() ? (APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : "") : g_Settings.autoBackupPath;
+                
+                std::thread([initialPath]() {
+                    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+                    
+                    char szFile[MAX_PATH] = { 0 };
+                    OPENFILENAMEA ofn = { 0 };
+                    ofn.lStructSize = sizeof(ofn);
+                    ofn.hwndOwner = NULL;
+                    ofn.lpstrFile = szFile;
+                    ofn.nMaxFile = sizeof(szFile);
+                    ofn.lpstrFilter = "JSON Files (*.json)\0*.json\0All Files (*.*)\0*.*\0";
+                    ofn.nFilterIndex = 1;
+                    ofn.lpstrInitialDir = initialPath.c_str();
+                    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+                    if (GetOpenFileNameA(&ofn))
+                    {
+                        // We use a flag to trigger the actual restore on the main thread next frame
+                        // because RestoreFromBackup reloads settings which might affect the current UI state.
+                        // For simplicity here, we call it directly but with a notification.
+                        if (BackupRestore::LoadBackupFromFile(szFile))
+                        {
+                            UINotifications::AddGenericNotification(Localization::GetText("restore_success_title"), Localization::GetText("restore_success_msg"), "", "Fine");
+                        }
+                        else
+                        {
+                            UINotifications::AddGenericNotification(Localization::GetText("restore_failed_title"), Localization::GetText("restore_failed_msg"), "", "Junk", true);
+                        }
+                    }
+                    CoUninitialize();
+                }).detach();
+            }
         }
         
         EndSection();

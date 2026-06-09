@@ -10,6 +10,9 @@ bool RestoreFromBackup(const std::string& jsonData);
 bool SaveBackupToFile(const std::string& filename);
 bool LoadBackupFromFile(const std::string& filename);
 
+void Tick();
+bool CreateManualBackup();
+
 } // namespace BackupRestore
 
 #endif // BACKUP_RESTORE_H

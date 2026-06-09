@@ -4,12 +4,164 @@
 #include "item_tracker.h"
 #include "custom_profit.h"
 #include "ignored_items.h"
+#include "shared.h"
 #include "../include/nlohmann/json.hpp"
 #include <chrono>
 #include <map>
+#include <filesystem>
+#include <sstream>
+#include <iomanip>
+#include <algorithm>
+#include <vector>
+
+namespace fs = std::filesystem;
 
 namespace BackupRestore
 {
+// Helper: Get current UTC time as ISO-8601 string (YYYY-MM-DD)
+static std::string GetCurrentDateUtc()
+{
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+    std::tm tm_utc;
+    gmtime_s(&tm_utc, &now_c);
+    std::stringstream ss;
+    ss << std::put_time(&tm_utc, "%Y-%m-%d");
+    return ss.str();
+}
+
+// Helper: Get current UTC time as full timestamp for filename (YYYY-MM-DD_HH-MM-SS)
+static std::string GetCurrentTimestampForFile()
+{
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+    std::tm tm_utc;
+    gmtime_s(&tm_utc, &now_c);
+    std::stringstream ss;
+    ss << std::put_time(&tm_utc, "%Y-%m-%d_%H-%M-%S");
+    return ss.str();
+}
+
+void Tick()
+{
+    static auto lastCheck = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+    
+    // Check every 5 minutes
+    if (std::chrono::duration_cast<std::chrono::minutes>(now - lastCheck).count() < 5)
+        return;
+    lastCheck = now;
+
+    std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+    if (!g_Settings.enableAutoBackups || g_Settings.backupFrequency == 0)
+        return;
+
+    std::string currentDate = GetCurrentDateUtc();
+    if (g_Settings.lastBackupTimestamp == currentDate)
+        return; // Already backed up today
+
+    // For weekly backup, check if it's Monday
+    if (g_Settings.backupFrequency == 2) // Weekly
+    {
+        auto systemNow = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(systemNow);
+        std::tm tm_utc;
+        gmtime_s(&tm_utc, &now_c);
+        if (tm_utc.tm_wday != 1) // 1 = Monday
+            return;
+    }
+
+    // Determine backup path
+    fs::path backupDir;
+    if (g_Settings.autoBackupPath.empty())
+    {
+        const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
+        if (!addonDir) return;
+        backupDir = fs::path(addonDir) / "backups";
+    }
+    else
+    {
+        backupDir = fs::path(g_Settings.autoBackupPath);
+    }
+
+    try
+    {
+        if (!fs::exists(backupDir))
+            fs::create_directories(backupDir);
+
+        // Create backup filename
+        std::string filename = "backup_" + GetCurrentTimestampForFile() + ".json";
+        fs::path backupFile = backupDir / filename;
+
+        if (SaveBackupToFile(backupFile.string()))
+        {
+            g_Settings.lastBackupTimestamp = currentDate;
+            SettingsManager::Save();
+
+            // Rotate old backups
+            std::vector<fs::directory_entry> backups;
+            for (const auto& entry : fs::directory_iterator(backupDir))
+            {
+                if (entry.is_regular_file() && entry.path().extension() == ".json" && 
+                    entry.path().filename().string().find("backup_") == 0)
+                {
+                    backups.push_back(entry);
+                }
+            }
+
+            if (backups.size() > (size_t)g_Settings.maxBackupCount)
+            {
+                std::sort(backups.begin(), backups.end(), [](const fs::directory_entry& a, const fs::directory_entry& b) {
+                    return fs::last_write_time(a) < fs::last_write_time(b);
+                });
+
+                for (size_t i = 0; i < backups.size() - g_Settings.maxBackupCount; ++i)
+                {
+                    fs::remove(backups[i]);
+                }
+            }
+        }
+    }
+    catch (...)
+    {
+        // Silent fail for auto-backup
+    }
+}
+
+bool CreateManualBackup()
+{
+    std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+    
+    // Determine backup path
+    fs::path backupDir;
+    if (g_Settings.autoBackupPath.empty())
+    {
+        const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
+        if (!addonDir) return false;
+        backupDir = fs::path(addonDir) / "backups";
+    }
+    else
+    {
+        backupDir = fs::path(g_Settings.autoBackupPath);
+    }
+
+    try
+    {
+        if (!fs::exists(backupDir))
+            fs::create_directories(backupDir);
+
+        // Create backup filename
+        std::string filename = "manual_backup_" + GetCurrentTimestampForFile() + ".json";
+        fs::path backupFile = backupDir / filename;
+
+        return SaveBackupToFile(backupFile.string());
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+
 std::string CreateFullBackup()
 {
     std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
