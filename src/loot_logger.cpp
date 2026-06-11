@@ -1,6 +1,7 @@
 #include "loot_logger.h"
 #include "settings.h"
 #include "gw2_api.h"
+#include "item_tracker.h"
 
 #include <algorithm>
 #include <atomic>
@@ -17,24 +18,6 @@
 #include <unordered_map>
 
 namespace fs = std::filesystem;
-
-// ---------------------------------------------------------------------------
-// Default farming-relevant buff IDs
-// (source: GW2 wiki / /v2/account/buffs)
-// ---------------------------------------------------------------------------
-static const std::vector<int> s_DefaultBuffWhitelist =
-{
-    10325,  // Birthday Booster
-    16414,  // Celebration Booster
-    17940,  // Heroic Booster
-    18757,  // Karmic Enrichment
-    19087,  // Merchant Express
-    22209,  // Rift Extractor
-    725,    // Magical Nourishment
-    726,    // Sharpening Stone
-    727,    // Maintenance Oil
-    31815,  // Enhancement Primer
-};
 
 namespace
 {
@@ -61,10 +44,6 @@ namespace
     std::string              s_CurrentSessionBase; // path without extension
     int                      s_SessionIndex = 0;
     std::vector<LootLogger::DropEntry> s_CurrentSessionEntries;
-
-    // Buff cache: id -> name
-    std::unordered_map<int, std::string> s_BuffCache;
-    std::mutex                           s_BuffMutex;
 
     // Map name cache: map_id -> name
     std::unordered_map<int, std::string> s_MapCache;
@@ -155,17 +134,17 @@ namespace
     }
 
     // Builds a CSV header line
-    std::string CsvHeader(bool includeMap, bool includeBuffs)
+    std::string CsvHeader(bool includeMap, bool includeMagicFind)
     {
-        std::string h = "timestamp,item_id,item_name,quantity,item_type,rarity,sell_price_tp";
+        std::string h = "timestamp,item_id,item_name,quantity,item_type,rarity,sell_price_tp,vendor_price";
+        if (includeMagicFind) h += ",magic_find";
         if (includeMap)   h += ",map_id,map_name";
-        if (includeBuffs) h += ",active_buffs";
         return h + "\n";
     }
 
     // Builds a CSV row from a DropEntry
     std::string ToCsvRow(const LootLogger::DropEntry& e,
-                          bool includeMap, bool includeBuffs)
+                          bool includeMap, bool includeMagicFind)
     {
         std::ostringstream ss;
         ss << CsvEscape(e.timestampUtc) << ","
@@ -174,21 +153,14 @@ namespace
            << e.quantity << ","
            << CsvEscape(e.itemType) << ","
            << CsvEscape(e.rarity) << ","
-           << e.sellPriceTp;
+           << e.sellPriceTp << ","
+           << e.vendorPrice;
+
+        if (includeMagicFind)
+            ss << "," << e.magicFind;
 
         if (includeMap)
             ss << "," << e.mapId << "," << CsvEscape(e.mapName);
-
-        if (includeBuffs)
-        {
-            std::string buffs;
-            for (size_t i = 0; i < e.activeBuffs.size(); ++i)
-            {
-                if (i) buffs += ",";
-                buffs += e.activeBuffs[i];
-            }
-            ss << "," << CsvEscape(buffs);
-        }
 
         ss << "\n";
         return ss.str();
@@ -196,7 +168,7 @@ namespace
 
     // Builds a JSON object from a DropEntry (single object, no array wrapper)
     std::string ToJsonObject(const LootLogger::DropEntry& e,
-                              bool includeMap, bool includeBuffs)
+                              bool includeMap, bool includeMagicFind)
     {
         std::ostringstream ss;
         ss << "{\n"
@@ -206,23 +178,16 @@ namespace
            << "  \"quantity\": "     << e.quantity << ",\n"
            << "  \"item_type\": \""  << JsonEscape(e.itemType) << "\",\n"
            << "  \"rarity\": \""     << JsonEscape(e.rarity) << "\",\n"
-           << "  \"sell_price_tp\": "<< e.sellPriceTp;
+           << "  \"sell_price_tp\": "<< e.sellPriceTp << ",\n"
+           << "  \"vendor_price\": "<< e.vendorPrice;
+
+        if (includeMagicFind)
+            ss << ",\n  \"magic_find\": " << e.magicFind;
 
         if (includeMap)
         {
             ss << ",\n  \"map_id\": "    << e.mapId
                << ",\n  \"map_name\": \"" << JsonEscape(e.mapName) << "\"";
-        }
-
-        if (includeBuffs)
-        {
-            ss << ",\n  \"active_buffs\": [";
-            for (size_t i = 0; i < e.activeBuffs.size(); ++i)
-            {
-                if (i) ss << ", ";
-                ss << "\"" << JsonEscape(e.activeBuffs[i]) << "\"";
-            }
-            ss << "]";
         }
 
         ss << "\n}";
@@ -293,14 +258,13 @@ namespace
 
             // Read current settings (format, map/buff flags) once per batch
             int         format;
-            bool        includeMap, includeBuffs;
+            bool        includeMap;
             std::string basePath;
             {
                 std::lock_guard<std::mutex> lock(s_Mutex);
                 std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
                 format       = g_Settings.lootLogFormat;
                 includeMap   = g_Settings.lootLogIncludeMap;
-                includeBuffs = g_Settings.lootLogIncludeBuffs;
                 basePath     = s_CurrentSessionBase;
             }
 
@@ -322,26 +286,6 @@ namespace
         }
     }
 
-    // Builds the active buff list from the current cache filtered by whitelist
-    std::vector<std::string> GetActiveFarmingBuffNames()
-    {
-        std::vector<int> whitelist;
-        {
-            std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
-            whitelist = g_Settings.lootLogBuffWhitelist;
-        }
-
-        std::vector<std::string> result;
-        std::lock_guard<std::mutex> lock(s_BuffMutex);
-        for (int id : whitelist)
-        {
-            auto it = s_BuffCache.find(id);
-            if (it != s_BuffCache.end())
-                result.push_back(it->second);
-        }
-        return result;
-    }
-
 } // anonymous namespace
 
 // ---------------------------------------------------------------------------
@@ -350,34 +294,11 @@ namespace
 namespace LootLogger
 {
 
-const std::vector<int>& DefaultBuffWhitelist()
-{
-    // Clean list without underscore literals
-    static const std::vector<int> defaults =
-    {
-        10325,  // Birthday Booster
-        16414,  // Celebration Booster
-        17940,  // Heroic Booster
-        18757,  // Karmic Enrichment
-        19087,  // Merchant Express
-        22209,  // Rift Extractor
-        725,    // Magical Nourishment (magic find food)
-        726,    // Sharpening Stone
-        727,    // Maintenance Oil
-        31815,  // Enhancement Primer
-    };
-    return defaults;
-}
-
 void Init(const std::string& addonDir)
 {
-    // Populate default buff whitelist if empty (first ever load)
+    // Resolve log folder
     {
         std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
-        if (g_Settings.lootLogBuffWhitelist.empty())
-            g_Settings.lootLogBuffWhitelist = DefaultBuffWhitelist();
-
-        // Resolve log folder
         if (g_Settings.lootLogFolder.empty() && !addonDir.empty())
             s_LogFolder = addonDir + "\\loot-logs";
         else
@@ -421,13 +342,13 @@ void StartNewSession(const std::string& addonDir)
 {
     bool enabled;
     int  format;
-    bool includeMap, includeBuffs;
+    bool includeMap, includeMagicFind;
     {
         std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
         enabled      = g_Settings.enableLootLog;
         format       = g_Settings.lootLogFormat;
         includeMap   = g_Settings.lootLogIncludeMap;
-        includeBuffs = g_Settings.lootLogIncludeBuffs;
+        includeMagicFind = g_Settings.lootLogIncludeMagicFind;
 
         if (!g_Settings.lootLogFolder.empty())
             s_LogFolder = g_Settings.lootLogFolder;
@@ -461,7 +382,7 @@ void StartNewSession(const std::string& addonDir)
     // Write CSV header
     if (format == 0 || format == 2)
         AppendToFile(s_CurrentSessionBase + ".csv",
-                     CsvHeader(includeMap, includeBuffs));
+                     CsvHeader(includeMap, includeMagicFind));
 
     // Write JSON array opening bracket
     if (format == 1 || format == 2)
@@ -480,7 +401,7 @@ void LogDrop(const DropEntry& entry)
 {
     bool enabled, logItems, logCurrencies;
     int  format;
-    bool includeMap, includeBuffs;
+    bool includeMap, includeMagicFind;
     {
         std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
         enabled        = g_Settings.enableLootLog;
@@ -488,7 +409,7 @@ void LogDrop(const DropEntry& entry)
         logCurrencies  = g_Settings.lootLogCurrencies;
         format         = g_Settings.lootLogFormat;
         includeMap     = g_Settings.lootLogIncludeMap;
-        includeBuffs   = g_Settings.lootLogIncludeBuffs;
+        includeMagicFind = g_Settings.lootLogIncludeMagicFind;
     }
 
     Gw2Api::Log("LootLogger: LogDrop called — enabled: " + std::to_string(enabled) + ", logItems: " + std::to_string(logItems) + ", logCurrencies: " + std::to_string(logCurrencies), "debug");
@@ -503,9 +424,9 @@ void LogDrop(const DropEntry& entry)
     // Build queue entry
     QueueEntry qe;
     if (format == 0 || format == 2)
-        qe.csvLine    = ToCsvRow(entry, includeMap, includeBuffs);
+        qe.csvLine    = ToCsvRow(entry, includeMap, includeMagicFind);
     if (format == 1 || format == 2)
-        qe.jsonObject = ToJsonObject(entry, includeMap, includeBuffs);
+        qe.jsonObject = ToJsonObject(entry, includeMap, includeMagicFind);
 
     // Add to write queue (non-blocking)
     {
@@ -545,63 +466,9 @@ void LogDrop(
     e.itemType     = isCurrency ? "Currency" : itemType;
     e.rarity       = rarity;
     e.sellPriceTp  = sellPriceTp;
-    e.activeBuffs  = GetActiveFarmingBuffNames();
+    e.magicFind    = ItemTracker::GetMagicFind();
 
     LogDrop(e);
-}
-
-void RefreshBuffCache(const std::string& apiToken)
-{
-    bool includeBuffs;
-    std::vector<int> whitelist;
-    {
-        std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
-        includeBuffs = g_Settings.lootLogIncludeBuffs;
-        whitelist    = g_Settings.lootLogBuffWhitelist;
-    }
-    if (!includeBuffs || apiToken.empty()) return;
-
-    nlohmann::json buffsJson;
-    std::string    err;
-    if (!Gw2Api::GetJson("/v2/account/buffs", apiToken, buffsJson, err))
-    {
-        Gw2Api::Log("LootLogger: /v2/account/buffs failed: " + err, "warning");
-        return;
-    }
-
-    if (!buffsJson.is_array()) return;
-
-    // Build a set of active buff IDs
-    std::unordered_map<int, std::string> newCache;
-    for (const auto& buff : buffsJson)
-    {
-        int id = buff.value("id", -1);
-        if (id < 0) continue;
-
-        // Only keep buffs that are in the whitelist
-        if (std::find(whitelist.begin(), whitelist.end(), id) == whitelist.end())
-            continue;
-
-        // Buff name — try "skill" -> "name" first, fallback to id string
-        std::string name;
-        if (buff.contains("skill") && buff["skill"].contains("name"))
-            name = buff["skill"]["name"].get<std::string>();
-        else
-            name = "buff_" + std::to_string(id);
-
-        newCache[id] = name;
-    }
-
-    {
-        std::lock_guard<std::mutex> lock(s_BuffMutex);
-        s_BuffCache = std::move(newCache);
-    }
-
-    Gw2Api::Log(
-        "LootLogger: buff cache refreshed — "
-        + std::to_string(s_BuffCache.size()) + " farming buffs active",
-        "debug"
-    );
 }
 
 std::string ResolveMapName(int mapId, const std::string& apiToken)
@@ -671,6 +538,17 @@ std::string GetLogFolder()
 {
     std::lock_guard<std::mutex> lock(s_Mutex);
     return s_LogFolder;
+}
+
+std::mutex& GetSessionEntriesMutex()
+{
+    return s_Mutex;
+}
+
+std::vector<DropEntry>& GetSessionEntriesRef()
+{
+    // Caller MUST hold s_Mutex
+    return s_CurrentSessionEntries;
 }
 
 } // namespace LootLogger

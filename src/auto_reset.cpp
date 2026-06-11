@@ -31,7 +31,6 @@ namespace
                 &y, &mo, &d, &h, &mi, &sec) != 6)
             return false;
         
-        // Validate ranges to prevent integer overflow
         if (y < 1900 || y > 2100 || mo < 1 || mo > 12 || d < 1 || d > 31 ||
             h < 0 || h > 23 || mi < 0 || mi > 59 || sec < 0 || sec > 59)
             return false;
@@ -56,7 +55,7 @@ namespace
         gmtime_s(&utc, &t);
         time_t check = _mkgmtime(&utc);
         if (check == -1)
-            return ""; // Invalid time
+            return "";
         std::ostringstream oss;
         oss << std::setfill('0')
             << (utc.tm_year + 1900) << '-' << std::setw(2) << (utc.tm_mon + 1) << '-'
@@ -79,7 +78,6 @@ namespace
         return Clock::from_time_t(day0);
     }
 
-    // .NET DayOfWeek matches tm_wday: Sun=0 .. Sat=6
     Clock::time_point NextWeeklyUtc(Clock::time_point nowUtc, int resetWday, int hour, int minute)
     {
         auto dayStart = StartOfUtcDay(nowUtc);
@@ -99,22 +97,22 @@ namespace
     {
         switch (mode)
         {
-        case 0: // Never
-        case 1: // OnAddonLoad
+        case 0:
+        case 1:
             return (Clock::time_point::max)();
-        case 7: // MinutesAfterShutdown
+        case 7:
             return fromUtc + std::chrono::minutes(minutesAfterShutdown);
-        case 2: // Daily 00:00 UTC — next calendar day midnight
+        case 2:
             return StartOfUtcDay(fromUtc) + std::chrono::hours(24);
-        case 3: // Monday 07:30 UTC
+        case 3:
             return NextWeeklyUtc(fromUtc, 1, 7, 30);
-        case 4: // Saturday 02:00 UTC (NA WvW)
+        case 4:
             return NextWeeklyUtc(fromUtc, 6, 2, 0);
-        case 5: // Friday 18:00 UTC (EU WvW)
+        case 5:
             return NextWeeklyUtc(fromUtc, 5, 18, 0);
-        case 6: // Thursday 20:00 UTC (Map bonus)
+        case 6:
             return NextWeeklyUtc(fromUtc, 4, 20, 0);
-        case 8: // Custom days (1-28 days)
+        case 8:
         {
             std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
             int days = g_Settings.customResetDays;
@@ -151,9 +149,21 @@ namespace
     static bool s_IsFirstAddonLoad = true;
     static Clock::time_point s_LastResetTime = (Clock::time_point::min)();
 
-    // Reset notification trigger flags — call on manual or auto reset
     static bool s_SessionCompleteTriggered = false;
     static bool s_ResetWarningTriggered    = false;
+    static Clock::time_point s_LastSaveTime = Clock::time_point::min();
+    static const int SAVE_INTERVAL_SECONDS = 5;
+
+    // Debounce mechanism for event-driven saves
+    static Clock::time_point s_LastEventTime = Clock::time_point::min();
+    static const int DEBOUNCE_SECONDS = 2;
+    static bool s_SaveRequested = false;
+
+    void RequestSaveInternal()
+    {
+        s_LastEventTime = UtcNow();
+        s_SaveRequested = true;
+    }
 
     void ResetNotificationTriggers()
     {
@@ -227,19 +237,11 @@ void AutoReset::OnAddonLoad()
     {
         const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
         ItemTracker::SafeReset();
-        
-        // Update the next reset time BEFORE saving settings, 
-        // so the "past" reset time is not persisted and doesn't trigger again on next start.
-        UpdateNextResetDateTime();
-        
         ItemTracker::SaveData(addonDir);
         SettingsManager::Save();
     }
-    else
-    {
-        // Even if no reset happened, ensure we have a valid next reset time if missing
-        UpdateNextResetDateTime();
-    }
+
+    UpdateNextResetDateTime();
 }
 
 void AutoReset::OnAddonUnload()
@@ -255,7 +257,6 @@ void AutoReset::OnAddonUnload()
     if (mode != static_cast<int>(AutomaticResetMode::MinutesAfterShutdown))
         return;
 
-    // Only set reset time if not already set (prevents overriding manual resets)
     if (isEmpty)
     {
         std::string newVal = ToIsoUtc(UtcNow() + std::chrono::minutes(minutesUntilReset));
@@ -266,8 +267,37 @@ void AutoReset::OnAddonUnload()
 
 void AutoReset::Tick()
 {
-    // Run backup check
     BackupRestore::Tick();
+
+    auto now = UtcNow();
+
+    // Event-driven save with debounce (2 seconds)
+    if (s_SaveRequested)
+    {
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - s_LastEventTime).count();
+        if (elapsed >= DEBOUNCE_SECONDS)
+        {
+            const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
+            if (addonDir)
+            {
+                ItemTracker::SaveData(addonDir);
+                s_LastSaveTime = now;
+            }
+            s_SaveRequested = false;
+        }
+    }
+
+    // Fallback: save every 5 seconds if no event-driven save occurred
+    if (s_LastSaveTime == Clock::time_point::min() ||
+        std::chrono::duration_cast<std::chrono::seconds>(now - s_LastSaveTime).count() >= SAVE_INTERVAL_SECONDS)
+    {
+        const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
+        if (addonDir)
+        {
+            ItemTracker::SaveData(addonDir);
+            s_LastSaveTime = now;
+        }
+    }
 
     int mode, sessionCompleteHours, resetWarningMinutes;
     bool notifySessionComplete, notifyResetWarning;
@@ -282,12 +312,10 @@ void AutoReset::Tick()
         nextResetStr         = g_Settings.nextResetDateTimeUtc;
     }
 
-    // Session duration notification
     if (notifySessionComplete)
     {
         auto duration = ItemTracker::GetSessionDuration();
         auto targetSeconds = static_cast<long long>(sessionCompleteHours) * 3600;
-        
         if (duration.count() >= targetSeconds)
         {
             if (!s_SessionCompleteTriggered)
@@ -312,9 +340,6 @@ void AutoReset::Tick()
     if (!ParseIsoUtc(nextResetStr, next))
         return;
 
-    auto now = UtcNow();
-
-    // Reset warning notification
     if (notifyResetWarning)
     {
         auto warningTime = next - std::chrono::minutes(resetWarningMinutes);
@@ -406,31 +431,22 @@ std::string AutoReset::GetNextResetDisplayUtc()
     auto duration = next - now;
     auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration).count();
     auto minutes = seconds / 60;
-    auto hours = minutes / 60;
-    auto days = hours / 24;
+    auto hours   = minutes / 60;
+    auto days    = hours / 24;
 
+    char buf[64];
     if (days > 0)
-    {
-        char buf[64];
         snprintf(buf, sizeof(buf), "%dd %dh", (int)days, (int)(hours % 24));
-        return buf;
-    }
     else if (hours > 0)
-    {
-        char buf[64];
         snprintf(buf, sizeof(buf), "%dh %dm", (int)hours, (int)(minutes % 60));
-        return buf;
-    }
     else if (minutes > 0)
-    {
-        char buf[64];
         snprintf(buf, sizeof(buf), "%dm", (int)minutes);
-        return buf;
-    }
     else
-    {
-        char buf[64];
         snprintf(buf, sizeof(buf), "%ds", (int)seconds);
-        return buf;
-    }
+    return buf;
+}
+
+void AutoReset::RequestSave()
+{
+    RequestSaveInternal();
 }

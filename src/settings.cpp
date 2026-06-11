@@ -226,7 +226,6 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     j["enableSessionHistory"] = s.enableSessionHistory;
     j["maxSessionHistory"] = s.maxSessionHistory;
     j["overwriteSessionHistory"] = s.overwriteSessionHistory;
-    j["lastResetTimestamp"] = s.lastResetTimestamp;
 
     // Magnetite Shard Weekly Tracker
     j["magnetiteTracker"] = {
@@ -246,8 +245,7 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
         {"items",         s.lootLogItems},
         {"currencies",    s.lootLogCurrencies},
         {"includeMap",    s.lootLogIncludeMap},
-        {"includeBuffs",  s.lootLogIncludeBuffs},
-        {"buffWhitelist", s.lootLogBuffWhitelist},
+        {"includeMagicFind", s.lootLogIncludeMagicFind},
     };
 
     j["filterSellableToVendor"] = s.filterSellableToVendor;
@@ -543,7 +541,6 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     if (j.contains("enableSessionHistory")) s.enableSessionHistory = j["enableSessionHistory"].get<bool>();
     if (j.contains("maxSessionHistory")) s.maxSessionHistory = j["maxSessionHistory"].get<int>();
     if (j.contains("overwriteSessionHistory")) s.overwriteSessionHistory = j["overwriteSessionHistory"].get<bool>();
-    if (j.contains("lastResetTimestamp")) s.lastResetTimestamp = j["lastResetTimestamp"].get<std::string>();
 
     // Loot Log
     if (j.contains("lootLog"))
@@ -556,9 +553,7 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
         s.lootLogItems        = ll.value("items",        true);
         s.lootLogCurrencies   = ll.value("currencies",   true);
         s.lootLogIncludeMap   = ll.value("includeMap",   true);
-        s.lootLogIncludeBuffs = ll.value("includeBuffs", true);
-        if (ll.contains("buffWhitelist") && ll["buffWhitelist"].is_array())
-            s.lootLogBuffWhitelist = ll["buffWhitelist"].get<std::vector<int>>();
+        s.lootLogIncludeMagicFind = ll.value("includeMagicFind", false);
     }
 
     // Magnetite Shard Weekly Tracker

@@ -24,6 +24,7 @@
 
 #include <string>
 #include <vector>
+#include <mutex>
 
 namespace LootLogger
 {
@@ -43,7 +44,8 @@ namespace LootLogger
         std::string  itemType;       // "Item", "Currency"
         std::string  rarity;         // "Fine", "Rare", etc.  (empty for currencies)
         long long    sellPriceTp= -1;// copper, -1 if unknown/not tradeable
-        std::vector<std::string> activeBuffs; // farming-relevant buff names
+        long long    vendorPrice= -1;// copper, -1 if unknown/not sellable to vendor
+        int          magicFind  = -1;// magic find percentage, -1 if unknown
     };
 
     // -----------------------------------------------------------------------
@@ -88,15 +90,6 @@ namespace LootLogger
     );
 
     // -----------------------------------------------------------------------
-    // Buff cache
-    // -----------------------------------------------------------------------
-
-    // Called from entry.cpp on MumbleLink map change (same hook as
-    // MagnetiteTracker::OnMapChange).  Queries /v2/account/buffs and updates
-    // the internal farming-buff cache used by subsequent LogDrop() calls.
-    void RefreshBuffCache(const std::string& apiToken);
-
-    // -----------------------------------------------------------------------
     // Map name cache
     // -----------------------------------------------------------------------
 
@@ -119,13 +112,9 @@ namespace LootLogger
     // Returns the absolute path of the log folder.
     std::string GetLogFolder();
 
-    // -----------------------------------------------------------------------
-    // Default buff whitelist
-    // -----------------------------------------------------------------------
-
-    // Returns the default list of buff IDs that are farming-relevant.
-    // Used to populate g_Settings.lootLogBuffWhitelist on first load.
-    // Source: /v2/account/buffs category filtering.
-    const std::vector<int>& DefaultBuffWhitelist();
+    // Direct access for backfilling prices after API load.
+    // MUST be called with the mutex held via GetSessionEntriesMutex().
+    std::mutex& GetSessionEntriesMutex();
+    std::vector<DropEntry>& GetSessionEntriesRef();
 
 } // namespace LootLogger

@@ -33,4 +33,7 @@ namespace AutoReset
     void RefreshSchedule();
 
     std::string GetNextResetDisplayUtc();
+
+    // Request a save with debounce (2 seconds delay)
+    void RequestSave();
 }

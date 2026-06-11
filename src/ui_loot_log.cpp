@@ -5,6 +5,7 @@
 #include "ui_common.h"
 #include "ui_tab_icons.h"
 #include "shared.h"
+#include "item_tracker.h"
 
 #include <imgui/imgui.h>
 #include <algorithm>
@@ -15,6 +16,29 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <process.h>
+
+// Converts ItemType enum to a log-friendly string
+static std::string ItemTypeToString(ItemType t)
+{
+    switch (t)
+    {
+        case ItemType::Armor:            return "Armor";
+        case ItemType::Weapon:           return "Weapon";
+        case ItemType::Trinket:          return "Trinket";
+        case ItemType::Gizmo:            return "Gizmo";
+        case ItemType::CraftingMaterial: return "CraftingMaterial";
+        case ItemType::Consumable:       return "Consumable";
+        case ItemType::Container:        return "Container";
+        case ItemType::Bag:              return "Bag";
+        case ItemType::Backpack:         return "Backpack";
+        case ItemType::UpgradeComponent: return "UpgradeComponent";
+        case ItemType::Tool:             return "Tool";
+        case ItemType::Trophy:           return "Trophy";
+        case ItemType::Unlock:           return "Unlock";
+        case ItemType::MiniPet:          return "MiniPet";
+        default:                         return "Unknown";
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -152,12 +176,19 @@ namespace
         {
             long long totalValue = 0;
             for (const auto& e : filtered)
-                if (e.sellPriceTp > 0) totalValue += e.sellPriceTp * e.quantity;
+            {
+                // Only count items/currencies with a known price
+                // Currencies without explicit price (sellPriceTp == 0) are skipped
+                if (e.sellPriceTp > 0)
+                    totalValue += e.sellPriceTp * e.quantity;
+            }
 
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
             ImGui::Text("%zu drops shown  |  est. value: %s",
                 filtered.size(), FormatCoin(totalValue).c_str());
             ImGui::PopStyleColor();
+            ImGui::SameLine();
+            ImGui::TextDisabled("(at drop time)");
         }
 
         ImGui::Spacing();
@@ -197,7 +228,7 @@ namespace
         // Cap at s_MaxRows for performance
         int start = std::max(0, (int)filtered.size() - s_MaxRows);
 
-        if (ImGui::BeginTable("LootLogTable", 7,
+        if (ImGui::BeginTable("LootLogTable", 9,
             ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
             ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_Resizable,
             ImVec2(0, 0)))
@@ -208,8 +239,10 @@ namespace
             ImGui::TableSetupColumn("Item",       ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Qty",        ImGuiTableColumnFlags_WidthFixed,   45.f);
             ImGui::TableSetupColumn("Type",       ImGuiTableColumnFlags_WidthFixed,   90.f);
+            ImGui::TableSetupColumn("TP Price",   ImGuiTableColumnFlags_WidthFixed,   80.f);
+            ImGui::TableSetupColumn("Vendor",     ImGuiTableColumnFlags_WidthFixed,   80.f);
+            ImGui::TableSetupColumn("MF",         ImGuiTableColumnFlags_WidthFixed,   50.f);
             ImGui::TableSetupColumn("Map",        ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Buffs",      ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableHeadersRow();
 
             // Newest at top
@@ -230,12 +263,67 @@ namespace
 
                 // Item name with rarity colour
                 ImGui::TableSetColumnIndex(2);
-                if (!e.rarity.empty())
-                    ImGui::TextColored(RarityColor(e.rarity), "%s", e.itemName.c_str());
+                
+                // Dynamically update name if details are now loaded
+                std::string displayName = e.itemName;
+                std::string displayRarity = e.rarity;
+                std::string displayType = e.itemType;
+                long long displayPrice = e.sellPriceTp;
+                long long displayVendorPrice = e.vendorPrice;
+                
+                // Check if details are now loaded from ItemTracker
+                if (e.itemName.find("Item #") == 0 || e.itemName.find("Currency #") == 0)
+                {
+                    if (e.itemType == "Currency")
+                    {
+                        auto stat = ItemTracker::GetCurrencyStat(e.itemId);
+                        if (stat.details.loaded && !stat.details.name.empty())
+                        {
+                            displayName = stat.details.name;
+                            displayRarity = stat.details.rarity;
+                            displayType = "Currency";
+                            // Recalculate price if details are now loaded
+                            if (e.itemId == 1) // Coin
+                            {
+                                displayPrice = 1; // 1 copper per coin
+                            }
+                        }
+                    }
+                    else
+                    {
+                        auto stat = ItemTracker::GetItemStat(e.itemId);
+                        if (stat.details.loaded && !stat.details.name.empty())
+                        {
+                            displayName = stat.details.name;
+                            displayRarity = stat.details.rarity;
+                            ItemType itemType = stat.details.itemType;
+                            displayType = ItemTypeToString(itemType);
+                            // Recalculate price if details are now loaded
+                            long long vendorPrice = ItemTracker::CanSellToVendor(stat.details) ? (long long)stat.details.vendorValue : 0;
+                            long long tpSellPrice = ItemTracker::CanSellOnTp(stat.details) ? ItemTracker::TpSellProceedsPerUnitCopper(stat.details) : 0;
+                            displayPrice = std::max(vendorPrice, tpSellPrice);
+                            displayVendorPrice = vendorPrice;
+                        }
+                        else
+                        {
+                            // Keep original type if details not loaded
+                            displayType = e.itemType;
+                            displayVendorPrice = e.vendorPrice;
+                        }
+                    }
+                }
+                
+                if (!displayRarity.empty())
+                    ImGui::TextColored(RarityColor(displayRarity), "%s", displayName.c_str());
                 else
-                    ImGui::TextUnformatted(e.itemName.c_str());
-                if (ImGui::IsItemHovered() && e.sellPriceTp >= 0)
-                    ImGui::SetTooltip("TP price: %s", FormatCoin(e.sellPriceTp).c_str());
+                    ImGui::TextUnformatted(displayName.c_str());
+                if (ImGui::IsItemHovered() && displayPrice >= 0)
+                {
+                    std::string tooltip = "TP price: " + FormatCoin(displayPrice);
+                    if (displayVendorPrice > 0)
+                        tooltip += "\nVendor price: " + FormatCoin(displayVendorPrice);
+                    ImGui::SetTooltip("%s", tooltip.c_str());
+                }
 
                 // Quantity
                 ImGui::TableSetColumnIndex(3);
@@ -243,30 +331,34 @@ namespace
 
                 // Type
                 ImGui::TableSetColumnIndex(4);
-                ImGui::TextDisabled("%s", e.itemType.c_str());
+                ImGui::TextDisabled("%s", displayType.c_str());
+
+                // TP Price
+                ImGui::TableSetColumnIndex(5);
+                if (displayPrice >= 0)
+                    ImGui::Text("%s", FormatCoin(displayPrice).c_str());
+                else
+                    ImGui::TextDisabled("\xe2\x80\x94");
+
+                // Vendor Price
+                ImGui::TableSetColumnIndex(6);
+                if (displayVendorPrice > 0)
+                    ImGui::Text("%s", FormatCoin(displayVendorPrice).c_str());
+                else
+                    ImGui::TextDisabled("\xe2\x80\x94");
+
+                // Magic Find
+                ImGui::TableSetColumnIndex(7);
+                if (g_Settings.lootLogIncludeMagicFind && e.magicFind >= 0)
+                    ImGui::Text("%d%%", e.magicFind);
+                else
+                    ImGui::TextDisabled("\xe2\x80\x94");
 
                 // Map
-                ImGui::TableSetColumnIndex(5);
+                ImGui::TableSetColumnIndex(8);
                 ImGui::TextDisabled("%s", e.mapName.empty()
                     ? ("map_" + std::to_string(e.mapId)).c_str()
                     : e.mapName.c_str());
-
-                // Active buffs
-                ImGui::TableSetColumnIndex(6);
-                if (e.activeBuffs.empty())
-                {
-                    ImGui::TextDisabled("\xe2\x80\x94");
-                }
-                else
-                {
-                    std::string buffs;
-                    for (size_t b = 0; b < e.activeBuffs.size(); ++b)
-                    {
-                        if (b) buffs += ", ";
-                        buffs += e.activeBuffs[b];
-                    }
-                    ImGui::TextDisabled("%s", buffs.c_str());
-                }
             }
 
             ImGui::EndTable();
@@ -641,11 +733,6 @@ namespace
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Log currency gains.");
 
-        if (IconToggleRow("currency-dollar", "Include Gold / Silver / Copper", &g_Settings.currenciesFavoritesFirst, colW))
-            SettingsManager::Save();
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Show favorite currencies first.");
-
         ImGui::EndChild();
         ImGui::EndGroup();
 
@@ -733,20 +820,10 @@ namespace
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Add map_id and map_name to each row.");
 
-        if (IconToggleRow("sparkles", "Include active boosts", &g_Settings.lootLogIncludeBuffs, panelW))
+        if (IconToggleRow("wand", "Include Magic Find", &g_Settings.lootLogIncludeMagicFind, panelW))
             SettingsManager::Save();
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Add active farming buffs (Booster, Rift Extractor etc.) to each row.");
-
-        if (IconToggleRow("wand", "Include Magic Find", &g_Settings.enableNotifications, panelW))
-            SettingsManager::Save();
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Enable notifications for drops.");
-
-        if (IconToggleRow("fingerprint", "Include session ID", &g_Settings.enableAutoBackups, panelW))
-            SettingsManager::Save();
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Enable automatic backups.");
+            ImGui::SetTooltip("Add magic_find to each row.");
 
         ImGui::EndChild();
 

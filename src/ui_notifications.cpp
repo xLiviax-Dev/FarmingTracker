@@ -256,7 +256,7 @@ namespace UINotifications
         PlayNotificationSound(n.isPrecursor, n.isInfusion, false);
     }
 
-    void AddGenericNotification(const std::string& title, const std::string& message, const std::string& iconUrl, const std::string& rarity, bool isAlert)
+    void AddGenericNotification(const std::string& title, const std::string& message, const std::string& iconUrl, const std::string& rarity, bool isAlert, float customWidth)
     {
         bool enableNotifications;
         {
@@ -275,6 +275,7 @@ namespace UINotifications
         n.startTime = std::chrono::system_clock::now();
         n.isPrecursor = false;
         n.isInfusion = false;
+        n.customWidth = customWidth;
 
         {
             std::lock_guard<std::mutex> lock(s_Mutex);
@@ -350,9 +351,21 @@ namespace UINotifications
             posY = g_Settings.notificationPosY;
             width = g_Settings.notificationWidth;
             height = g_Settings.notificationHeight;
+            
+            // Calculate max width from notifications
+            float maxNotificationWidth = width;
+            for (const auto& n : s_Notifications)
+            {
+                if (n.customWidth > 0 && n.customWidth > maxNotificationWidth)
+                    maxNotificationWidth = n.customWidth;
+            }
+            
+            // Update width if a notification needs more space
+            if (maxNotificationWidth > width)
+                width = maxNotificationWidth;
         }
         ImGui::SetNextWindowPos(ImVec2(posX, posY), showSetup ? ImGuiCond_FirstUseEver : ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(width, height), showSetup ? ImGuiCond_FirstUseEver : ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(width, height));
 
         if (ImGui::Begin("##Notifications", nullptr, flags))
         {
@@ -402,7 +415,10 @@ namespace UINotifications
                     char childId[32];
                     snprintf(childId, sizeof(childId), "##Notify_%zu", i);
                     
-                    if (ImGui::BeginChild(childId, ImVec2(300, 70), true, ImGuiWindowFlags_NoScrollbar))
+                    // Use custom width if specified, otherwise default to 300
+                    float childWidth = n.customWidth > 0 ? n.customWidth : 300;
+                    
+                    if (ImGui::BeginChild(childId, ImVec2(childWidth, 70), true, ImGuiWindowFlags_NoScrollbar))
                     {
                         // Icon
                         ImVec2 cursor = ImGui::GetCursorPos();

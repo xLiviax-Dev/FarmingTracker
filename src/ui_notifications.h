@@ -18,6 +18,7 @@ namespace UINotifications
         float fadeAmount = 0.0f;
         bool isPrecursor = false;
         bool isInfusion = false;
+        float customWidth = 0.0f; // Custom width for this notification (0 = default)
     };
 
     // Initialize the notification system
@@ -33,7 +34,7 @@ namespace UINotifications
     void AddNotification(int itemId, const Stat& stat, const std::string& specialText = "");
 
     // Add a generic notification (for Profit Goal, Reset Warning, etc.)
-    void AddGenericNotification(const std::string& title, const std::string& message, const std::string& iconUrl = "", const std::string& rarity = "Basic", bool isAlert = false);
+    void AddGenericNotification(const std::string& title, const std::string& message, const std::string& iconUrl = "", const std::string& rarity = "Basic", bool isAlert = false, float customWidth = 0.0f);
 
     // Audio system
     void PlayNotificationSound(bool isPrecursor, bool isInfusion, bool isAlert = false);

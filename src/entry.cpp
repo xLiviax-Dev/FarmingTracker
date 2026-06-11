@@ -135,7 +135,7 @@ extern "C" __declspec(dllexport) AddonDefinition_t* GetAddonDef()
     s_AddonDef.Version.Major    = 2;
     s_AddonDef.Version.Minor    = 0;
     s_AddonDef.Version.Build    = 0;
-    s_AddonDef.Version.Revision = 2;
+    s_AddonDef.Version.Revision = 3;
     s_AddonDef.Author           = "Livia.3928";
     s_AddonDef.Description      = "Tracks farmed items and currencies in real-time via DRF (drf.rs).";
     s_AddonDef.Load             = AddonLoad;
@@ -293,6 +293,9 @@ void AddonUnload()
         
         AutoReset::OnAddonUnload();
         APIDefs->Log(LOGL_INFO, "FarmingTracker", "Auto reset shutdown complete");
+        
+        // Save current session to history before shutdown
+        ItemTracker::SaveCurrentSession();
         
         // Save farming data before shutdown
         const char* addonDir = APIDefs->Paths_GetAddonDirectory("FarmingTracker");

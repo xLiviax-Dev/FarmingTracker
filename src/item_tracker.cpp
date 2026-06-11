@@ -11,6 +11,7 @@
 #include "localization.h"
 #include "ui_common.h"
 #include "shared.h"
+#include "auto_reset.h"
 #include "../include/nlohmann/json.hpp"
 
 #include <map>
@@ -438,6 +439,7 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
         std::string type;
         std::string rarity;
         long long price;
+        long long vendorPrice;
     };
     std::vector<LogEntry> logEntries;
 
@@ -506,22 +508,28 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
 
             // Prepare logging info while under lock
             if (delta > 0) {
-                const auto& st = s_Items[id];
-                LogEntry le;
-                le.id = id;
-                le.delta = delta;
-                le.isCurrency = false;
-                le.price = GetStatProfit(st);
-                if (st.details.loaded) {
-                    le.name = st.details.name;
-                    le.rarity = st.details.rarity;
-                    le.type = ItemTypeToString(st.details.itemType);
-                } else {
-                    le.name = "Item #" + std::to_string(id);
-                    le.rarity = "Unknown";
-                    le.type = "Unknown";
-                }
-                logEntries.push_back(le);
+            const auto& st = s_Items[id];
+            LogEntry le;
+            le.id = id;
+            le.delta = delta;
+            le.isCurrency = false;
+            // Use unit price (per single item), NOT GetStatProfit which returns count * price
+            if (st.details.loaded) {
+                long long vendorPrice = CanSellToVendor(st.details) ? (long long)st.details.vendorValue : 0;
+                long long tpSellPrice = CanSellOnTp(st.details) ? TpSellProceedsPerUnitCopper(st.details) : 0;
+                le.price  = std::max(vendorPrice, tpSellPrice);
+                le.vendorPrice = vendorPrice;
+            le.name   = st.details.name;
+                le.rarity = st.details.rarity;
+                le.type   = ItemTypeToString(st.details.itemType);
+            } else {
+            le.price  = -1; // unknown — ui_loot_log skips negative prices
+            le.vendorPrice = -1; // unknown
+            le.name   = "Item #" + std::to_string(id);
+            le.rarity = "Unknown";
+            le.type   = "Unknown";
+            }
+            logEntries.push_back(le);
             }
         }
 
@@ -557,16 +565,23 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
                 le.id = id;
                 le.delta = delta;
                 le.isCurrency = true;
-                le.price = GetStatProfit(st);
+                // For currencies: use custom profit per unit if set, otherwise 0 (no TP price)
+                if (st.HasCustomProfit()) {
+                    le.price = CustomProfitManager::GetCustomProfit(id); // already per-unit
+                } else if (id == 1) {
+                    le.price = 1; // coins: 1 copper each
+                } else {
+                    le.price = 0; // no price for most currencies
+                }
+                le.vendorPrice = 0; // currencies have no vendor price
                 if (st.details.loaded) {
                     le.name = st.details.name;
-                    le.rarity = "";
                     le.type = "Currency";
                 } else {
                     le.name = "Currency #" + std::to_string(id);
-                    le.rarity = "";
                     le.type = "Currency";
                 }
+                le.rarity = "";
                 logEntries.push_back(le);
             }
         }
@@ -593,6 +608,9 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
 
     // 5. Process notifications AFTER releasing all locks
     ProcessPendingNotifications();
+
+    // Request save with debounce (2 seconds delay)
+    AutoReset::RequestSave();
 }
 
 void ItemTracker::SetMagicFind(int magicFind)
@@ -694,25 +712,29 @@ void ItemTracker::SaveCurrentSession()
         // Populate allDrops with item details
         for (auto& drop : s_SessionDrops)
         {
-            // Find item details from current session items
             auto it = s_Items.find(drop.itemId);
-            if (it != s_Items.end())
+            if (it != s_Items.end() && it->second.details.loaded)
             {
-                drop.itemName = it->second.details.loaded ? it->second.details.name : "Unknown";
-                drop.iconUrl = it->second.details.loaded ? it->second.details.iconUrl : "";
-                drop.rarity = it->second.details.loaded ? it->second.details.rarity : "Unknown";
-                drop.totalValue = GetStatProfit(it->second);
+                drop.itemName = it->second.details.name;
+                drop.iconUrl  = it->second.details.iconUrl;
+                drop.rarity   = it->second.details.rarity;
+                long long vendorPpu = CanSellToVendor(it->second.details) ? (long long)it->second.details.vendorValue : 0LL;
+                long long tpPpu     = CanSellOnTp(it->second.details)     ? TpSellProceedsPerUnitCopper(it->second.details) : 0LL;
+                long long unitProfit = it->second.HasCustomProfit()
+                    ? CustomProfitManager::GetCustomProfit(drop.itemId)
+                    : std::max(vendorPpu, tpPpu);
+                drop.totalValue = unitProfit * drop.count;
             }
             else
             {
-                // Check currencies
                 auto currIt = s_Currencies.find(drop.itemId);
-                if (currIt != s_Currencies.end())
+                if (currIt != s_Currencies.end() && currIt->second.details.loaded)
                 {
-                    drop.itemName = currIt->second.details.loaded ? currIt->second.details.name : "Unknown";
-                    drop.iconUrl = currIt->second.details.loaded ? currIt->second.details.iconUrl : "";
-                    drop.rarity = currIt->second.details.loaded ? currIt->second.details.rarity : "Unknown";
-                    drop.totalValue = GetStatProfit(currIt->second);
+                    drop.itemName = currIt->second.details.name;
+                    drop.iconUrl  = currIt->second.details.iconUrl;
+                    drop.rarity   = currIt->second.details.rarity;
+                    long long customPpu = currIt->second.HasCustomProfit() ? CustomProfitManager::GetCustomProfit(drop.itemId) : 0LL;
+                    drop.totalValue = (drop.itemId == 1) ? drop.count : customPpu * drop.count;
                 }
             }
             sessionData.allDrops.push_back(drop);
@@ -741,6 +763,13 @@ void ItemTracker::Reset()
     // Save session history before resetting
     SaveCurrentSession();
 
+    // Save immediately (reset is critical for data integrity)
+    const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
+    if (addonDir)
+    {
+        ItemTracker::SaveData(addonDir);
+    }
+
     // Clear active notifications
     UINotifications::ClearAll();
 
@@ -759,8 +788,16 @@ void ItemTracker::Reset()
 
     s_SessionDrops.clear();
 
-    s_Items.clear();
-    s_Currencies.clear();
+    // Don't clear s_Items and s_Currencies - keep API data for Loot Log display
+    // Only reset the count values
+    for (auto& [id, stat] : s_Items)
+    {
+        stat.count = 0;
+    }
+    for (auto& [id, stat] : s_Currencies)
+    {
+        stat.count = 0;
+    }
 }
 
 void ItemTracker::SafeReset()
@@ -940,6 +977,13 @@ void ItemTracker::SetFavorite(int apiId, bool favorite)
         IgnoredItemsManager::UnignoreItem(apiId);
         IgnoredItemsManager::UnignoreCurrency(apiId);
     }
+
+    // Save immediately (favorites are important user settings)
+    const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
+    if (addonDir)
+    {
+        ItemTracker::SaveData(addonDir);
+    }
 }
 
 bool ItemTracker::IsFavorite(int apiId)
@@ -1086,10 +1130,11 @@ std::vector<SessionHistory::DropEntry> ItemTracker::GetSessionDropsCopy()
             if (it != s_Currencies.end() && it->second.details.loaded)
             {
                 drop.itemName = it->second.details.name;
-                drop.iconUrl = it->second.details.iconUrl;
-                drop.rarity = it->second.details.rarity;
-                long long safeCount = (it->second.count != 0) ? it->second.count : 1;
-                drop.totalValue = (GetStatProfit(it->second) * drop.count) / safeCount;
+                drop.iconUrl  = it->second.details.iconUrl;
+                drop.rarity   = it->second.details.rarity;
+                // unit profit * this drop's count
+                long long customPpu = it->second.HasCustomProfit() ? CustomProfitManager::GetCustomProfit(drop.itemId) : 0LL;
+                drop.totalValue = (drop.itemId == 1) ? drop.count : customPpu * drop.count;
             }
         }
         else
@@ -1098,10 +1143,15 @@ std::vector<SessionHistory::DropEntry> ItemTracker::GetSessionDropsCopy()
             if (it != s_Items.end() && it->second.details.loaded)
             {
                 drop.itemName = it->second.details.name;
-                drop.iconUrl = it->second.details.iconUrl;
-                drop.rarity = it->second.details.rarity;
-                long long safeCount = (it->second.count != 0) ? it->second.count : 1;
-                drop.totalValue = (GetStatProfit(it->second) * drop.count) / safeCount;
+                drop.iconUrl  = it->second.details.iconUrl;
+                drop.rarity   = it->second.details.rarity;
+                // unit profit * this drop's count (NOT total session profit)
+                long long vendorPpu = CanSellToVendor(it->second.details) ? (long long)it->second.details.vendorValue : 0LL;
+                long long tpPpu     = CanSellOnTp(it->second.details)     ? TpSellProceedsPerUnitCopper(it->second.details) : 0LL;
+                long long unitProfit = it->second.HasCustomProfit()
+                    ? CustomProfitManager::GetCustomProfit(drop.itemId)
+                    : std::max(vendorPpu, tpPpu);
+                drop.totalValue = unitProfit * drop.count;
             }
         }
     }
@@ -2669,11 +2719,11 @@ void ItemTracker::ApplyItemsFromApi(const std::vector<int>& requestedIds, const 
             if (receivedItemIds.count(id) > 0) continue;
 
             // If ID was requested but not returned, it's likely invalid for the /v2/items endpoint.
-            // We mark it as loaded so we stop asking the API for it every second.
+            // We keep it as not loaded so we keep trying to load from API in case it becomes available later.
             auto it = s_Items.find(id);
             if (it != s_Items.end())
             {
-                it->second.details.loaded = true;
+                it->second.details.loaded = false; // Keep trying to load from API
                 it->second.details.knownByApi = false;
                 
                 // Check if this ID might actually be a currency (like the user's ID 45 example)
@@ -2744,6 +2794,41 @@ void ItemTracker::ApplyItemsFromApi(const std::vector<int>& requestedIds, const 
             st->notificationPending = true;
         }
     } // ← All locks released here
+
+    // --- Backfill loot log entries that had unknown price (-1) ---
+    // Done AFTER lock release to avoid deadlock with LootLogger mutex.
+    // Items that were dropped before API data arrived have sellPriceTp == -1;
+    // now that we have prices, update them so the Loot Log shows correct values.
+    {
+        std::map<int, long long> backfillPrices;
+        {
+            std::lock_guard<std::mutex> lock(s_Mutex);
+            for (auto& pr : pricesArray)
+            {
+                if (!pr.contains("id")) continue;
+                int id = pr["id"].get<int>();
+                auto it = s_Items.find(id);
+                if (it == s_Items.end()) continue;
+                long long up = TpSellProceedsPerUnitCopper(it->second.details);
+                if (up <= 0)
+                    up = CanSellToVendor(it->second.details) ? (long long)it->second.details.vendorValue : 0;
+                if (up > 0)
+                    backfillPrices[id] = up;
+            }
+        }
+        if (!backfillPrices.empty())
+        {
+            std::lock_guard<std::mutex> lootLock(LootLogger::GetSessionEntriesMutex());
+            auto& entries = LootLogger::GetSessionEntriesRef();
+            for (auto& e : entries)
+            {
+                if (e.sellPriceTp >= 0) continue; // already known
+                auto it = backfillPrices.find(e.itemId);
+                if (it != backfillPrices.end())
+                    e.sellPriceTp = it->second;
+            }
+        }
+    }
 
     // Process notifications AFTER releasing all locks to avoid deadlock with UINotifications
     ProcessPendingNotifications();

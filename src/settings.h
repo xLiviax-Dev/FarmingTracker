@@ -167,8 +167,6 @@ struct Settings
     int maxSessionHistory = 20;  // 1 to 50
     bool overwriteSessionHistory = true;  // If true, oldest session is deleted when limit is reached
 
-    std::string lastResetTimestamp;
-
     // === Magnetite Shard Weekly Tracker ===
     bool        enableMagnetiteTracker           = true;
     int         magnetiteWeeklyEarned            = 0;     // Shards earned this week via DRF (resets Monday 07:30 UTC)
@@ -185,10 +183,7 @@ struct Settings
     bool        lootLogItems            = true;   // log item drops
     bool        lootLogCurrencies       = true;   // log currency drops
     bool        lootLogIncludeMap       = true;   // include map_id + map_name column
-    bool        lootLogIncludeBuffs     = true;   // include active_buffs column
-    // Active buff IDs to include (farming-relevant only).
-    // Populated with defaults on first load; user can add/remove in Settings.
-    std::vector<int> lootLogBuffWhitelist;
+    bool        lootLogIncludeMagicFind = false;  // include magic_find column
 
     // === Ignored Tab Settings ===
     
@@ -339,7 +334,7 @@ struct Settings
     bool showNotificationSetup = false;
     float notificationPosX = 1600.0f;
     float notificationPosY = 800.0f;
-    float notificationWidth = 300.0f;
+    float notificationWidth = 500.0f;
     float notificationHeight = 0.0f; // 0 = auto
     float notificationDuration = 5.0f;
     bool notificationEnableMinValue = true;

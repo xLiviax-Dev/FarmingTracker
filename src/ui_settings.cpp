@@ -1201,11 +1201,11 @@ static void RenderPage_Export()
             {
                 if (BackupRestore::CreateManualBackup())
                 {
-                    UINotifications::AddGenericNotification(Localization::GetText("backup_success_title"), Localization::GetText("backup_success_msg"), "", "Fine");
+                    UINotifications::AddGenericNotification(Localization::GetText("backup_success_title"), Localization::GetText("backup_success_msg"), "", "Fine", false, 500.0f);
                 }
                 else
                 {
-                    UINotifications::AddGenericNotification(Localization::GetText("backup_failed_title"), Localization::GetText("backup_failed_msg"), "", "Junk", true);
+                    UINotifications::AddGenericNotification(Localization::GetText("backup_failed_title"), Localization::GetText("backup_failed_msg"), "", "Junk", true, 500.0f);
                 }
             }
             ImGui::SameLine();
@@ -1234,11 +1234,11 @@ static void RenderPage_Export()
                         // For simplicity here, we call it directly but with a notification.
                         if (BackupRestore::LoadBackupFromFile(szFile))
                         {
-                            UINotifications::AddGenericNotification(Localization::GetText("restore_success_title"), Localization::GetText("restore_success_msg"), "", "Fine");
+                            UINotifications::AddGenericNotification(Localization::GetText("restore_success_title"), Localization::GetText("restore_success_msg"), "", "Fine", false, 500.0f);
                         }
                         else
                         {
-                            UINotifications::AddGenericNotification(Localization::GetText("restore_failed_title"), Localization::GetText("restore_failed_msg"), "", "Junk", true);
+                            UINotifications::AddGenericNotification(Localization::GetText("restore_failed_title"), Localization::GetText("restore_failed_msg"), "", "Junk", true, 500.0f);
                         }
                     }
                     CoUninitialize();
