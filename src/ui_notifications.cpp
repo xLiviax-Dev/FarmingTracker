@@ -238,6 +238,7 @@ namespace UINotifications
         n.startTime = std::chrono::system_clock::now();
         n.isPrecursor = (specialText.find("Pre-Cursor") != std::string::npos);
         n.isInfusion = (specialText.find("Infusion") != std::string::npos);
+        n.isFavorite = stat.isFavorite;
 
         {
             std::lock_guard<std::mutex> lock(s_Mutex);
@@ -365,10 +366,16 @@ namespace UINotifications
                 width = maxNotificationWidth;
         }
         ImGui::SetNextWindowPos(ImVec2(posX, posY), showSetup ? ImGuiCond_FirstUseEver : ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(width, height));
+        if (height > 0.0f)
+            ImGui::SetNextWindowSize(ImVec2(width, height), showSetup ? ImGuiCond_FirstUseEver : ImGuiCond_Always);
+        else
+            ImGui::SetNextWindowSize(ImVec2(width, 0.0f), ImGuiCond_FirstUseEver);
 
         if (ImGui::Begin("##Notifications", nullptr, flags))
         {
+            // Apply font scale
+            ImGui::SetWindowFontScale(g_Settings.notificationFontSize);
+
             if (g_Settings.showNotificationSetup)
             {
                 ImGui::Text("%s", Localization::GetText("notification_setup_hint"));
@@ -451,7 +458,18 @@ namespace UINotifications
                         else if (n.rarity == "Exotic") rarityCol = ImVec4(1.f, 0.6f, 0.0f, 1.f);
                         else if (n.rarity == "Ascended") rarityCol = ImVec4(0.9f, 0.3f, 0.9f, 1.f);
                         else if (n.rarity == "Legendary") rarityCol = ImVec4(0.55f, 0.25f, 0.85f, 1.f);
-                        
+
+                        // Apply favorite text color if enabled
+                        if (n.isFavorite && g_Settings.enableFavoriteTextColor)
+                            rarityCol = ImVec4(g_Settings.favoriteTextColor[0], g_Settings.favoriteTextColor[1], g_Settings.favoriteTextColor[2], g_Settings.favoriteTextColor[3]);
+
+                        // Add star icon for favorites
+                        if (n.isFavorite)
+                        {
+                            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.4f, 1.0f), "* ");
+                            ImGui::SameLine();
+                        }
+
                         ImGui::TextColored(rarityCol, "%s", n.itemName.c_str());
                         
                         // Value
@@ -469,6 +487,9 @@ namespace UINotifications
                     ImGui::Spacing();
                 }
             }
+
+            // Reset font scale
+            ImGui::SetWindowFontScale(1.0f);
         }
         ImGui::End();
     }

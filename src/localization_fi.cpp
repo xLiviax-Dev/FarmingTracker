@@ -698,6 +698,10 @@ namespace Localization
             {"main_window_opacity_tooltip", "Main window background transparency (0-100%)"},
             {"mini_window_opacity", "Mini Ikkuna Transparency"},
             {"mini_window_opacity_tooltip", "Mini window background transparency (0-100%)"},
+            {"main_window_font_size", "Main Ikkuna Font Size"},
+            {"main_window_font_size_tooltip", "Font size scale for the main window (0.5 = smaller, 1.0 = default, 2.0 = larger)"},
+            {"notification_font_size", "Notification Font Size"},
+            {"notification_font_size_tooltip", "Font size scale for notifications (0.5 = smaller, 1.0 = default, 2.0 = larger)"},
             {"accent_color", "Accent Väri (Buttons, Välilehtis, UI)"},
             {"accent_color_tooltip", "Accent color for buttons, tabs, and UI elements"},
             {"stat_total_profit", "Yhteensä Voitto"},
@@ -886,6 +890,8 @@ namespace Localization
             {"save_account", "Tallenna Tili"},
             {"reload_drf_token", "Reload DRF Token"},
             {"reload_gw2_api_key", "Reload GW2 API Key"},
+            {"get_drf_token", "Get your DRF Token"},
+            {"get_gw2_api_key", "Get your GW2 API Key"},
             {"reset_settings", "Automaattinen Eillaa"},
             {"visual_settings", "Visual Asetukset"},
             {"gradient_backgrounds", "Gradient backgrounds"},
@@ -1414,6 +1420,7 @@ namespace Localization
             {"magnetite_manual_edit_tooltip", "Manually edit magnetite count (0-800)"},
             {"live_log_tab", "Live Log"},
             {"tab_live_log", "Live Log"},
+            {"select_log_folder", "Valitse lokikansio"},
         };
         return translations;
     }

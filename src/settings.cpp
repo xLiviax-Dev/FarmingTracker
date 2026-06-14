@@ -154,7 +154,9 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     j["resetHotkey"] = s.resetHotkey;
     j["nextResetDateTimeUtc"] = s.nextResetDateTimeUtc;
     j["manualResetPending"] = s.manualResetPending;
-    j["iconSize"] = s.iconSize;
+    j["historyIconSize"] = s.historyIconSize;
+    j["profitIconSize"] = s.profitIconSize;
+    j["itemsIconSize"] = s.itemsIconSize;
     j["showRarityBorder"] = s.showRarityBorder;
     j["rarityBorderSize"] = s.rarityBorderSize;
     j["enableGradientBackgrounds"] = s.enableGradientBackgrounds;
@@ -163,8 +165,10 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     j["gradientBottomColor"] = json::array({s.gradientBottomColor[0], s.gradientBottomColor[1], s.gradientBottomColor[2], s.gradientBottomColor[3]});
     
     j["showProfitSparkline"] = s.showProfitSparkline;
+    j["sparklineColor"] = s.sparklineColor;
     j["enableSummariesInProfitTab"] = s.enableSummariesInProfitTab;
     j["enableBestDropHighlight"] = s.enableBestDropHighlight;
+    j["bestDropHighlightColor"] = json::array({s.bestDropHighlightColor[0], s.bestDropHighlightColor[1], s.bestDropHighlightColor[2], s.bestDropHighlightColor[3]});
     j["enableBestDropInMiniWindow"] = s.enableBestDropInMiniWindow;
     j["miniWindowShowBestDropTotalValue"] = s.miniWindowShowBestDropTotalValue;
     j["showMiniWindow"] = s.showMiniWindow;
@@ -175,14 +179,22 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     j["miniWindowShowTotalItems"] = s.miniWindowShowTotalItems;
     j["miniWindowShowSessionDuration"] = s.miniWindowShowSessionDuration;
     j["miniWindowClickThrough"] = s.miniWindowClickThrough;
+    j["mainWindowFontSize"] = s.mainWindowFontSize;
+    j["notificationFontSize"] = s.notificationFontSize;
     j["miniWindowHideTitleBar"] = s.miniWindowHideTitleBar;
+    j["miniWindowHideBorder"] = s.miniWindowHideBorder;
     j["miniWindowLocked"] = s.miniWindowLocked;
     j["miniWindowPosX"] = s.miniWindowPosX;
     j["miniWindowPosY"] = s.miniWindowPosY;
     j["miniWindowWidth"] = s.miniWindowWidth;
     j["miniWindowHeight"] = s.miniWindowHeight;
+    j["miniWindowEnableTextShadow"] = s.miniWindowEnableTextShadow;
+    j["miniWindowTextColor"] = s.miniWindowTextColor;
+    j["miniWindowFontSize"] = s.miniWindowFontSize;
+    j["miniWindowElementOrder"] = s.miniWindowElementOrder;
     j["showMainWindow"] = s.showMainWindow;
     j["mainWindowClickThrough"] = s.mainWindowClickThrough;
+    j["mainWindowHideTitleBar"] = s.mainWindowHideTitleBar;
     j["mainWindowPosX"] = s.mainWindowPosX;
     j["mainWindowPosY"] = s.mainWindowPosY;
     j["mainWindowWidth"] = s.mainWindowWidth;
@@ -411,6 +423,7 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     j["notificationInfusionAlert"] = s.notificationInfusionAlert;
     j["notificationIncludeAgonyInfusions"] = s.notificationIncludeAgonyInfusions;
     j["notificationStacking"] = s.notificationStacking;
+    j["notificationBlacklist"] = s.notificationBlacklist;
     j["notificationPlaySound"] = s.notificationPlaySound;
     j["notificationVolume"] = s.notificationVolume;
     j["notificationVolumeStandard"] = s.notificationVolumeStandard;
@@ -467,7 +480,10 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     if (j.contains("resetHotkey")) s.resetHotkey = j["resetHotkey"].get<std::string>();
     if (j.contains("nextResetDateTimeUtc")) s.nextResetDateTimeUtc = j["nextResetDateTimeUtc"].get<std::string>();
     if (j.contains("manualResetPending")) s.manualResetPending = j["manualResetPending"].get<bool>();
-    if (j.contains("iconSize")) s.iconSize = j["iconSize"].get<int>();
+    if (j.contains("historyIconSize")) s.historyIconSize = j["historyIconSize"].get<int>();
+    if (j.contains("profitIconSize")) s.profitIconSize = j["profitIconSize"].get<int>();
+    if (j.contains("itemsIconSize")) s.itemsIconSize = j["itemsIconSize"].get<int>();
+    if (j.contains("iconSize")) { s.itemsIconSize = j["iconSize"].get<int>(); } // Legacy support: migrate iconSize to itemsIconSize
     if (j.contains("showRarityBorder")) s.showRarityBorder = j["showRarityBorder"].get<bool>();
     if (j.contains("rarityBorderSize")) s.rarityBorderSize = j["rarityBorderSize"].get<float>();
     if (j.contains("enableGradientBackgrounds")) s.enableGradientBackgrounds = j["enableGradientBackgrounds"].get<bool>();
@@ -478,8 +494,11 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
         for (int i = 0; i < 4; i++) s.gradientBottomColor[i] = j["gradientBottomColor"][i].get<float>();
     
     if (j.contains("showProfitSparkline")) s.showProfitSparkline = j["showProfitSparkline"].get<bool>();
+    if (j.contains("sparklineColor")) s.sparklineColor = j["sparklineColor"].get<int>();
     if (j.contains("enableSummariesInProfitTab")) s.enableSummariesInProfitTab = j["enableSummariesInProfitTab"].get<bool>();
     if (j.contains("enableBestDropHighlight")) s.enableBestDropHighlight = j["enableBestDropHighlight"].get<bool>();
+    if (j.contains("bestDropHighlightColor") && j["bestDropHighlightColor"].is_array() && j["bestDropHighlightColor"].size() == 4)
+        for (int i = 0; i < 4; i++) s.bestDropHighlightColor[i] = j["bestDropHighlightColor"][i].get<float>();
     if (j.contains("enableBestDropInMiniWindow")) s.enableBestDropInMiniWindow = j["enableBestDropInMiniWindow"].get<bool>();
     if (j.contains("miniWindowShowBestDropTotalValue")) s.miniWindowShowBestDropTotalValue = j["miniWindowShowBestDropTotalValue"].get<bool>();
     if (j.contains("showMiniWindow")) s.showMiniWindow = j["showMiniWindow"].get<bool>();
@@ -490,14 +509,22 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     if (j.contains("miniWindowShowTotalItems")) s.miniWindowShowTotalItems = j["miniWindowShowTotalItems"].get<bool>();
     if (j.contains("miniWindowShowSessionDuration")) s.miniWindowShowSessionDuration = j["miniWindowShowSessionDuration"].get<bool>();
     if (j.contains("miniWindowClickThrough")) s.miniWindowClickThrough = j["miniWindowClickThrough"].get<bool>();
+    if (j.contains("mainWindowFontSize")) s.mainWindowFontSize = j["mainWindowFontSize"].get<float>();
+    if (j.contains("notificationFontSize")) s.notificationFontSize = j["notificationFontSize"].get<float>();
     if (j.contains("miniWindowHideTitleBar")) s.miniWindowHideTitleBar = j["miniWindowHideTitleBar"].get<bool>();
+    if (j.contains("miniWindowHideBorder")) s.miniWindowHideBorder = j["miniWindowHideBorder"].get<bool>();
     if (j.contains("miniWindowLocked")) s.miniWindowLocked = j["miniWindowLocked"].get<bool>();
     if (j.contains("miniWindowPosX")) s.miniWindowPosX = j["miniWindowPosX"].get<float>();
     if (j.contains("miniWindowPosY")) s.miniWindowPosY = j["miniWindowPosY"].get<float>();
     if (j.contains("miniWindowWidth")) s.miniWindowWidth = j["miniWindowWidth"].get<float>();
     if (j.contains("miniWindowHeight")) s.miniWindowHeight = j["miniWindowHeight"].get<float>();
+    if (j.contains("miniWindowEnableTextShadow")) s.miniWindowEnableTextShadow = j["miniWindowEnableTextShadow"].get<bool>();
+    if (j.contains("miniWindowTextColor")) s.miniWindowTextColor = j["miniWindowTextColor"].get<int>();
+    if (j.contains("miniWindowFontSize")) s.miniWindowFontSize = j["miniWindowFontSize"].get<float>();
+    if (j.contains("miniWindowElementOrder")) s.miniWindowElementOrder = j["miniWindowElementOrder"].get<std::vector<std::string>>();
     if (j.contains("showMainWindow")) s.showMainWindow = j["showMainWindow"].get<bool>();
     if (j.contains("mainWindowClickThrough")) s.mainWindowClickThrough = j["mainWindowClickThrough"].get<bool>();
+    if (j.contains("mainWindowHideTitleBar")) s.mainWindowHideTitleBar = j["mainWindowHideTitleBar"].get<bool>();
     if (j.contains("mainWindowPosX")) s.mainWindowPosX = j["mainWindowPosX"].get<float>();
     if (j.contains("mainWindowPosY")) s.mainWindowPosY = j["mainWindowPosY"].get<float>();
     if (j.contains("mainWindowWidth")) s.mainWindowWidth = j["mainWindowWidth"].get<float>();
@@ -739,6 +766,7 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     if (j.contains("notificationInfusionAlert")) s.notificationInfusionAlert = j["notificationInfusionAlert"].get<bool>();
     if (j.contains("notificationIncludeAgonyInfusions")) s.notificationIncludeAgonyInfusions = j["notificationIncludeAgonyInfusions"].get<bool>();
     if (j.contains("notificationStacking")) s.notificationStacking = j["notificationStacking"].get<bool>();
+    if (j.contains("notificationBlacklist")) s.notificationBlacklist = j["notificationBlacklist"].get<std::vector<int>>();
     if (j.contains("notificationPlaySound")) s.notificationPlaySound = j["notificationPlaySound"].get<bool>();
     if (j.contains("notificationVolume")) s.notificationVolume = j["notificationVolume"].get<float>();
     if (j.contains("notificationVolumeStandard")) s.notificationVolumeStandard = j["notificationVolumeStandard"].get<float>();
@@ -782,8 +810,11 @@ static void ClampSettings()
     g_Settings.automaticResetMode = std::clamp(g_Settings.automaticResetMode, 0, 7);
     g_Settings.minutesUntilResetAfterShutdown =
         std::clamp(g_Settings.minutesUntilResetAfterShutdown, 1, 24 * 60);
-    g_Settings.iconSize = std::clamp(g_Settings.iconSize, 16, 128);
+    g_Settings.historyIconSize = std::clamp(g_Settings.historyIconSize, 16, 96);
+    g_Settings.profitIconSize = std::clamp(g_Settings.profitIconSize, 16, 96);
+    g_Settings.itemsIconSize = std::clamp(g_Settings.itemsIconSize, 16, 96);
     g_Settings.gridIconSize = std::clamp(g_Settings.gridIconSize, 16, 128);
+    g_Settings.gridIconSizeCurrencies = std::clamp(g_Settings.gridIconSizeCurrencies, 16, 96);
     g_Settings.itemSortMode = std::clamp(g_Settings.itemSortMode, 0, 9);
     g_Settings.itemRarityFilterMin = std::clamp(g_Settings.itemRarityFilterMin, 0, 7);
     g_Settings.mainWindowOpacity = std::clamp(g_Settings.mainWindowOpacity, 0.0f, 1.0f);

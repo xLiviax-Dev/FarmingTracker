@@ -698,6 +698,10 @@ namespace Localization
             {"main_window_opacity_tooltip", "Прозрачность фона главного окна (0-100%)"},
             {"mini_window_opacity", "Прозрачность мини-окна"},
             {"mini_window_opacity_tooltip", "Прозрачность фона мини-окна (0-100%)"},
+            {"main_window_font_size", "Размер шрифта главного окна"},
+            {"main_window_font_size_tooltip", "Масштаб размера шрифта главного окна (0.5 = меньше, 1.0 = по умолчанию, 2.0 = больше)"},
+            {"notification_font_size", "Размер шрифта уведомлений"},
+            {"notification_font_size_tooltip", "Масштаб размера шрифта уведомлений (0.5 = меньше, 1.0 = по умолчанию, 2.0 = больше)"},
             {"accent_color", "Акцентный цвет (Кнопки, Вкладки, UI)"},
             {"accent_color_tooltip", "Акцентный цвет для кнопок, вкладок и элементов интерфейса"},
             {"stat_total_profit", "Общая прибыль"},
@@ -886,6 +890,8 @@ namespace Localization
             {"save_account", "Сохранить аккаунт"},
             {"reload_drf_token", "Перезагрузить токен DRF"},
             {"reload_gw2_api_key", "Перезагрузить ключ API GW2"},
+            {"get_drf_token", "Получить ваш токен DRF"},
+            {"get_gw2_api_key", "Получить ваш ключ API GW2"},
             {"reset_settings", "Авто Сброс"},
             {"visual_settings", "Визуальные настройки"},
             {"gradient_backgrounds", "Градиентные фоны"},
@@ -1414,6 +1420,7 @@ namespace Localization
             {"magnetite_manual_edit_tooltip", "Manually edit magnetite count (0-800)"},
             {"live_log_tab", "Live Log"},
             {"tab_live_log", "Live Log"},
+            {"select_log_folder", "Выбрать папку логов"},
         };
         return translations;
     }

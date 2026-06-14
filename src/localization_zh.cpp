@@ -698,6 +698,10 @@ namespace Localization
             {"main_window_opacity_tooltip", "主窗口背景透明度 (0-100%)"},
             {"mini_window_opacity", "小窗口透明度"},
             {"mini_window_opacity_tooltip", "小窗口背景透明度 (0-100%)"},
+            {"main_window_font_size", "主窗口字体大小"},
+            {"main_window_font_size_tooltip", "主窗口字体大小缩放 (0.5 = 较小, 1.0 = 默认, 2.0 = 较大)"},
+            {"notification_font_size", "通知字体大小"},
+            {"notification_font_size_tooltip", "通知字体大小缩放 (0.5 = 较小, 1.0 = 默认, 2.0 = 较大)"},
             {"accent_color", "强调色（按钮、标签页、UI）"},
             {"accent_color_tooltip", "按钮、标签页和UI元素的强调色"},
             {"stat_total_profit", "总收益"},
@@ -886,6 +890,8 @@ namespace Localization
             {"save_account", "保存账户"},
             {"reload_drf_token", "重新加载DRF令牌"},
             {"reload_gw2_api_key", "重新加载GW2 API密钥"},
+            {"get_drf_token", "获取您的DRF令牌"},
+            {"get_gw2_api_key", "获取您的GW2 API密钥"},
             {"reset_settings", "自动重置"},
             {"visual_settings", "视觉设置"},
             {"gradient_backgrounds", "渐变背景"},
@@ -1414,6 +1420,7 @@ namespace Localization
             {"magnetite_manual_edit_tooltip", "Manually edit magnetite count (0-800)"},
             {"live_log_tab", "Live Log"},
             {"tab_live_log", "Live Log"},
+            {"select_log_folder", "选择日志文件夹"},
         };
         return translations;
     }

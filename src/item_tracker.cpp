@@ -270,6 +270,16 @@ static void CheckAndTriggerNotification(int apiId, Stat& st)
     if (!st.details.loaded) { return; }
     if (!st.notificationPending) return;
 
+    // Exclude items from notification blacklist
+    {
+        std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+        if (std::find(g_Settings.notificationBlacklist.begin(), g_Settings.notificationBlacklist.end(), apiId) != g_Settings.notificationBlacklist.end())
+        {
+            st.notificationPending = false;
+            return;
+        }
+    }
+
     // Snapshot settings
     bool enableNotifications;
     bool notificationPrecursorAlert;
@@ -925,6 +935,13 @@ long long Stat::GetMaxProfit() const
 // Favorites System
 void ItemTracker::SetFavorite(int apiId, bool favorite)
 {
+    // If adding to favorites, remove from ignored first (before acquiring locks to avoid deadlock)
+    if (favorite)
+    {
+        IgnoredItemsManager::UnignoreItem(apiId);
+        IgnoredItemsManager::UnignoreCurrency(apiId);
+    }
+
     // Update persistent store first (survives reset)
     {
         std::lock_guard<std::mutex> pLock(s_PersistentMutex);
@@ -959,6 +976,14 @@ void ItemTracker::SetFavorite(int apiId, bool favorite)
         }
     }
 
+    // Save immediately (favorites are important user settings)
+    // Call SaveData BEFORE acquiring s_Mutex to avoid deadlock
+    const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
+    if (addonDir)
+    {
+        ItemTracker::SaveData(addonDir);
+    }
+
     std::lock_guard<std::mutex> lock(s_Mutex);
 
     // Update in items if present
@@ -970,20 +995,6 @@ void ItemTracker::SetFavorite(int apiId, bool favorite)
     auto currencyIt = s_Currencies.find(apiId);
     if (currencyIt != s_Currencies.end())
         currencyIt->second.isFavorite = favorite;
-
-    // If adding to favorites, remove from ignored
-    if (favorite)
-    {
-        IgnoredItemsManager::UnignoreItem(apiId);
-        IgnoredItemsManager::UnignoreCurrency(apiId);
-    }
-
-    // Save immediately (favorites are important user settings)
-    const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
-    if (addonDir)
-    {
-        ItemTracker::SaveData(addonDir);
-    }
 }
 
 bool ItemTracker::IsFavorite(int apiId)
@@ -2853,6 +2864,7 @@ void ItemTracker::ClearItemDetails()
         st.details.rarity.clear();
         st.details.itemType = ItemType::Unknown;
         st.details.knownByApi = false;
+        st.notificationPending = false; // Clear pending notifications on load
     }
 
     // Clear all currency details
@@ -2870,6 +2882,7 @@ void ItemTracker::ClearItemDetails()
         st.details.rarity.clear();
         st.details.itemType = ItemType::Unknown;
         st.details.knownByApi = false;
+        st.notificationPending = false; // Clear pending notifications on load
     }
 }
 

@@ -18,6 +18,7 @@ namespace UINotifications
         float fadeAmount = 0.0f;
         bool isPrecursor = false;
         bool isInfusion = false;
+        bool isFavorite = false;
         float customWidth = 0.0f; // Custom width for this notification (0 = default)
     };
 

@@ -358,7 +358,7 @@ static bool RenderItemsSubTab()
     }
 
     // Table
-    float iconSz   = static_cast<float>(g_Settings.iconSize);
+    float iconSz   = static_cast<float>(g_Settings.itemsIconSize);
     float iconColW = std::max(iconSz + 10.f, 36.f);
     float rowH     = UICommon::CalcTableRowHeight(iconSz);
 
@@ -687,7 +687,7 @@ static bool RenderCurrenciesSubTab()
     }
 
     // Table
-    float iconSz   = static_cast<float>(g_Settings.iconSize);
+    float iconSz   = static_cast<float>(g_Settings.itemsIconSize);
     float iconColW = std::max(iconSz + 10.f, 36.f);
     float rowH     = UICommon::CalcTableRowHeight(iconSz);
 

@@ -58,7 +58,9 @@ struct Settings
     // Set to true after a manual reset so the next OnAddonLoad does not auto-reset again.
     bool manualResetPending = false;
 
-    int  iconSize         = 36;
+    int  historyIconSize = 36;
+    int  profitIconSize = 36;
+    int  itemsIconSize = 36;
     bool showRarityBorder   = true;
     float rarityBorderSize = 3.0f;
 
@@ -69,12 +71,14 @@ struct Settings
 
     // Sparkline Settings
     bool showProfitSparkline = true;
+    int sparklineColor = 0xC8960C; // RGB(200,150,12)
 
     // Summaries Settings
     bool enableSummariesInProfitTab = true;
 
     // Best Drop Highlight Settings
     bool enableBestDropHighlight = true;
+    float bestDropHighlightColor[4] = {1.0f, 0.84f, 0.0f, 0.15f}; // Gold with low alpha
     bool enableBestDropInMiniWindow = false;
     bool miniWindowShowBestDropTotalValue = false; // New: Show best drop by total session value
 
@@ -87,16 +91,26 @@ struct Settings
     bool miniWindowShowTotalItems = false;
     bool miniWindowShowSessionDuration = false;
     bool miniWindowClickThrough = false;
+
+    // Font Size Settings
+    float mainWindowFontSize = 1.0f; // 1.0 = default, 0.8 = smaller, 1.2 = larger
+    float notificationFontSize = 1.0f; // 1.0 = default, 0.8 = smaller, 1.2 = larger
     bool miniWindowHideTitleBar = false;
+    bool miniWindowHideBorder = false;
     bool miniWindowLocked = false;
     float miniWindowPosX = 50.0f;
     float miniWindowPosY = 50.0f;
     float miniWindowWidth = 350.0f;
     float miniWindowHeight = 200.0f;
+    bool miniWindowEnableTextShadow = false;
+    int miniWindowTextColor = 0xFFFFFF; // White
+    float miniWindowFontSize = 14.0f;
+    std::vector<std::string> miniWindowElementOrder = {"Profit", "Profit/Hour", "TP Sell", "TP Instant", "Total Items", "Session Duration"};
 
     // Main Window Settings
     bool showMainWindow = true;
     bool mainWindowClickThrough = false;
+    bool mainWindowHideTitleBar = false;
     float mainWindowPosX = 100.0f;
     float mainWindowPosY = 100.0f;
     float mainWindowWidth = 800.0f;
@@ -347,6 +361,7 @@ struct Settings
     bool notificationInfusionAlert = true;
     bool notificationIncludeAgonyInfusions = false;
     bool notificationStacking = true;
+    std::vector<int> notificationBlacklist; // Items excluded from notifications
 
     // Audio Settings
     bool notificationPlaySound = false;

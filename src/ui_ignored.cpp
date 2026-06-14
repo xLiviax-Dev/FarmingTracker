@@ -403,7 +403,7 @@ static void RenderItemsSubTab()
             filtered.push_back(id);
     }
 
-    float iconSz   = static_cast<float>(g_Settings.iconSize);
+    float iconSz   = static_cast<float>(g_Settings.itemsIconSize);
     float iconColW = std::max(iconSz + 10.f, 36.f);
     float rowH     = UICommon::CalcTableRowHeight(iconSz);
     float tableH   = ImGui::GetContentRegionAvail().y - 4.f;
@@ -962,7 +962,7 @@ static void RenderCurrenciesSubTab()
             filtered.push_back(id);
     }
 
-    float iconSz   = static_cast<float>(g_Settings.iconSize);
+    float iconSz   = static_cast<float>(g_Settings.itemsIconSize);
     float iconColW = std::max(iconSz + 10.f, 36.f);
     float rowH     = UICommon::CalcTableRowHeight(iconSz);
     float tableH   = ImGui::GetContentRegionAvail().y - 4.f;

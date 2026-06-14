@@ -698,6 +698,10 @@ namespace Localization
             {"main_window_opacity_tooltip", "Przezroczystość tła głównego okna (0-100%)"},
             {"mini_window_opacity", "Przezroczystość mini okna"},
             {"mini_window_opacity_tooltip", "Przezroczystość tła mini okna (0-100%)"},
+            {"main_window_font_size", "Rozmiar czcionki głównego okna"},
+            {"main_window_font_size_tooltip", "Skala rozmiaru czcionki głównego okna (0.5 = mniejsza, 1.0 = domyślna, 2.0 = większa)"},
+            {"notification_font_size", "Rozmiar czcionki powiadomień"},
+            {"notification_font_size_tooltip", "Skala rozmiaru czcionki powiadomień (0.5 = mniejsza, 1.0 = domyślna, 2.0 = większa)"},
             {"accent_color", "Kolor akcentu (Przyciski, Karty, UI)"},
             {"accent_color_tooltip", "Kolor akcentu dla przycisków, kart i elementów interfejsu"},
             {"stat_total_profit", "Łączny zysk"},
@@ -886,6 +890,8 @@ namespace Localization
             {"save_account", "Zapisz konto"},
             {"reload_drf_token", "Przeładuj token DRF"},
             {"reload_gw2_api_key", "Przeładuj klucz API GW2"},
+            {"get_drf_token", "Get your DRF Token"},
+            {"get_gw2_api_key", "Get your GW2 API Key"},
             {"reset_settings", "Auto Reset"},
             {"visual_settings", "Ustawienia wizualne"},
             {"gradient_backgrounds", "Tła gradientowe"},
@@ -1414,6 +1420,7 @@ namespace Localization
             {"magnetite_manual_edit_tooltip", "Manually edit magnetite count (0-800)"},
             {"live_log_tab", "Live Log"},
             {"tab_live_log", "Live Log"},
+            {"select_log_folder", "Wybierz folder logów"},
         };
         return translations;
     }

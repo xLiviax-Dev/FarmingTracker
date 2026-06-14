@@ -390,38 +390,6 @@ static void RenderPage_General()
         EndSection();
     }
 
-    if (BeginSection("hotkeys", Localization::GetText("hotkeys"), false, "toggle"))
-    {
-        LabelText(Localization::GetText("toggle_hotkey_label"));
-        static char s_ToggleHkBuf[256] = "";
-        static bool s_ToggleHkInit = false;
-        if (!s_ToggleHkInit) { strncpy_s(s_ToggleHkBuf, g_Settings.toggleHotkey.c_str(), sizeof(s_ToggleHkBuf)); s_ToggleHkInit = true; }
-        ImGui::SetNextItemWidth(160.0f);
-        if (ImGui::InputText("##ToggleHotkey", s_ToggleHkBuf, sizeof(s_ToggleHkBuf)))
-        { g_Settings.toggleHotkey = s_ToggleHkBuf; SettingsManager::Save(); }
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("toggle_hotkey_tooltip"));
-
-        LabelText(Localization::GetText("mini_window_toggle_hotkey"));
-        static char s_MiniHkBuf[256] = "";
-        static bool s_MiniHkInit = false;
-        if (!s_MiniHkInit) { strncpy_s(s_MiniHkBuf, g_Settings.miniWindowToggleHotkey.c_str(), sizeof(s_MiniHkBuf)); s_MiniHkInit = true; }
-        ImGui::SetNextItemWidth(160.0f);
-        if (ImGui::InputText("##MiniToggleHotkey", s_MiniHkBuf, sizeof(s_MiniHkBuf)))
-        { g_Settings.miniWindowToggleHotkey = s_MiniHkBuf; SettingsManager::Save(); }
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("mini_window_toggle_hotkey_tooltip"));
-
-        LabelText("Reset Hotkey");
-        static char s_ResetHkBuf[256] = "";
-        static bool s_ResetHkInit = false;
-        if (!s_ResetHkInit) { strncpy_s(s_ResetHkBuf, g_Settings.resetHotkey.c_str(), sizeof(s_ResetHkBuf)); s_ResetHkInit = true; }
-        ImGui::SetNextItemWidth(160.0f);
-        if (ImGui::InputText("##ResetHotkey", s_ResetHkBuf, sizeof(s_ResetHkBuf)))
-        { g_Settings.resetHotkey = s_ResetHkBuf; SettingsManager::Save(); }
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Hotkey to trigger reset (leave empty to disable)");
-
-        EndSection();
-    }
-
     if (BeginSection("magnetite", Localization::GetText("magnetite_tracker"), false, "magnetite"))
     {
         if (ImGui::Checkbox(Localization::GetText("enable_magnetite_tracker"), &g_Settings.enableMagnetiteTracker)) SettingsManager::Save();
@@ -514,7 +482,7 @@ static void RenderPage_Account()
                 const auto& acc   = g_Settings.accounts[i];
                 bool        isSel = (i == g_Settings.currentAccountIndex);
                 ImVec2      pos   = ImGui::GetCursorScreenPos();
-                const float H     = 22.0f;
+                const float H     = 27.0f;
 
                 ImGui::PushID(i);
                 ImGui::InvisibleButton("##accrow", ImVec2(avW, H));
@@ -554,7 +522,7 @@ static void RenderPage_Account()
                 const char* tag    = hasToken ? "active" : "no token";
                 ImU32       tagCol = hasToken ? IM_COL32(64,176,48,255) : IM_COL32(176,80,48,255);
                 float       tagW   = ImGui::CalcTextSize(tag).x + 8.0f;
-                const float tagH   = 14.0f;
+                const float tagH   = 19.0f;
                 float       tagX   = pos.x + avW - tagW - 4.0f;
                 float       tagY   = pos.y + (H - tagH) * 0.5f;
                 dl->AddRectFilled(ImVec2(tagX,tagY), ImVec2(tagX+tagW,tagY+tagH),
@@ -592,18 +560,18 @@ static void RenderPage_Account()
         ImGui::PopStyleColor(3);
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("remove_account_tooltip"));
 
-        EndSection();
-    }
-
-    // Edit Account section — rendered outside the account list section so it appears immediately below
-    if (!g_Settings.accounts.empty() && g_Settings.currentAccountIndex >= 0 &&
-        g_Settings.currentAccountIndex < (int)g_Settings.accounts.size())
-    {
-        char editAccountLabel[256];
-        snprintf(editAccountLabel, sizeof(editAccountLabel), Localization::GetText("edit_account"), g_Settings.accounts[g_Settings.currentAccountIndex].name.c_str());
-
-        if (BeginSection("accedit", editAccountLabel, false, "fingerprint"))
+        // Edit Account section — integrated into Account Management
+        if (!g_Settings.accounts.empty() && g_Settings.currentAccountIndex >= 0 &&
+            g_Settings.currentAccountIndex < (int)g_Settings.accounts.size())
         {
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+            
+            char editAccountLabel[256];
+            snprintf(editAccountLabel, sizeof(editAccountLabel), Localization::GetText("edit_account"), g_Settings.accounts[g_Settings.currentAccountIndex].name.c_str());
+            ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "%s", editAccountLabel);
+            
             static bool s_AccInit = false;
             if (!s_AccInit) {
                 { std::lock_guard<std::mutex> lock(UICommon::s_AccountNameMutex);
@@ -658,8 +626,30 @@ static void RenderPage_Account()
                 Gw2Fetcher::UpdateApiKey();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("reload_gw2_api_key_tooltip"));
 
-            EndSection();
+            ImGui::Spacing();
+            const float acR = g_Settings.accentColorR;
+            const float acG = g_Settings.accentColorG;
+            const float acB = g_Settings.accentColorB;
+            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(acR, acG, acB, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(acR * 1.2f, acG * 1.2f, acB * 1.2f, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(acR * 0.8f, acG * 0.8f, acB * 0.8f, 1.00f));
+            if (ImGui::Button(Localization::GetText("get_drf_token")))
+            {
+                ShellExecuteA(nullptr, "open", "https://drf.rs/", nullptr, nullptr, SW_SHOWNORMAL);
+            }
+            ImGui::PopStyleColor(3);
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(acR, acG, acB, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(acR * 1.2f, acG * 1.2f, acB * 1.2f, 1.00f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(acR * 0.8f, acG * 0.8f, acB * 0.8f, 1.00f));
+            if (ImGui::Button(Localization::GetText("get_gw2_api_key")))
+            {
+                ShellExecuteA(nullptr, "open", "https://www.guildwars2.com/", nullptr, nullptr, SW_SHOWNORMAL);
+            }
+            ImGui::PopStyleColor(3);
         }
+
+        EndSection();
     }
 
     ImGui::PopStyleColor(2);
@@ -677,12 +667,20 @@ static void RenderPage_Appearance()
     {
         if (ImGui::Checkbox(Localization::GetText("show_item_icons"), &g_Settings.showItemIcons)) SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_item_icons_tooltip"));
-        if (ImGui::SliderInt(Localization::GetText("icon_size"), &g_Settings.iconSize, 16, 96)) SettingsManager::Save();
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("icon_size_tooltip"));
+        if (ImGui::SliderInt(Localization::GetText("history_icon_size"), &g_Settings.historyIconSize, 16, 96)) SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("history_icon_size_tooltip"));
+        if (ImGui::SliderInt(Localization::GetText("profit_icon_size"), &g_Settings.profitIconSize, 16, 96)) SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("profit_icon_size_tooltip"));
+        if (ImGui::SliderInt(Localization::GetText("items_icon_size"), &g_Settings.itemsIconSize, 16, 96)) SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("items_icon_size_tooltip"));
         if (ImGui::SliderInt(Localization::GetText("timeline_icon_size_items"), &g_Settings.timelineIconSizeItems, 16, 96)) SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("timeline_icon_size_items_tooltip"));
         if (ImGui::SliderInt(Localization::GetText("timeline_icon_size_currencies"), &g_Settings.timelineIconSizeCurrencies, 16, 48)) SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("timeline_icon_size_currencies_tooltip"));
+        if (ImGui::SliderInt(Localization::GetText("grid_icon_size_items"), &g_Settings.gridIconSize, 16, 96)) SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("grid_icon_size_items_tooltip"));
+        if (ImGui::SliderInt(Localization::GetText("grid_icon_size_currencies"), &g_Settings.gridIconSizeCurrencies, 16, 96)) SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("grid_icon_size_currencies_tooltip"));
         if (ImGui::Checkbox(Localization::GetText("show_rarity_borders"), &g_Settings.showRarityBorder)) SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_rarity_borders_tooltip"));
         if (g_Settings.showRarityBorder)
@@ -719,23 +717,32 @@ static void RenderPage_Appearance()
         }
         if (ImGui::Checkbox(Localization::GetText("show_profit_sparkline"), &g_Settings.showProfitSparkline)) SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_profit_sparkline_tooltip"));
+        
+        ImGui::Separator();
+        ImGui::Spacing();
+        
+        LabelText(Localization::GetText("sparkline_color"));
+        float sparklineColor[3] = {
+            ((g_Settings.sparklineColor >> 16) & 0xFF) / 255.0f,
+            ((g_Settings.sparklineColor >> 8) & 0xFF) / 255.0f,
+            (g_Settings.sparklineColor & 0xFF) / 255.0f
+        };
+        if (ImGui::ColorEdit3("##SparklineColor", sparklineColor, ImGuiColorEditFlags_NoInputs))
+        {
+            g_Settings.sparklineColor = 
+                ((int)(sparklineColor[0] * 255.0f) << 16) |
+                ((int)(sparklineColor[1] * 255.0f) << 8) |
+                (int)(sparklineColor[2] * 255.0f);
+            SettingsManager::Save();
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("sparkline_color_tooltip"));
+        
+        ImGui::Separator();
+        ImGui::Spacing();
+        
         EndSection();
     }
 
-    if (BeginSection("opacity", Localization::GetText("window_opacity"), false, "main_window"))
-    {
-        LabelText(Localization::GetText("main_window_opacity"));
-        float mainPct = (1.0f - g_Settings.mainWindowOpacity) * 100.0f;
-        if (ImGui::SliderFloat("##MainOpacity", &mainPct, 0.0f, 100.0f, "%.0f%%"))
-        { g_Settings.mainWindowOpacity = 1.0f - mainPct / 100.0f; SettingsManager::Save(); }
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("main_window_opacity_tooltip"));
-        LabelText(Localization::GetText("mini_window_opacity"));
-        float miniPct = (1.0f - g_Settings.miniWindowOpacity) * 100.0f;
-        if (ImGui::SliderFloat("##MiniOpacity", &miniPct, 0.0f, 100.0f, "%.0f%%"))
-        { g_Settings.miniWindowOpacity = 1.0f - miniPct / 100.0f; SettingsManager::Save(); }
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_opacity_tooltip"));
-        EndSection();
-    }
 
     ImGui::PopStyleColor(2);
 }
@@ -752,6 +759,13 @@ static void RenderPage_Windows()
     {
         if (ImGui::Checkbox(Localization::GetText("main_window_click_through"), &g_Settings.mainWindowClickThrough)) SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("main_window_click_through_tooltip"));
+        if (ImGui::Checkbox(Localization::GetText("main_window_hide_title_bar"), &g_Settings.mainWindowHideTitleBar)) SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("main_window_hide_title_bar_tooltip"));
+        ImGui::Spacing();
+        LabelText(Localization::GetText("main_window_font_size"));
+        if (ImGui::SliderFloat("##MainFontSize", &g_Settings.mainWindowFontSize, 0.5f, 2.0f, "%.2f"))
+        { SettingsManager::Save(); }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("main_window_font_size_tooltip"));
         EndSection();
     }
 
@@ -759,8 +773,6 @@ static void RenderPage_Windows()
     {
         if (ImGui::Checkbox(Localization::GetText("mini_window_click_through"),  &g_Settings.miniWindowClickThrough))  SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_click_through_tooltip"));
-        if (ImGui::Checkbox(Localization::GetText("mini_window_hide_title_bar"), &g_Settings.miniWindowHideTitleBar)) SettingsManager::Save();
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_hide_title_bar_tooltip"));
         if (ImGui::Checkbox(Localization::GetText("mini_window_locked"),          &g_Settings.miniWindowLocked))        SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_locked_tooltip"));
 
@@ -779,6 +791,102 @@ static void RenderPage_Windows()
             if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_total"),  &g_Settings.miniWindowShowBestDropTotalValue)) SettingsManager::Save();
             ImGui::Unindent();
         }
+        
+        SubHeader("");
+        if (ImGui::Checkbox(Localization::GetText("mini_window_hide_title_bar"), &g_Settings.miniWindowHideTitleBar)) 
+        {
+            g_Settings.miniWindowHideBorder = g_Settings.miniWindowHideTitleBar;
+            SettingsManager::Save();
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_hide_title_bar_tooltip"));
+        if (ImGui::Checkbox(Localization::GetText("mini_window_enable_text_shadow"), &g_Settings.miniWindowEnableTextShadow)) SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_enable_text_shadow_tooltip"));
+        
+        LabelText(Localization::GetText("mini_window_font_size"));
+        if (ImGui::SliderFloat("##MiniFontSize", &g_Settings.miniWindowFontSize, 10.0f, 30.0f, "%.1f"))
+        {
+            SettingsManager::Save();
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_font_size_tooltip"));
+        
+        LabelText(Localization::GetText("mini_window_text_color"));
+        float textColor[3] = {
+            ((g_Settings.miniWindowTextColor >> 16) & 0xFF) / 255.0f,
+            ((g_Settings.miniWindowTextColor >> 8) & 0xFF) / 255.0f,
+            (g_Settings.miniWindowTextColor & 0xFF) / 255.0f
+        };
+        if (ImGui::ColorEdit3("##MiniTextColor", textColor, ImGuiColorEditFlags_NoInputs))
+        {
+            g_Settings.miniWindowTextColor = 
+                ((int)(textColor[0] * 255.0f) << 16) |
+                ((int)(textColor[1] * 255.0f) << 8) |
+                (int)(textColor[2] * 255.0f);
+            SettingsManager::Save();
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_text_color_tooltip"));
+        
+        SubHeader("");
+        ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "%s", Localization::GetText("mini_window_element_order"));
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_element_order_tooltip"));
+        
+        // Element order UI with table for alignment
+        if (ImGui::BeginTable("ElementOrderTable", 2, ImGuiTableFlags_SizingFixedFit))
+        {
+            ImGui::TableSetupColumn("Element", ImGuiTableColumnFlags_WidthFixed, 150.0f);
+            ImGui::TableSetupColumn("Actions", ImGuiTableColumnFlags_WidthFixed, 60.0f);
+            ImGui::TableHeadersRow();
+            
+            for (int i = 0; i < static_cast<int>(g_Settings.miniWindowElementOrder.size()); ++i)
+            {
+                ImGui::PushID(i);
+                ImGui::TableNextRow();
+                
+                // Element name
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%s", g_Settings.miniWindowElementOrder[i].c_str());
+                
+                // Action buttons
+                ImGui::TableSetColumnIndex(1);
+                if (i > 0)
+                {
+                    if (ImGui::Button("^"))
+                    {
+                        std::swap(g_Settings.miniWindowElementOrder[i], g_Settings.miniWindowElementOrder[i - 1]);
+                        SettingsManager::Save();
+                    }
+                    ImGui::SameLine();
+                }
+                
+                if (i < static_cast<int>(g_Settings.miniWindowElementOrder.size()) - 1)
+                {
+                    if (ImGui::Button("v"))
+                    {
+                        std::swap(g_Settings.miniWindowElementOrder[i], g_Settings.miniWindowElementOrder[i + 1]);
+                        SettingsManager::Save();
+                    }
+                }
+                
+                ImGui::PopID();
+            }
+            
+            ImGui::EndTable();
+        }
+        
+        EndSection();
+    }
+
+    if (BeginSection("opacity", Localization::GetText("window_opacity"), false, "main_window"))
+    {
+        LabelText(Localization::GetText("main_window_opacity"));
+        float mainPct = (1.0f - g_Settings.mainWindowOpacity) * 100.0f;
+        if (ImGui::SliderFloat("##MainOpacity", &mainPct, 0.0f, 100.0f, "%.0f%%"))
+        { g_Settings.mainWindowOpacity = 1.0f - mainPct / 100.0f; SettingsManager::Save(); }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("main_window_opacity_tooltip"));
+        LabelText(Localization::GetText("mini_window_opacity"));
+        float miniPct = (1.0f - g_Settings.miniWindowOpacity) * 100.0f;
+        if (ImGui::SliderFloat("##MiniOpacity", &miniPct, 0.0f, 100.0f, "%.0f%%"))
+        { g_Settings.miniWindowOpacity = 1.0f - miniPct / 100.0f; SettingsManager::Save(); }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_opacity_tooltip"));
         EndSection();
     }
 
@@ -893,6 +1001,11 @@ static void RenderPage_Favorites()
         ImGui::Spacing();
         if (ImGui::Checkbox(Localization::GetText("enable_best_drop_highlight"), &g_Settings.enableBestDropHighlight)) SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_best_drop_highlight_tooltip"));
+        if (g_Settings.enableBestDropHighlight) {
+            ImGui::SameLine();
+            if (ImGui::ColorEdit3("##BestDropCol", g_Settings.bestDropHighlightColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_PickerHueWheel)) SettingsManager::Save();
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("row_color"));
+        }
         EndSection();
     }
 
@@ -920,6 +1033,11 @@ static void RenderPage_Notifications()
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_duration_tooltip"));
             if (ImGui::Checkbox(Localization::GetText("notification_stacking"), &g_Settings.notificationStacking)) SettingsManager::Save();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_stacking_tooltip"));
+            ImGui::Spacing();
+            LabelText(Localization::GetText("notification_font_size"));
+            if (ImGui::SliderFloat("##NotificationFontSize", &g_Settings.notificationFontSize, 0.5f, 2.0f, "%.2f"))
+            { SettingsManager::Save(); }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_font_size_tooltip"));
 
             SubHeader(Localization::GetText("notification_play_sound"));
             if (ImGui::Checkbox("##PlaySound", &g_Settings.notificationPlaySound)) SettingsManager::Save();
@@ -1011,6 +1129,88 @@ static void RenderPage_Notifications()
                 if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_include_agony_tooltip"));
                 ImGui::Unindent();
             }
+            EndSection();
+        }
+
+        if (BeginSection("blacklist", Localization::GetText("notification_blacklist"), true, "ignored"))
+        {
+            ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "%s", Localization::GetText("blacklist_add_item"));
+            
+            // Input field for adding item by ID
+            static int blacklistItemId = 0;
+            ImGui::InputInt(Localization::GetText("blacklist_item_id"), &blacklistItemId);
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("blacklist_item_id_tooltip"));
+            
+            ImGui::SameLine();
+            if (ImGui::Button(Localization::GetText("add")))
+            {
+                if (blacklistItemId > 0)
+                {
+                    // Check if item is already in blacklist
+                    if (std::find(g_Settings.notificationBlacklist.begin(), g_Settings.notificationBlacklist.end(), blacklistItemId) == g_Settings.notificationBlacklist.end())
+                    {
+                        g_Settings.notificationBlacklist.push_back(blacklistItemId);
+                        SettingsManager::Save();
+                    }
+                    blacklistItemId = 0;
+                }
+            }
+            
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+            
+            // Display blacklist items
+            ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "%s", Localization::GetText("notification_blacklist_tooltip"));
+            
+            if (!g_Settings.notificationBlacklist.empty())
+            {
+                for (int i = 0; i < static_cast<int>(g_Settings.notificationBlacklist.size()); ++i)
+                {
+                    int itemId = g_Settings.notificationBlacklist[i];
+                    
+                    // Get item details
+                    auto st = ItemTracker::GetItemStat(itemId);
+                    std::string itemName = st.details.loaded ? st.details.name : ("Item " + std::to_string(itemId));
+                    std::string iconUrl = st.details.loaded ? st.details.iconUrl : "";
+                    
+                    // Display item with icon and name
+                    ImGui::PushID(i);
+                    
+                    // Icon
+                    if (!iconUrl.empty())
+                    {
+                        UICommon::EnsureItemIconTexture(itemId, iconUrl);
+                        // Try to get the texture from the icon cache
+                        // Note: GetIcon doesn't exist, so we'll skip the icon display for now
+                        // TODO: Implement proper icon display when icon cache is accessible
+                    }
+                    
+                    // Name
+                    ImGui::Text("%s", itemName.c_str());
+                    
+                    // Remove button (red X)
+                    ImGui::SameLine();
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+                    if (ImGui::Button("X", ImVec2(20, 20)))
+                    {
+                        g_Settings.notificationBlacklist.erase(g_Settings.notificationBlacklist.begin() + i);
+                        SettingsManager::Save();
+                        ImGui::PopStyleColor(2);
+                        ImGui::PopID();
+                        break;
+                    }
+                    ImGui::PopStyleColor(2);
+                    
+                    ImGui::PopID();
+                }
+            }
+            else
+            {
+                ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "(Blacklist is empty)");
+            }
+            
             EndSection();
         }
 

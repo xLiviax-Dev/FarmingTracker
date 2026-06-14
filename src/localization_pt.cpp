@@ -698,6 +698,10 @@ namespace Localization
             {"main_window_opacity_tooltip", "Transparência do fundo da janela principal (0-100%)"},
             {"mini_window_opacity", "Transparência mini janela"},
             {"mini_window_opacity_tooltip", "Transparência do fundo da mini janela (0-100%)"},
+            {"main_window_font_size", "Tamanho da Fonte da Janela Principal"},
+            {"main_window_font_size_tooltip", "Escala do tamanho da fonte da janela principal (0.5 = menor, 1.0 = padrão, 2.0 = maior)"},
+            {"notification_font_size", "Tamanho da Fonte de Notificação"},
+            {"notification_font_size_tooltip", "Escala do tamanho da fonte de notificações (0.5 = menor, 1.0 = padrão, 2.0 = maior)"},
             {"accent_color", "Cor de destaque (Botões, Abas, UI)"},
             {"accent_color_tooltip", "Cor de destaque para botões, abas e elementos da interface"},
             {"stat_total_profit", "Lucro total"},
@@ -886,6 +890,8 @@ namespace Localization
             {"save_account", "Salvar conta"},
             {"reload_drf_token", "Recarregar token DRF"},
             {"reload_gw2_api_key", "Recarregar chave API GW2"},
+            {"get_drf_token", "Get your DRF Token"},
+            {"get_gw2_api_key", "Get your GW2 API Key"},
             {"reset_settings", "Auto Reset"},
             {"visual_settings", "Configurações visuais"},
             {"gradient_backgrounds", "Fundos gradiente"},
@@ -1414,6 +1420,7 @@ namespace Localization
             {"magnetite_manual_edit_tooltip", "Manually edit magnetite count (0-800)"},
             {"live_log_tab", "Live Log"},
             {"tab_live_log", "Live Log"},
+            {"select_log_folder", "Selecionar pasta de logs"},
         };
         return translations;
     }

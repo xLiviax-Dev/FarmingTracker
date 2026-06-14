@@ -491,11 +491,13 @@ namespace UICommon
     {
         bool neg     = copper < 0;
         long long ac = copper < 0 ? -copper : copper;
-        int g        = (int)(ac / 10000);
-        int s        = (int)((ac % 10000) / 100);
-        int c        = (int)(ac % 100);
         std::ostringstream oss;
         if (neg) oss << "-";
+        
+        // Standard format: 1g 23s 45c
+        int g = (int)(ac / 10000);
+        int s = (int)((ac % 10000) / 100);
+        int c = (int)(ac % 100);
         if (g > 0)       oss << g << "g ";
         if (s > 0 || g > 0) oss << s << "s ";
         oss << c << "c";

@@ -600,14 +600,14 @@ void RenderCurrenciesTab()
     {
         // Table View for Currencies
         auto renderCurrencyRow = [&](int id, const Stat& st) {
-            float rowH = UICommon::CalcTableRowHeight(static_cast<float>(g_Settings.iconSize));
+            float rowH = UICommon::CalcTableRowHeight(static_cast<float>(g_Settings.itemsIconSize));
             ImGui::TableNextRow(0, rowH);
             if (st.isFavorite && g_Settings.enableFavoriteRowColor) ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(g_Settings.favoriteRowColor[0], g_Settings.favoriteRowColor[1], g_Settings.favoriteRowColor[2], g_Settings.favoriteRowColor[3])));
             ImGui::TableSetColumnIndex(0);
-            UICommon::AlignTableCellIcon(rowH, static_cast<float>(g_Settings.iconSize));
+            UICommon::AlignTableCellIcon(rowH, static_cast<float>(g_Settings.itemsIconSize));
             std::string iconUrl = st.details.iconUrl;
             if (id == 1 && iconUrl.empty()) iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
-            UICommon::DrawItemIconCell(id, iconUrl, static_cast<float>(g_Settings.iconSize), st.details.loaded ? st.details.rarity : "");
+            UICommon::DrawItemIconCell(id, iconUrl, static_cast<float>(g_Settings.itemsIconSize), st.details.loaded ? st.details.rarity : "");
             if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
             {
                 pendingContextId = id;
@@ -710,7 +710,7 @@ void RenderCurrenciesTab()
                         {
                             if (ImGui::BeginTable("##CurrenciesTable_v3_Tabs", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
                             {
-                                float iconColumnWidth = (static_cast<float>(g_Settings.iconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.iconSize) + 10.0f) : 70.0f;
+                                float iconColumnWidth = (static_cast<float>(g_Settings.itemsIconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.itemsIconSize) + 10.0f) : 70.0f;
                                 ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);
                                 ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 430.0f);
                                 ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 100.0f);
@@ -745,7 +745,7 @@ void RenderCurrenciesTab()
                     {
                         if (ImGui::BeginTable(("##CurrenciesTable_v3_" + cat).c_str(), 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
                         {
-                            float iconColumnWidth = (static_cast<float>(g_Settings.iconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.iconSize) + 10.0f) : 70.0f;
+                            float iconColumnWidth = (static_cast<float>(g_Settings.itemsIconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.itemsIconSize) + 10.0f) : 70.0f;
                             ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);
                             ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 430.0f);
                             ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 100.0f);
@@ -772,7 +772,7 @@ void RenderCurrenciesTab()
             int currencyTableColumnCount = 4;
             if (ImGui::BeginTable("##CurrenciesTable_v3", currencyTableColumnCount, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
             {
-                float iconColumnWidth = (static_cast<float>(g_Settings.iconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.iconSize) + 10.0f) : 70.0f;
+                float iconColumnWidth = (static_cast<float>(g_Settings.itemsIconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.itemsIconSize) + 10.0f) : 70.0f;
                 ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);
                 ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 430.0f);
                 ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 100.0f);

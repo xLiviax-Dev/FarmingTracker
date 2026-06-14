@@ -244,7 +244,7 @@ void RenderSessionHistoryTab()
                                 continue;
                         }
 
-                        float iconSz = static_cast<float>((std::min)(g_Settings.iconSize, 24));
+                        float iconSz = static_cast<float>((std::min)(g_Settings.historyIconSize, 24));
                         float rowH = UICommon::CalcTableRowHeight(iconSz);
                         ImGui::TableNextRow(0, rowH);
 

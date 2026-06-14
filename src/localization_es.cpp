@@ -698,6 +698,10 @@ namespace Localization
             {"main_window_opacity_tooltip", "Transparencia del fondo de la ventana principal (0-100%)"},
             {"mini_window_opacity", "Transparencia mini ventana"},
             {"mini_window_opacity_tooltip", "Transparencia del fondo de la mini ventana (0-100%)"},
+            {"main_window_font_size", "Tamaño de fuente ventana principal"},
+            {"main_window_font_size_tooltip", "Escala de tamaño de fuente ventana principal (0.5 = más pequeña, 1.0 = predeterminada, 2.0 = más grande)"},
+            {"notification_font_size", "Tamaño de fuente notificación"},
+            {"notification_font_size_tooltip", "Escala de tamaño de fuente notificaciones (0.5 = más pequeña, 1.0 = predeterminada, 2.0 = más grande)"},
             {"accent_color", "Color de acento (Botones, Pestañas, UI)"},
             {"accent_color_tooltip", "Color de acento para botones, pestañas y elementos de la interfaz"},
             {"stat_total_profit", "Beneficio total"},
@@ -1414,6 +1418,7 @@ namespace Localization
             {"magnetite_manual_edit_tooltip", "Manually edit magnetite count (0-800)"},
             {"live_log_tab", "Live Log"},
             {"tab_live_log", "Live Log"},
+            {"select_log_folder", "Seleccionar carpeta de registros"},
         };
         return translations;
     }

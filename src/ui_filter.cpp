@@ -63,7 +63,7 @@ static void OpenFolderDialogAsync(const std::string& initialPath)
 
         BROWSEINFOA bi = {};
         bi.hwndOwner    = nullptr; // no owner — avoids blocking GW2 window
-        bi.lpszTitle    = "Select log folder";
+        bi.lpszTitle    = Localization::GetText("select_log_folder");
         bi.ulFlags      = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
         bi.lpfn         = BrowseCallbackProc;
 

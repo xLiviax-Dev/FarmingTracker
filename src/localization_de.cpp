@@ -1555,7 +1555,8 @@ namespace Localization
             {"filter_by_item_name_or_map", "Nach Item-Name oder Karte filtern"},
 
             // Filter
-            {"open_folder_button", "Ordner öffnen"}
+            {"open_folder_button", "Ordner öffnen"},
+            {"select_log_folder", "Log-Ordner auswählen"}
         };
         return translations;
     }

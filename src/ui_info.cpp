@@ -25,7 +25,7 @@ namespace UIInfo
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-static constexpr const char* VERSION       = "2.0.0.3";
+static constexpr const char* VERSION       = "2.0.0.4";
 static constexpr const char* AUTHOR        = "x Livia x";
 static constexpr const char* GITHUB_URL    = "https://github.com/xLiviax-Dev/FarmingTracker";
 static constexpr const char* GITHUB_ISSUES = "https://github.com/xLiviax-Dev/FarmingTracker/issues";
@@ -261,12 +261,13 @@ void Render()
     {
         { "Add your account",
           "Go to Settings -> Accounts and enter your GW2 API key.\n"
-          "Permissions needed: inventories, wallet & tradingpost." },
+          "Permissions needed: inventories, wallet & tradingpost.\n"
+          "Also add your DRF Token for real-time inventory tracking." },
         { "Start a session",
           "Press Alt+F to open the main window (reassignable in Settings).\n"
           "Click Reset session to begin tracking from scratch." },
         { "Track your drops",
-          "Play normally - FarmingTracker auto-detects inventory changes\n"
+          "Play normally - FarmingTracker auto-detects inventory changes via DRF\n"
           "and prices everything via the GW2 Trading Post." },
         { "Review results",
           "Check Overview for totals, Drops for item breakdown,\n"
@@ -298,6 +299,30 @@ void Render()
         ImGui::TextUnformatted(steps[i].desc);
         ImGui::PopStyleColor();
         ImGui::EndGroup();
+        
+        // Add buttons for GW2 API Key and DRF Token after the first step
+        if (i == 0)
+        {
+            ImGui::Spacing();
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 4.0f));
+            
+            if (ImGui::Button("Get GW2 API Key"))
+            {
+                OpenUrl("https://www.guildwars2.com/");
+            }
+            ImGui::SameLine(0, 8.0f);
+            if (ImGui::Button("Get DRF Token"))
+            {
+                OpenUrl("https://drf.rs/");
+            }
+            
+            ImGui::PopStyleVar();
+            ImGui::PopStyleColor(3);
+        }
+        
         if (i < 3) ImGui::Spacing();
     }
 
@@ -374,11 +399,11 @@ void Render()
     ImGui::Separator();
     ImGui::Spacing();
 
-    // v2.0.0.3
+    // v2.0.0.4
     {
         ImDrawList* dl  = ImGui::GetWindowDrawList();
         ImVec2      pos = ImGui::GetCursorScreenPos();
-        std::string vLabel = "v2.0.0.3";
+        std::string vLabel = "v2.0.0.4";
         float bw = ImGui::CalcTextSize(vLabel.c_str()).x + 10.f, bh = ImGui::GetTextLineHeight() + 4.f;
         dl->AddRectFilled(pos, { pos.x + bw, pos.y + bh }, COL_VERSION_BG, 3.f);
         dl->AddRect(pos, { pos.x + bw, pos.y + bh }, COL_VERSION_BORDER, 3.f, 0, 0.5f);
@@ -388,6 +413,42 @@ void Render()
         ImGui::Dummy({ bw, bh });
         ImGui::SameLine(0, 8.f);
         ImGui::TextColored(COL_TEXT_DIM, "latest");
+    }
+
+    static const char* notes_v2004[] =
+    {
+        "New Settings: historyIconSize, profitIconSize, itemsIconSize, gridIconSize, gridIconSizeCurrencies",
+        "New Settings: sparklineColor, blacklist",
+        "New Settings: mainWindowFontSize, notificationFontSize",
+        "Added buttons to get DRF Token and GW2 API Key in Account Management",
+        "Updated Getting Started guide to include DRF and GW2 API Key instructions",
+        "Settings partially reorganized",
+        "Fixed crash when ignoring items",
+        "Fixed crash when adding favorites",
+        "Fixed compilation errors with iconSize",
+    };
+    ImGui::Spacing();
+    for (auto& n : notes_v2004)
+    {
+        ImGui::TextColored(COL_TEXT_DIM, "  \xe2\x80\xa2");
+        ImGui::SameLine(0, 5.f);
+        ImGui::TextColored(COL_TEXT_SECONDARY, "%s", n);
+    }
+
+    ImGui::Spacing();
+
+    // v2.0.0.3
+    {
+        ImDrawList* dl  = ImGui::GetWindowDrawList();
+        ImVec2      pos = ImGui::GetCursorScreenPos();
+        std::string vLabel = "v2.0.0.3";
+        float bw = ImGui::CalcTextSize(vLabel.c_str()).x + 10.f, bh = ImGui::GetTextLineHeight() + 4.f;
+        dl->AddRectFilled(pos, { pos.x + bw, pos.y + bh }, COL_STEP_NUM_BG, 3.f);
+        dl->AddRect(pos, { pos.x + bw, pos.y + bh }, COL_STEP_NUM_BORDER, 3.f, 0, 0.5f);
+        dl->AddText({ pos.x + 5.f, pos.y + 2.f },
+                    ImGui::ColorConvertFloat4ToU32(COL_ACCENT),
+                    vLabel.c_str());
+        ImGui::Dummy({ bw, bh });
     }
 
     static const char* notes_v2003[] =
@@ -412,10 +473,10 @@ void Render()
         ImVec2      pos = ImGui::GetCursorScreenPos();
         std::string vLabel = "v2.0.0.2";
         float bw = ImGui::CalcTextSize(vLabel.c_str()).x + 10.f, bh = ImGui::GetTextLineHeight() + 4.f;
-        dl->AddRectFilled(pos, { pos.x + bw, pos.y + bh }, COL_VERSION_BG, 3.f);
-        dl->AddRect(pos, { pos.x + bw, pos.y + bh }, COL_VERSION_BORDER, 3.f, 0, 0.5f);
+        dl->AddRectFilled(pos, { pos.x + bw, pos.y + bh }, COL_STEP_NUM_BG, 3.f);
+        dl->AddRect(pos, { pos.x + bw, pos.y + bh }, COL_STEP_NUM_BORDER, 3.f, 0, 0.5f);
         dl->AddText({ pos.x + 5.f, pos.y + 2.f },
-                    ImGui::ColorConvertFloat4ToU32(COL_GREEN),
+                    ImGui::ColorConvertFloat4ToU32(COL_ACCENT),
                     vLabel.c_str());
         ImGui::Dummy({ bw, bh });
     }
@@ -430,38 +491,6 @@ void Render()
     };
     ImGui::Spacing();
     for (auto& n : notes_v2002)
-    {
-        ImGui::TextColored(COL_TEXT_DIM, "  \xe2\x80\xa2");
-        ImGui::SameLine(0, 5.f);
-        ImGui::TextColored(COL_TEXT_SECONDARY, "%s", n);
-    }
-
-    ImGui::Spacing();
-
-    // v2.0.0.1
-    {
-        ImDrawList* dl  = ImGui::GetWindowDrawList();
-        ImVec2      pos = ImGui::GetCursorScreenPos();
-        std::string vLabel = "v2.0.0.1";
-        float bw = ImGui::CalcTextSize(vLabel.c_str()).x + 10.f, bh = ImGui::GetTextLineHeight() + 4.f;
-        dl->AddRectFilled(pos, { pos.x + bw, pos.y + bh }, COL_STEP_NUM_BG, 3.f);
-        dl->AddRect(pos, { pos.x + bw, pos.y + bh }, COL_STEP_NUM_BORDER, 3.f, 0, 0.5f);
-        dl->AddText({ pos.x + 5.f, pos.y + 2.f },
-                    ImGui::ColorConvertFloat4ToU32(COL_ACCENT),
-                    vLabel.c_str());
-        ImGui::Dummy({ bw, bh });
-    }
-
-    static const char* notes_v2001[] =
-    {
-        "Fixed Precursor sound triggering on Amalgamated Gemstones",
-        "Added optional 'Best Drop (Total Session Value)' to Mini Window",
-        "New 'Export & Backup' category for improved layout on small resolutions",
-        "Corrected sidebar icons and added icons to settings sections",
-        "Improved localization for Precursor detection across all languages",
-    };
-    ImGui::Spacing();
-    for (auto& n : notes_v2001)
     {
         ImGui::TextColored(COL_TEXT_DIM, "  \xe2\x80\xa2");
         ImGui::SameLine(0, 5.f);

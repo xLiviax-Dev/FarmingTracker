@@ -231,7 +231,15 @@ void RenderItemsTab()
                 {
                     if (st.count == 0) continue;
 
-                    ImGui::TableNextRow();
+                    float rowH = UICommon::CalcTableRowHeight(32.f);
+                    ImGui::TableNextRow(0, rowH);
+
+                    // Apply favorite row background color if enabled
+                    if (st.isFavorite && g_Settings.enableFavoriteRowColor)
+                    {
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(g_Settings.favoriteRowColor[0], g_Settings.favoriteRowColor[1], g_Settings.favoriteRowColor[2], g_Settings.favoriteRowColor[3])));
+                    }
+
                     ImGui::TableSetColumnIndex(0);
                     UICommon::DrawItemIconCell(id, st.details.iconUrl, 32.f, st.details.loaded ? st.details.rarity : "");
                     if (ImGui::IsItemHovered())
@@ -251,7 +259,19 @@ void RenderItemsTab()
                     }
 
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : Localization::GetText("loading"));
+                    
+                    // Add star icon for favorites
+                    if (st.isFavorite)
+                    {
+                        ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.4f, 1.0f), "* ");
+                        ImGui::SameLine();
+                    }
+
+                    ImVec4 nameCol = ImVec4(1.f, 1.f, 1.f, 1.f);
+                    // Apply favorite text color if enabled
+                    if (st.isFavorite && g_Settings.enableFavoriteTextColor)
+                        nameCol = ImVec4(g_Settings.favoriteTextColor[0], g_Settings.favoriteTextColor[1], g_Settings.favoriteTextColor[2], g_Settings.favoriteTextColor[3]);
+                    ImGui::TextColored(nameCol, "%s", st.details.loaded ? st.details.name.c_str() : Localization::GetText("loading"));
 
                     ImGui::TableSetColumnIndex(2);
                     ImGui::Text("%lld", st.count);
@@ -896,7 +916,7 @@ void RenderItemsTab()
             // Normal view without grouping
             if (ImGui::BeginTable("##ItemsTable_v3", itemTableColumnCount, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
             {
-                float iconColumnWidth = (static_cast<float>(g_Settings.iconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.iconSize) + 10.0f) : 70.0f;
+                float iconColumnWidth = (static_cast<float>(g_Settings.itemsIconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.itemsIconSize) + 10.0f) : 70.0f;
                 ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);
                 ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 430.0f);
                 ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
@@ -906,7 +926,7 @@ void RenderItemsTab()
 
                 for (auto& [id, st] : sortedItems)
                 {
-                    float rowH = UICommon::CalcTableRowHeight(static_cast<float>(g_Settings.iconSize));
+                    float rowH = UICommon::CalcTableRowHeight(static_cast<float>(g_Settings.itemsIconSize));
                     ImGui::TableNextRow(0, rowH);
 
                     // Apply favorite row background color if enabled
@@ -918,12 +938,12 @@ void RenderItemsTab()
                     // Apply best drop golden border if enabled
                     if (g_Settings.enableBestDropHighlight && id == bestDropId && st.count > 0)
                     {
-                        ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(1.0f, 0.84f, 0.0f, 0.15f))); // Gold with low alpha
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(g_Settings.bestDropHighlightColor[0], g_Settings.bestDropHighlightColor[1], g_Settings.bestDropHighlightColor[2], g_Settings.bestDropHighlightColor[3])));
                     }
 
                     ImGui::TableSetColumnIndex(0);
-                    UICommon::AlignTableCellIcon(rowH, static_cast<float>(g_Settings.iconSize));
-                    UICommon::DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.iconSize), st.details.loaded ? st.details.rarity : "");
+                    UICommon::AlignTableCellIcon(rowH, static_cast<float>(g_Settings.itemsIconSize));
+                    UICommon::DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.itemsIconSize), st.details.loaded ? st.details.rarity : "");
 
                     // Helper lambda for rendering the same tooltip
                     auto renderItemTooltip = [&]() {
@@ -1101,7 +1121,7 @@ void RenderItemsTab()
 
                         if (ImGui::BeginTable(("##RarityTable_v3_" + rarity).c_str(), itemTableColumnCount, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
                         {
-                            float iconColumnWidth = (static_cast<float>(g_Settings.iconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.iconSize) + 10.0f) : 70.0f;
+                            float iconColumnWidth = (static_cast<float>(g_Settings.itemsIconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.itemsIconSize) + 10.0f) : 70.0f;
                             ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);
                             ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 430.0f);
                             ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
@@ -1111,7 +1131,7 @@ void RenderItemsTab()
 
                             for (auto& [id, st] : rarityGroups[rarity])
                             {
-                                float rowH = UICommon::CalcTableRowHeight(static_cast<float>(g_Settings.iconSize));
+                                float rowH = UICommon::CalcTableRowHeight(static_cast<float>(g_Settings.itemsIconSize));
                                 ImGui::TableNextRow(0, rowH);
 
                                 // Apply favorite row background color if enabled
@@ -1123,12 +1143,12 @@ void RenderItemsTab()
                                 // Apply best drop golden border if enabled
                                 if (g_Settings.enableBestDropHighlight && id == bestDropId && st.count > 0)
                                 {
-                                    ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(1.0f, 0.84f, 0.0f, 0.15f))); // Gold with low alpha
+                                    ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(g_Settings.bestDropHighlightColor[0], g_Settings.bestDropHighlightColor[1], g_Settings.bestDropHighlightColor[2], g_Settings.bestDropHighlightColor[3])));
                                 }
 
                                 ImGui::TableSetColumnIndex(0);
-                                UICommon::AlignTableCellIcon(rowH, static_cast<float>(g_Settings.iconSize));
-                                UICommon::DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.iconSize), st.details.loaded ? st.details.rarity : "");
+                                UICommon::AlignTableCellIcon(rowH, static_cast<float>(g_Settings.itemsIconSize));
+                                UICommon::DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.itemsIconSize), st.details.loaded ? st.details.rarity : "");
 
                                 // Right-click context menu
                                 if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
@@ -1246,7 +1266,7 @@ void RenderItemsTab()
 
                             if (ImGui::BeginTable(("##RarityTable_" + rarity).c_str(), itemTableColumnCount, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
                             {
-                                float iconColumnWidth = static_cast<float>(g_Settings.iconSize) + 10.0f;
+                                float iconColumnWidth = static_cast<float>(g_Settings.itemsIconSize) + 10.0f;
                                 ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);
                                 ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_NoHide, 110.0f);
                                 ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
@@ -1256,7 +1276,7 @@ void RenderItemsTab()
 
                                 for (auto& [id, st] : rarityGroups[rarity])
                                 {
-                                    float rowH = UICommon::CalcTableRowHeight(static_cast<float>(g_Settings.iconSize));
+                                    float rowH = UICommon::CalcTableRowHeight(static_cast<float>(g_Settings.itemsIconSize));
                                     ImGui::TableNextRow(0, rowH);
 
                                     // Apply favorite row background color if enabled
@@ -1272,8 +1292,8 @@ void RenderItemsTab()
                                     }
 
                                     ImGui::TableSetColumnIndex(0);
-                                    UICommon::AlignTableCellIcon(rowH, static_cast<float>(g_Settings.iconSize));
-                                    UICommon::DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.iconSize), st.details.loaded ? st.details.rarity : "");
+                                    UICommon::AlignTableCellIcon(rowH, static_cast<float>(g_Settings.itemsIconSize));
+                                    UICommon::DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.itemsIconSize), st.details.loaded ? st.details.rarity : "");
                                     bool iconHovered = ImGui::IsItemHovered();
 
                                     // Right-click context menu
@@ -1464,7 +1484,7 @@ void RenderItemsTab()
                         ImGui::PopStyleColor(3);
                         if (ImGui::BeginTable(("##TypeTable_" + std::to_string(static_cast<int>(type))).c_str(), itemTableColumnCount, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
                         {
-                            float iconColumnWidth = (static_cast<float>(g_Settings.iconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.iconSize) + 10.0f) : 70.0f;
+                            float iconColumnWidth = (static_cast<float>(g_Settings.itemsIconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.itemsIconSize) + 10.0f) : 70.0f;
                             ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);
                             ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 430.0f);
                             ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
@@ -1474,7 +1494,7 @@ void RenderItemsTab()
 
                             for (auto& [id, st] : it->second)
                             {
-                                float rowH = UICommon::CalcTableRowHeight(static_cast<float>(g_Settings.iconSize));
+                                float rowH = UICommon::CalcTableRowHeight(static_cast<float>(g_Settings.itemsIconSize));
                                 ImGui::TableNextRow(0, rowH);
 
                                 // Apply favorite row background color if enabled
@@ -1486,12 +1506,12 @@ void RenderItemsTab()
                                 // Apply best drop golden border if enabled
                                 if (g_Settings.enableBestDropHighlight && id == bestDropId && st.count > 0)
                                 {
-                                    ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(1.0f, 0.84f, 0.0f, 0.15f))); // Gold with low alpha
+                                    ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImVec4(g_Settings.bestDropHighlightColor[0], g_Settings.bestDropHighlightColor[1], g_Settings.bestDropHighlightColor[2], g_Settings.bestDropHighlightColor[3])));
                                 }
 
                                 ImGui::TableSetColumnIndex(0);
-                                UICommon::AlignTableCellIcon(rowH, static_cast<float>(g_Settings.iconSize));
-                                UICommon::DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.iconSize), st.details.loaded ? st.details.rarity : "");
+                                UICommon::AlignTableCellIcon(rowH, static_cast<float>(g_Settings.itemsIconSize));
+                                UICommon::DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.itemsIconSize), st.details.loaded ? st.details.rarity : "");
 
                                 // Right-click context menu
                                 if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
@@ -1602,7 +1622,7 @@ void RenderItemsTab()
                         {
                             if (ImGui::BeginTable(("##TypeTable_" + std::to_string(static_cast<int>(type))).c_str(), itemTableColumnCount, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
                             {
-                                float iconColumnWidth = (static_cast<float>(g_Settings.iconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.iconSize) + 10.0f) : 70.0f;
+                                float iconColumnWidth = (static_cast<float>(g_Settings.itemsIconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.itemsIconSize) + 10.0f) : 70.0f;
                                 ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);
                                 ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 430.0f);
                                 ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
@@ -1612,7 +1632,7 @@ void RenderItemsTab()
 
                                 for (auto& [id, st] : it->second)
                                 {
-                                    float rowH = UICommon::CalcTableRowHeight(static_cast<float>(g_Settings.iconSize));
+                                    float rowH = UICommon::CalcTableRowHeight(static_cast<float>(g_Settings.itemsIconSize));
                                     ImGui::TableNextRow(0, rowH);
 
                                     // Apply favorite row background color if enabled
@@ -1628,8 +1648,8 @@ void RenderItemsTab()
                                     }
 
                                     ImGui::TableSetColumnIndex(0);
-                                    UICommon::AlignTableCellIcon(rowH, static_cast<float>(g_Settings.iconSize));
-                                    UICommon::DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.iconSize), st.details.loaded ? st.details.rarity : "");
+                                    UICommon::AlignTableCellIcon(rowH, static_cast<float>(g_Settings.itemsIconSize));
+                                    UICommon::DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.itemsIconSize), st.details.loaded ? st.details.rarity : "");
                                     bool iconHovered = ImGui::IsItemHovered();
 
                                     // Right-click context menu

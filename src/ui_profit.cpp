@@ -197,13 +197,33 @@ static void RenderSparkline(float width, float height)
     std::vector<ImVec2> pts;
     if (mx != mn && vals.size() > 1)
     {
+        // Convert sparkline color from int to RGBA
+        ImVec4 sparklineColor = ImVec4(
+            ((g_Settings.sparklineColor >> 16) & 0xFF) / 255.0f,
+            ((g_Settings.sparklineColor >> 8) & 0xFF) / 255.0f,
+            (g_Settings.sparklineColor & 0xFF) / 255.0f,
+            1.0f
+        );
+        ImU32 sparklineFill = IM_COL32(
+            (int)(sparklineColor.x * 255),
+            (int)(sparklineColor.y * 255),
+            (int)(sparklineColor.z * 255),
+            30
+        );
+        ImU32 sparklineLine = IM_COL32(
+            (int)(sparklineColor.x * 255),
+            (int)(sparklineColor.y * 255),
+            (int)(sparklineColor.z * 255),
+            220
+        );
+        
         for (size_t i = 0; i < vals.size(); ++i)
             pts.push_back({p0.x + (float)i/(vals.size()-1)*width,
                            p1.y - (vals[i]-mn)/(mx-mn)*height});
         for (size_t i = 0; i+1 < pts.size(); ++i)
         {
-            dl->AddQuadFilled(pts[i], pts[i+1], {pts[i+1].x,p1.y}, {pts[i].x,p1.y}, IM_COL32(200,150,12,30));
-            dl->AddLine(pts[i], pts[i+1], IM_COL32(200,150,12,220), 1.8f);
+            dl->AddQuadFilled(pts[i], pts[i+1], {pts[i+1].x,p1.y}, {pts[i].x,p1.y}, sparklineFill);
+            dl->AddLine(pts[i], pts[i+1], sparklineLine, 1.8f);
         }
     }
 
@@ -279,7 +299,7 @@ void RenderProfitTab()
     auto items       = ItemTracker::GetFilteredItems();
     auto currencies  = ItemTracker::GetFilteredCurrencies();
     float avail      = ImGui::GetContentRegionAvail().x - 8.f;
-    float iconSz     = (float)g_Settings.iconSize;
+    float iconSz     = (float)g_Settings.profitIconSize;
     char buf[128];
 
     // KPI Row 1

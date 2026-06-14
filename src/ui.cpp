@@ -573,9 +573,15 @@ static void RenderMainWindow()
     if (g_Settings.mainWindowClickThrough)
         flags |= ImGuiWindowFlags_NoInputs;
 
+    if (g_Settings.mainWindowHideTitleBar)
+        flags |= ImGuiWindowFlags_NoTitleBar;
+
     if (ImGui::Begin("Farming Tracker##FT_Main", &g_Settings.showMainWindow, flags))
     {
         PushAccentColor();
+
+        // Apply font scale
+        ImGui::SetWindowFontScale(g_Settings.mainWindowFontSize);
 
         // Gradient background if enabled
         if (g_Settings.enableGradientBackgrounds && !g_Settings.disableComplexVisualsOnLowPerf)
@@ -838,6 +844,9 @@ static void RenderMainWindow()
         }
 
         ImGui::EndGroup();
+
+        // Reset font scale
+        ImGui::SetWindowFontScale(1.0f);
 
         PopAccentColor();
         ImGui::End();
