@@ -112,6 +112,9 @@ namespace LootLogger
     // Returns the absolute path of the log folder.
     std::string GetLogFolder();
 
+    // Removes all entries for the given item/currency ID from the current session.
+    void RemoveEntriesForItem(int itemId);
+
     // Direct access for backfilling prices after API load.
     // MUST be called with the mutex held via GetSessionEntriesMutex().
     std::mutex& GetSessionEntriesMutex();

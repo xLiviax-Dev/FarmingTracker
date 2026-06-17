@@ -24,6 +24,7 @@ namespace UITimeline
         // === KPI Header ===
         long long custom       = ItemTracker::CalcTotalCustomProfit();
         long long profitPerHour = ItemTracker::GetTotalProfitPerHour(duration);
+        long long coins        = ItemTracker::GetCurrencyStat(1).count; // Coins (currency ID 1)
         const ImVec4 kGold  = { 1.00f, 0.84f, 0.00f, 1.f };
         const ImVec4 kRed   = { 0.90f, 0.20f, 0.20f, 1.f };
         const ImVec4 kMuted = { 1.00f, 1.00f, 1.00f, 1.f };
@@ -59,13 +60,15 @@ namespace UITimeline
 
             // Draw text content (centered)
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.f, 8.f));
-            ImGui::BeginChild(cardId, ImVec2(cardW, cardH), false, ImGuiWindowFlags_NoScrollbar);
+            ImGui::BeginChild(cardId, ImVec2(cardW, cardH), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
             float labelWidth = ImGui::CalcTextSize(label).x;
             float valueWidth = ImGui::CalcTextSize(value).x;
             float centerX = (cardW - labelWidth) * 0.5f;
+            centerX = std::max(centerX, 10.0f); // Don't let text go left of padding
             ImGui::SetCursorPosX(centerX);
             ImGui::TextColored(kMuted, "%s", label);
             centerX = (cardW - valueWidth) * 0.5f;
+            centerX = std::max(centerX, 10.0f); // Don't let text go left of padding
             ImGui::SetCursorPosX(centerX);
             ImGui::TextColored(valueCol, "%s", value);
             ImGui::EndChild();
@@ -73,7 +76,7 @@ namespace UITimeline
         };
 
         float avail = ImGui::GetContentRegionAvail().x;
-        float cardH = 52.f;
+        float cardH = 82.f;
 
         // --- Row 1: 4 equal cards ---
         float kw4 = (avail - 3.f * ImGui::GetStyle().ItemSpacing.x) / 4.f;
@@ -105,15 +108,13 @@ namespace UITimeline
 
         ImGui::Spacing();
 
-        // --- Row 2: 2 /h cards + Best Drop card ---
-        float kw3 = (avail - 2.f * ImGui::GetStyle().ItemSpacing.x) / 3.f;
-        float kw2 = (avail - 2.f * ImGui::GetStyle().ItemSpacing.x) / 3.f;
+        // --- Row 2: Coins card + 2 /h cards + Best Drop card ---
 
-        // Left: TP /h listings
+        // Left: Coins card
         {
             ImVec2 cursor = ImGui::GetCursorScreenPos();
             ImVec2 cardMin = cursor;
-            ImVec2 cardMax = ImVec2(cursor.x + kw3, cursor.y + cardH);
+            ImVec2 cardMax = ImVec2(cursor.x + kw4, cursor.y + cardH);
 
             // Draw gradient background (matching Debug tab design)
             const float acR = g_Settings.accentColorR, acG = g_Settings.accentColorG, acB = g_Settings.accentColorB;
@@ -127,7 +128,46 @@ namespace UITimeline
                 ImGui::ColorConvertFloat4ToU32(ImVec4(acR, acG, acB, 1.f)), 2.f);
 
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.f, 8.f));
-            ImGui::BeginChild("##tlkph1", ImVec2(kw3, cardH), false, ImGuiWindowFlags_NoScrollbar);
+            ImGui::BeginChild("##tlkcoins", ImVec2(kw4, cardH), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+            const char* label = "Coins";
+            std::string value = UICommon::FormatCoin(coins);
+            float labelWidth = ImGui::CalcTextSize(label).x;
+            float valueWidth = ImGui::CalcTextSize(value.c_str()).x;
+            float centerX = (kw4 - labelWidth) * 0.5f;
+            centerX = std::max(centerX, 10.0f); // Don't let text go left of padding
+            ImGui::SetCursorPosX(centerX);
+            ImGui::TextColored(kMuted, "%s", label);
+            centerX = (kw4 - valueWidth) * 0.5f;
+            centerX = std::max(centerX, 10.0f); // Don't let text go left of padding
+            ImGui::SetCursorPosX(centerX);
+            ImGui::TextColored(kGold, "%s", value.c_str());
+
+            ImGui::EndChild();
+            ImGui::PopStyleVar();
+        }
+
+        ImGui::SameLine();
+
+        // Middle: TP /h listings
+        {
+            ImVec2 cursor = ImGui::GetCursorScreenPos();
+            ImVec2 cardMin = cursor;
+            ImVec2 cardMax = ImVec2(cursor.x + kw4, cursor.y + cardH);
+
+            // Draw gradient background (matching Debug tab design)
+            const float acR = g_Settings.accentColorR, acG = g_Settings.accentColorG, acB = g_Settings.accentColorB;
+            ImDrawList* dl = ImGui::GetWindowDrawList();
+            ImU32 top    = ImGui::ColorConvertFloat4ToU32(ImVec4(std::min(1.f,acR*2.f),std::min(1.f,acG*2.f),std::min(1.f,acB*2.f),1.f));
+            ImU32 bot    = ImGui::ColorConvertFloat4ToU32(ImVec4(acR*.5f,acG*.5f,acB*.5f,1.f));
+            ImU32 border = ImGui::ColorConvertFloat4ToU32(ImVec4(std::min(1.f,acR*1.5f),std::min(1.f,acG*1.5f),std::min(1.f,acB*1.5f),1.f));
+            dl->AddRectFilledMultiColor(cardMin, cardMax, top, top, bot, bot);
+            dl->AddRect(cardMin, cardMax, border, 4.f, 0, 0.5f);
+            dl->AddRectFilled(ImVec2(cardMin.x, cardMin.y), ImVec2(cardMin.x + 3.f, cardMax.y),
+                ImGui::ColorConvertFloat4ToU32(ImVec4(acR, acG, acB, 1.f)), 2.f);
+
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.f, 8.f));
+            ImGui::BeginChild("##tlkph1", ImVec2(kw4, cardH), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
             if (seconds > 0)
             {
@@ -136,18 +176,21 @@ namespace UITimeline
                 std::string value = UICommon::FormatCoin(gphSell);
                 float labelWidth = ImGui::CalcTextSize(label).x;
                 float valueWidth = ImGui::CalcTextSize(value.c_str()).x;
-                float centerX = (kw3 - labelWidth) * 0.5f;
+                float centerX = (kw4 - labelWidth) * 0.5f;
+                centerX = std::max(centerX, 10.0f); // Don't let text go left of padding
                 ImGui::SetCursorPosX(centerX);
                 ImGui::TextColored(kMuted, "%s", label);
-                centerX = (kw3 - valueWidth) * 0.5f;
+                centerX = (kw4 - valueWidth) * 0.5f;
+                centerX = std::max(centerX, 10.0f); // Don't let text go left of padding
                 ImGui::SetCursorPosX(centerX);
-                ImGui::TextColored(kGold,  "%s", value.c_str());
+                ImGui::TextColored(kGold, "%s", value.c_str());
             }
             else
             {
                 const char* label = Localization::GetText("timeline_profit_hour_listings");
                 float labelWidth = ImGui::CalcTextSize(label).x;
-                float centerX = (kw3 - labelWidth) * 0.5f;
+                float centerX = (kw4 - labelWidth) * 0.5f;
+                centerX = std::max(centerX, 10.0f); // Don't let text go left of padding
                 ImGui::SetCursorPosX(centerX);
                 ImGui::TextColored(kMuted, "%s", label);
             }
@@ -158,11 +201,11 @@ namespace UITimeline
 
         ImGui::SameLine();
 
-        // Middle: TP /h instant
+        // Right: TP /h instant
         {
             ImVec2 cursor = ImGui::GetCursorScreenPos();
             ImVec2 cardMin = cursor;
-            ImVec2 cardMax = ImVec2(cursor.x + kw3, cursor.y + cardH);
+            ImVec2 cardMax = ImVec2(cursor.x + kw4, cursor.y + cardH);
 
             // Draw gradient background (matching Debug tab design)
             const float acR = g_Settings.accentColorR, acG = g_Settings.accentColorG, acB = g_Settings.accentColorB;
@@ -176,7 +219,7 @@ namespace UITimeline
                 ImGui::ColorConvertFloat4ToU32(ImVec4(acR, acG, acB, 1.f)), 2.f);
 
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.f, 8.f));
-            ImGui::BeginChild("##tlkph2", ImVec2(kw3, cardH), false, ImGuiWindowFlags_NoScrollbar);
+            ImGui::BeginChild("##tlkph2", ImVec2(kw4, cardH), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
             if (seconds > 0)
             {
@@ -185,18 +228,21 @@ namespace UITimeline
                 std::string value = UICommon::FormatCoin(gphInstant);
                 float labelWidth = ImGui::CalcTextSize(label).x;
                 float valueWidth = ImGui::CalcTextSize(value.c_str()).x;
-                float centerX = (kw3 - labelWidth) * 0.5f;
+                float centerX = (kw4 - labelWidth) * 0.5f;
+                centerX = std::max(centerX, 10.0f); // Don't let text go left of padding
                 ImGui::SetCursorPosX(centerX);
                 ImGui::TextColored(kMuted, "%s", label);
-                centerX = (kw3 - valueWidth) * 0.5f;
+                centerX = (kw4 - valueWidth) * 0.5f;
+                centerX = std::max(centerX, 10.0f); // Don't let text go left of padding
                 ImGui::SetCursorPosX(centerX);
-                ImGui::TextColored(kGold,  "%s", value.c_str());
+                ImGui::TextColored(kGold, "%s", value.c_str());
             }
             else
             {
                 const char* label = Localization::GetText("timeline_profit_hour_instant");
                 float labelWidth = ImGui::CalcTextSize(label).x;
-                float centerX = (kw3 - labelWidth) * 0.5f;
+                float centerX = (kw4 - labelWidth) * 0.5f;
+                centerX = std::max(centerX, 10.0f); // Don't let text go left of padding
                 ImGui::SetCursorPosX(centerX);
                 ImGui::TextColored(kMuted, "%s", label);
             }
@@ -213,7 +259,7 @@ namespace UITimeline
 
             ImVec2 cursor = ImGui::GetCursorScreenPos();
             ImVec2 cardMin = cursor;
-            ImVec2 cardMax = ImVec2(cursor.x + kw2, cursor.y + cardH);
+            ImVec2 cardMax = ImVec2(cursor.x + kw4, cursor.y + cardH);
 
             // Draw gradient background (matching Debug tab design)
             const float acR = g_Settings.accentColorR, acG = g_Settings.accentColorG, acB = g_Settings.accentColorB;
@@ -227,11 +273,12 @@ namespace UITimeline
                 ImGui::ColorConvertFloat4ToU32(ImVec4(acR, acG, acB, 1.f)), 2.f);
 
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.f, 8.f));
-            ImGui::BeginChild("##tlkbest", ImVec2(kw2, cardH), false, ImGuiWindowFlags_NoScrollbar);
+            ImGui::BeginChild("##tlkbest", ImVec2(kw4, cardH), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
             const char* label = Localization::GetText("best_drop");
             float labelWidth = ImGui::CalcTextSize(label).x;
-            float centerX = (kw2 - labelWidth) * 0.5f;
+            float centerX = (kw4 - labelWidth) * 0.5f;
+            centerX = std::max(centerX, 10.0f); // Don't let text go left of padding
             ImGui::SetCursorPosX(centerX);
             ImGui::TextColored(kMuted, "%s", label);
 
@@ -245,7 +292,8 @@ namespace UITimeline
                 // Calculate total width of icon + name
                 float nameWidth = ImGui::CalcTextSize(bestName.c_str()).x;
                 float totalWidth = icoSz + 6.f + nameWidth;
-                float centerX = (kw2 - totalWidth) * 0.5f;
+                float centerX = (kw4 - totalWidth) * 0.5f;
+                centerX = std::max(centerX, 10.0f); // Don't let content go left of padding
                 ImGui::SetCursorPosX(centerX);
                 
                 UICommon::DrawItemIconCell(bestId, bestSt.details.iconUrl, icoSz, bestSt.details.rarity);
@@ -263,7 +311,7 @@ namespace UITimeline
                 ImGui::SameLine(0, 6);
                 ImGui::BeginGroup();
                 // Clip name so it never overflows the card
-                float nameMaxW = kw2 - icoSz - 10.f - 20.f;
+                float nameMaxW = kw4 - icoSz - 10.f - 20.f;
                 ImGui::PushClipRect(
                     ImGui::GetCursorScreenPos(),
                     ImVec2(ImGui::GetCursorScreenPos().x + nameMaxW,
@@ -273,7 +321,8 @@ namespace UITimeline
                 ImGui::PopClipRect();
                 std::string profit = UICommon::FormatCoin(ItemTracker::GetStatProfit(bestSt));
                 float profitWidth = ImGui::CalcTextSize(profit.c_str()).x;
-                centerX = (kw2 - profitWidth) * 0.5f;
+                centerX = (kw4 - profitWidth) * 0.5f;
+                centerX = std::max(centerX, 10.0f); // Don't let text go left of padding
                 ImGui::SetCursorPosX(centerX);
                 ImGui::TextColored(kGold, "%s", profit.c_str());
                 ImGui::EndGroup();
@@ -281,7 +330,8 @@ namespace UITimeline
             else
             {
                 float labelWidth = ImGui::CalcTextSize("-").x;
-                float centerX = (kw2 - labelWidth) * 0.5f;
+                float centerX = (kw4 - labelWidth) * 0.5f;
+                centerX = std::max(centerX, 10.0f); // Don't let text go left of padding
                 ImGui::SetCursorPosX(centerX);
                 ImGui::TextColored(kMuted, "-");
             }
@@ -450,10 +500,6 @@ namespace UITimeline
                             }
 
                             UICommon::DrawItemIconCell(itemId, currencyIcons[itemId], curIconSize, currencyRarities[itemId]);
-                            ImGui::SameLine();
-                            
-                            ImGui::Text("%s", countStr.c_str());
-
                             if (ImGui::IsItemHovered())
                             {
                                 UITooltips::CurrencyTooltipOptions opt;
@@ -465,9 +511,30 @@ namespace UITimeline
                                 opt.showId = true;
                                 UITooltips::RenderCurrencyTooltipFallback(currencyNames[itemId], currencyRarities[itemId], itemId, opt);
                             }
-                            
-                            // Right-click context menu for currencies
                             if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                            {
+                                openCurrencyMenuId = itemId;
+                                openCurrencyMenuName = currencyNames[itemId];
+                            }
+                            ImGui::SameLine();
+                            
+                            ImGui::Text("%s", countStr.c_str());
+                            if (ImGui::IsItemHovered())
+                            {
+                                UITooltips::CurrencyTooltipOptions opt;
+                                opt.showCount = true;
+                                opt.count = count;
+                                opt.showProfit = (displayProfit != 0);
+                                opt.profit = displayProfit;
+                                opt.showRarity = false;
+                                opt.showId = true;
+                                auto st = ItemTracker::GetCurrencyStat(itemId);
+                                if (st.details.loaded)
+                                    UITooltips::RenderCurrencyTooltip(st.details, itemId, opt);
+                                else
+                                    UITooltips::RenderCurrencyTooltipFallback(currencyNames[itemId], "", itemId, opt);
+                            }
+                            if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
                             {
                                 openCurrencyMenuId = itemId;
                                 openCurrencyMenuName = currencyNames[itemId];
@@ -564,15 +631,20 @@ namespace UITimeline
                         {
                             if (d.isCurrency)
                             {
+                                long long unitProfit = CustomProfitManager::HasCustomProfit(d.itemId) ? CustomProfitManager::GetCustomProfit(d.itemId) : 0;
+                                long long displayProfit = unitProfit * d.count;
                                 UITooltips::CurrencyTooltipOptions opt;
                                 opt.showCount = true;
                                 opt.count = d.count;
-                                long long unitProfit = CustomProfitManager::GetCustomProfit(d.itemId);
-                                opt.showProfit = (unitProfit != 0);
-                                opt.profit = unitProfit * d.count;
-                                opt.showRarity = true;
+                                opt.showProfit = (displayProfit != 0);
+                                opt.profit = displayProfit;
+                                opt.showRarity = false;
                                 opt.showId = true;
-                                UITooltips::RenderCurrencyTooltipFallback(d.itemName, d.rarity, d.itemId, opt);
+                                auto st = ItemTracker::GetCurrencyStat(d.itemId);
+                                if (st.details.loaded)
+                                    UITooltips::RenderCurrencyTooltip(st.details, d.itemId, opt);
+                                else
+                                    UITooltips::RenderCurrencyTooltipFallback(d.itemName, "", d.itemId, opt);
                             }
                             else
                             {

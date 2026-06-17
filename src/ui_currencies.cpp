@@ -15,20 +15,81 @@
 namespace UICurrencies
 {
 
+static void InlineIcon(const char* key, float sz = 14.f)
+{
+    void* tex = UITabIcons::GetIcon(key);
+    if (!tex) return;
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+    float lineH = ImGui::GetTextLineHeight();
+    float offY  = (lineH - sz) * 0.5f;
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+
+    // Glow effect - draw icon multiple times with offset and alpha
+    const float glowOffset = 2.0f;
+    const float glowAlpha = 0.3f;
+    dl->AddImage(
+        (ImTextureID)tex,
+        ImVec2(pos.x - glowOffset, pos.y + offY - glowOffset),
+        ImVec2(pos.x + sz + glowOffset, pos.y + offY + sz + glowOffset),
+        ImVec2(0,0), ImVec2(1,1),
+        IM_COL32(255, 255, 255, (int)(255 * glowAlpha)));
+    dl->AddImage(
+        (ImTextureID)tex,
+        ImVec2(pos.x - glowOffset * 0.5f, pos.y + offY - glowOffset * 0.5f),
+        ImVec2(pos.x + sz + glowOffset * 0.5f, pos.y + offY + sz + glowOffset * 0.5f),
+        ImVec2(0,0), ImVec2(1,1),
+        IM_COL32(255, 255, 255, (int)(255 * glowAlpha * 0.6f)));
+
+    // Main icon - white
+    dl->AddImage(
+        (ImTextureID)tex,
+        ImVec2(pos.x, pos.y + offY),
+        ImVec2(pos.x + sz, pos.y + offY + sz),
+        ImVec2(0,0), ImVec2(1,1),
+        IM_COL32(255, 255, 255, 255));
+    ImGui::Dummy(ImVec2(sz + 5.f, lineH));
+    ImGui::SameLine(0, 0);
+}
+
+static bool CollapsingHeaderWithIcon(const char* label, const char* iconKey, ImGuiTreeNodeFlags flags = 0)
+{
+    InlineIcon(iconKey);
+    return ImGui::CollapsingHeader(label, flags);
+}
+
+static void RenderCurrencyTooltip(int id, long long count, const Stat& st)
+{
+    UITooltips::CurrencyTooltipOptions opt;
+    opt.showCount = true;
+    opt.count = count;
+    opt.showRarity = false;
+    opt.showProfit = true; // Always enable, tooltip will decide what to show
+    opt.profit = st.GetCustomProfit() * count;
+    opt.showId = true;
+    if (st.details.loaded)
+        UITooltips::RenderCurrencyTooltip(st.details, id, opt);
+    else
+        UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
+}
+
 static void DrawGridCurrencyCount(int id, long long count, float iconSz)
 {
     const float fontSize = iconSz * 0.45f;
-    std::string cs = (id == 1) ? UICommon::FormatCoin(count) : UICommon::FormatCompact(count);
+    std::string cs;
+    if (id == 1) {
+        cs = UICommon::FormatCoin(count);
+    } else {
+        cs = UICommon::FormatCompact(count);
+    }
     const char* countStr = cs.c_str();
     ImGui::PushFont(ImGui::GetFont());
     ImGui::SetWindowFontScale(fontSize / ImGui::GetFontSize());
     ImVec2 textSize = ImGui::CalcTextSize(countStr);
     ImVec2 origin   = ImGui::GetItemRectMin();
-    ImVec2 pos = ImVec2(origin.x + iconSz - textSize.x - 2.f,
-                        origin.y + iconSz - textSize.y - 2.f);
-    ImVec4 col = count > 0 ? ImVec4(1.f,0.84f,0.f,1.f)
-               : count < 0 ? ImVec4(0.9f,0.2f,0.2f,1.f)
-               :              ImVec4(1.f,1.f,1.f,1.f);
+    ImVec2 pos = ImVec2(origin.x + (iconSz - textSize.x) * 0.5f,
+                        origin.y + (iconSz - textSize.y) * 0.5f);
+    ImVec4 col = count < 0 ? ImVec4(0.9f,0.2f,0.2f,1.f)
+                           : ImVec4(1.f,1.f,1.f,1.f);
     ImDrawList* dl = ImGui::GetWindowDrawList();
     static const ImVec2 kOff[8] = {{-1,-1},{1,-1},{-1,1},{1,1},{0,-1},{0,1},{-1,0},{1,0}};
     for (int k = 0; k < 8; k++)
@@ -36,17 +97,6 @@ static void DrawGridCurrencyCount(int id, long long count, float iconSz)
     dl->AddText(pos, ImGui::ColorConvertFloat4ToU32(col), countStr);
     ImGui::SetWindowFontScale(1.f);
     ImGui::PopFont();
-
-    // Tooltip for non-coin currencies with compact display
-    if (id != 1)
-    {
-        ImGui::SetCursorScreenPos(origin);
-        ImGui::InvisibleButton(("##currency_count_tooltip_" + std::to_string(id)).c_str(), ImVec2(iconSz, iconSz));
-        if (ImGui::IsItemHovered())
-        {
-            ImGui::SetTooltip("%lld", count);
-        }
-    }
 }
 void RenderCurrenciesTab()
 {
@@ -97,6 +147,23 @@ void RenderCurrenciesTab()
     void* iconTex = UITabIcons::GetIcon("favorites");
     if (iconTex)
     {
+        const float glowOffset = 2.0f;
+        const float glowAlpha = 0.3f;
+        
+        drawList->AddImage(
+            (ImTextureID)iconTex,
+            ImVec2(iconX - glowOffset, iconY - glowOffset),
+            ImVec2(iconX + iconSize + glowOffset, iconY + iconSize + glowOffset),
+            ImVec2(0,0), ImVec2(1,1),
+            IM_COL32(255, 255, 255, (int)(255 * glowAlpha)));
+            
+        drawList->AddImage(
+            (ImTextureID)iconTex,
+            ImVec2(iconX - glowOffset * 0.5f, iconY - glowOffset * 0.5f),
+            ImVec2(iconX + iconSize + glowOffset * 0.5f, iconY + iconSize + glowOffset * 0.5f),
+            ImVec2(0,0), ImVec2(1,1),
+            IM_COL32(255, 255, 255, (int)(255 * glowAlpha * 0.6f)));
+
         drawList->AddImage((ImTextureID)iconTex,
                          ImVec2(iconX, iconY),
                          ImVec2(iconX + iconSize, iconY + iconSize),
@@ -138,98 +205,94 @@ void RenderCurrenciesTab()
         std::vector<std::pair<int, Stat>> favoriteCurrencies;
         for (auto& [id, st] : currencies)
         {
-            if (st.isFavorite)
+            if (st.isFavorite && !st.isIgnored && st.IsCurrency())
                 favoriteCurrencies.push_back({id, st});
         }
 
-        if (g_Settings.enableGridViewSummary)
+        if (g_Settings.currenciesFavoritesAsGrid)
         {
             // Grid View for Favorite Currencies
-            float cellSize = static_cast<float>(g_Settings.gridIconSizeCurrencies) + 10.0f;
+            float cellSize = static_cast<float>(g_Settings.gridIconSizeCurrencies) + 65.0f;
             float spacing = ImGui::GetStyle().ItemSpacing.x;
             float scrollbarWidth = 20.0f;
             int columns = std::max(1, static_cast<int>((ImGui::GetContentRegionAvail().x - scrollbarWidth + spacing) / (cellSize + spacing)));
 
+            static int s_FavCurGridPendingId = -1;
+            static std::string s_FavCurGridPendingName;
+
             int count = 0;
-            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 4.0f));
             for (auto& [id, st] : favoriteCurrencies)
             {
                 if (st.count <= 0) continue;
+
+                bool isCoin = id == 1;
 
                 if (count > 0)
                 {
                     if (count % columns == 0)
                         ImGui::NewLine();
                     else
-                        ImGui::SameLine(0, 4.0f);
+                        ImGui::SameLine();
                 }
 
                 ImGui::PushID(id);
+                ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
+
+                // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
+                if (isCoin && count > 0)
+                {
+                    ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                    ImGui::SameLine(0, 0.0f);
+                }
+
+                // Eigentliche Icon-Gruppe
                 ImGui::BeginGroup();
-                ImVec2 cursor = ImGui::GetCursorScreenPos();
-                
-                // Draw favorite row background if enabled
+                ImVec2 cur = ImGui::GetCursorScreenPos();
+
                 if (st.isFavorite && g_Settings.enableFavoriteRowColor)
                 {
-                    ImVec2 iconSize = ImVec2(static_cast<float>(g_Settings.gridIconSizeCurrencies), static_cast<float>(g_Settings.gridIconSizeCurrencies));
-                    ImVec2 bgPos = cursor;
-                    ImVec2 bgEnd = ImVec2(bgPos.x + iconSize.x, bgPos.y + iconSize.y);
-                    ImGui::GetWindowDrawList()->AddRectFilled(bgPos, bgEnd, ImGui::ColorConvertFloat4ToU32(ImVec4(g_Settings.favoriteRowColor[0], g_Settings.favoriteRowColor[1], g_Settings.favoriteRowColor[2], g_Settings.favoriteRowColor[3])));
+                    ImVec2 bgEnd = ImVec2(cur.x + g_Settings.gridIconSizeCurrencies, cur.y + g_Settings.gridIconSizeCurrencies);
+                    ImGui::GetWindowDrawList()->AddRectFilled(cur, bgEnd, ImGui::ColorConvertFloat4ToU32(ImVec4(g_Settings.favoriteRowColor[0], g_Settings.favoriteRowColor[1], g_Settings.favoriteRowColor[2], g_Settings.favoriteRowColor[3])));
                 }
-                
+
                 std::string iconUrl = st.details.iconUrl;
                 if (id == 1 && iconUrl.empty())
                     iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
                 UICommon::DrawItemIconCell(id, iconUrl, static_cast<float>(g_Settings.gridIconSizeCurrencies), st.details.loaded ? st.details.rarity : "");
-                
-                // Draw favorite star
+
                 if (st.isFavorite)
-                {
-                    ImVec2 starPos = ImVec2(cursor.x + 2.0f, cursor.y + 2.0f);
-                    ImGui::GetWindowDrawList()->AddText(starPos, IM_COL32(255, 215, 0, 255), "*");
-                }
+                    ImGui::GetWindowDrawList()->AddText(ImVec2(cur.x + 2.f, cur.y + 2.f), IM_COL32(255, 215, 0, 255), "*");
 
                 if (ImGui::IsItemHovered())
+                    RenderCurrencyTooltip(id, st.count, st);
+
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
                 {
-                    UITooltips::CurrencyTooltipOptions opt;
-                    opt.showCount = true;
-                    opt.count = st.count;
-                    opt.showId = true;
-                    if (st.details.loaded)
-                        UITooltips::RenderCurrencyTooltip(st.details, id, opt);
-                    else
-                        UITooltips::RenderCurrencyTooltipFallback(Localization::GetText("loading"), "", id, opt);
+                    s_FavCurGridPendingId   = id;
+                    s_FavCurGridPendingName = st.details.loaded ? st.details.name : "";
                 }
 
-                // Draw count number on icon
-                ImVec2 iconSize = ImVec2(static_cast<float>(g_Settings.gridIconSizeCurrencies), static_cast<float>(g_Settings.gridIconSizeCurrencies));
-                char countStr[32];
-                snprintf(countStr, sizeof(countStr), "%lld", st.count);
+                DrawGridCurrencyCount(id, st.count, static_cast<float>(g_Settings.gridIconSizeCurrencies));
+                ImGui::EndGroup();
 
-                float fontSize = static_cast<float>(g_Settings.gridIconSizeCurrencies) * 0.45f;
-                ImGui::PushFont(ImGui::GetFont());
-                ImGui::SetWindowFontScale(fontSize / ImGui::GetFontSize());
-
-                ImVec2 textSize = ImGui::CalcTextSize(countStr);
-                ImVec2 countPos = ImVec2(cursor.x + iconSize.x - textSize.x - 2.0f, cursor.y + iconSize.y - textSize.y - 2.0f);
-
-                ImVec4 countColor = st.count > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.count < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
-
-                // Draw shadow/outline for better readability
-                static const ImVec2 kOff[8] = {{-1,-1},{1,-1},{-1,1},{1,1},{0,-1},{0,1},{-1,0},{1,0}};
-                ImDrawList* dl = ImGui::GetWindowDrawList();
-                for (int k = 0; k < 8; k++)
-                    dl->AddText(ImVec2(countPos.x+kOff[k].x, countPos.y+kOff[k].y), IM_COL32(0,0,0,255), countStr);
-                dl->AddText(countPos, ImGui::ColorConvertFloat4ToU32(countColor), countStr);
-
-                ImGui::SetWindowFontScale(1.f);
-                ImGui::PopFont();
+                // Abstand nach Coin rechts
+                if (isCoin)
+                {
+                    ImGui::SameLine(0, 0.0f);
+                    ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                }
 
                 ImGui::EndGroup();
                 ImGui::PopID();
                 count++;
             }
-            ImGui::PopStyleVar();
+
+            if (s_FavCurGridPendingId != -1)
+            {
+                UIContextMenu::OpenContextMenu("FavCurGridMenu", s_FavCurGridPendingId, s_FavCurGridPendingName);
+                s_FavCurGridPendingId = -1;
+            }
+            UIContextMenu::RenderCurrencyContextMenu("FavCurGridMenu", UIContextMenu::ContextMenuType::Favorites);
         }
         else
         {
@@ -256,18 +319,18 @@ void RenderCurrenciesTab()
                         iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
                     UICommon::DrawItemIconCell(id, iconUrl, 32.f, st.details.loaded ? st.details.rarity : "");
                     if (ImGui::IsItemHovered())
-                    {
-                        UITooltips::CurrencyTooltipOptions opt;
-                        opt.showCount = true;
-                        opt.count = st.count;
-                        opt.showProfit = (profit != 0);
-                        opt.profit = profit;
-                        opt.showId = true;
-                        if (st.details.loaded)
-                            UITooltips::RenderCurrencyTooltip(st.details, id, opt);
-                        else
-                            UITooltips::RenderCurrencyTooltipFallback(Localization::GetText("loading"), "", id, opt);
-                    }
+                {
+                    UITooltips::CurrencyTooltipOptions opt;
+                    opt.showCount = true;
+                    opt.count = st.count;
+                    opt.showProfit = true; // Always enable, tooltip will decide what to show
+                    opt.profit = st.GetCustomProfit() * st.count;
+                    opt.showId = true;
+                    if (st.details.loaded)
+                        UITooltips::RenderCurrencyTooltip(st.details, id, opt);
+                    else
+                        UITooltips::RenderCurrencyTooltipFallback(Localization::GetText("loading"), "", id, opt);
+                }
 
                     ImGui::TableSetColumnIndex(1);
                     ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : (id == 1 ? Localization::GetText("coin") : Localization::GetText("loading")));
@@ -384,11 +447,19 @@ void RenderCurrenciesTab()
     ImGui::Spacing();
 
     auto sortedCurrencies = ItemTracker::GetSortedCurrencies(static_cast<ItemTracker::SortMode>(g_Settings.itemSortMode));
+    // Filter out ignored currencies
+    std::vector<std::pair<int, Stat>> filteredSortedCurrencies;
+    for (auto& [id, st] : sortedCurrencies)
+    {
+        if (!st.isIgnored && st.count != 0 && st.IsCurrency())
+            filteredSortedCurrencies.push_back({id, st});
+    }
+    sortedCurrencies.swap(filteredSortedCurrencies);
 
     if (g_Settings.currenciesEnableGridView)
     {
         // Grid View for Currencies
-        float cellSize = static_cast<float>(g_Settings.gridIconSizeCurrencies) + 20.0f; // Increased padding for longer currency strings
+        float cellSize = static_cast<float>(g_Settings.gridIconSizeCurrencies) + 20.0f; // Same padding as in Overview tab
         float spacing = ImGui::GetStyle().ItemSpacing.x;
         float scrollbarWidth = 20.0f; // Safer buffer for scrollbar
         
@@ -397,8 +468,8 @@ void RenderCurrenciesTab()
         };
 
         if (ImGui::BeginChild("##CurrenciesGrid", ImVec2(0, 0), true))
-        {
-            if (g_Settings.currenciesFavoritesFirst || g_Settings.currenciesGroupByRarity || g_Settings.currenciesGroupByCategory)
+            {
+                if (g_Settings.currenciesGroupByCategory)
             {
                 // Group by Category logic
                 std::vector<std::string> categories = {
@@ -412,7 +483,7 @@ void RenderCurrenciesTab()
                     Localization::GetText("currency_cat_other")
                 };
 
-                if (g_Settings.currenciesShowGroupAsTabs || g_Settings.currenciesShowRarityAsTabs)
+                if (g_Settings.currenciesShowGroupAsTabs)
                 {
                     if (ImGui::BeginTabBar("##CurrencyCategoryTabsGrid"))
                     {
@@ -439,36 +510,47 @@ void RenderCurrenciesTab()
                                     if (ItemTracker::GetCurrencyCategory(id) != cat) continue;
                                     if (st.count == 0) continue;
 
-                                    if (col > 0) ImGui::SameLine();
-                                    
-                                    ImGui::PushID(id);
-                                    // ... Render Currency Cell (using a helper or just repeating for now)
-                                    if (ImGui::BeginChild("##CurrencyCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar))
+                                    bool isCoin = id == 1;
+
+                                    if (col > 0)
                                     {
-                                        ImVec2 cursor = ImGui::GetCursorPos();
-                                        std::string iconUrl = st.details.iconUrl;
-                                        if (id == 1 && iconUrl.empty()) iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
-                                        UICommon::DrawItemIconCell(id, iconUrl, static_cast<float>(g_Settings.gridIconSizeCurrencies), st.details.loaded ? st.details.rarity : "");
-                                        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
-                                        {
-                                            pendingContextId = id;
-                                            pendingContextName = st.details.loaded ? st.details.name : "";
-                                        }
-                                        if (ImGui::IsItemHovered())
-                                        {
-                                            UITooltips::CurrencyTooltipOptions opt;
-                                            opt.showCount = true;
-                                            opt.count = st.count;
-                                            opt.showRarity = true;
-                                            opt.showId = true;
-                                            if (st.details.loaded)
-                                                UITooltips::RenderCurrencyTooltip(st.details, id, opt);
-                                            else
-                                                UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
-                                        }
-                                        DrawGridCurrencyCount(id, st.count, static_cast<float>(g_Settings.gridIconSizeCurrencies));
+                                        if (col % columns == 0)
+                                            ImGui::NewLine();
+                                        else
+                                            ImGui::SameLine();
                                     }
-                                    ImGui::EndChild();
+
+                                    ImGui::PushID(id);
+                                    ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
+
+                                    // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
+                                    if (isCoin && col > 0)
+                                    {
+                                        ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                                        ImGui::SameLine(0, 0.0f);
+                                    }
+
+                                    // Eigentliche Icon-Gruppe
+                                    ImGui::BeginGroup();
+                                    bool cellHovered = false;
+                                    std::string iconUrl = st.details.iconUrl;
+                                    if (id == 1 && iconUrl.empty()) iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
+                                    UICommon::DrawItemIconCell(id, iconUrl, static_cast<float>(g_Settings.gridIconSizeCurrencies), st.details.loaded ? st.details.rarity : "");
+                                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) { pendingContextId = id; pendingContextName = st.details.loaded ? st.details.name : ""; }
+                                    cellHovered = ImGui::IsItemHovered();
+                                    DrawGridCurrencyCount(id, st.count, static_cast<float>(g_Settings.gridIconSizeCurrencies));
+                                    ImGui::EndGroup();
+
+                                    // Abstand nach Coin rechts
+                                    if (isCoin)
+                                    {
+                                        ImGui::SameLine(0, 0.0f);
+                                        ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                                    }
+
+                                    ImGui::EndGroup();
+                                    if (cellHovered)
+                                        RenderCurrencyTooltip(id, st.count, st);
                                     ImGui::PopID();
 
                                     col++;
@@ -489,7 +571,7 @@ void RenderCurrenciesTab()
                         for (const auto& [id, st] : sortedCurrencies) { if (ItemTracker::GetCurrencyCategory(id) == cat && st.count > 0) { hasItems = true; break; } }
                         if (!hasItems) continue;
 
-                        if (ImGui::CollapsingHeader(cat.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+                        if (CollapsingHeaderWithIcon(cat.c_str(), "currencies", ImGuiTreeNodeFlags_DefaultOpen))
                         {
                             int columns = getColumns(ImGui::GetContentRegionAvail().x);
                             int col = 0;
@@ -497,35 +579,48 @@ void RenderCurrenciesTab()
                             {
                                 if (ItemTracker::GetCurrencyCategory(id) != cat) continue;
                                 if (st.count == 0) continue;
-                                if (col > 0) ImGui::SameLine();
-                                
-                                ImGui::PushID(id);
-                                if (ImGui::BeginChild("##CurrencyCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar))
+
+                                bool isCoin = id == 1;
+
+                                if (col > 0)
                                 {
-                                    ImVec2 cursor = ImGui::GetCursorPos();
-                                    std::string iconUrl = st.details.iconUrl;
-                                    if (id == 1 && iconUrl.empty()) iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
-                                    UICommon::DrawItemIconCell(id, iconUrl, static_cast<float>(g_Settings.gridIconSizeCurrencies), st.details.loaded ? st.details.rarity : "");
-                                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
-                                    {
-                                        pendingContextId = id;
-                                        pendingContextName = st.details.loaded ? st.details.name : "";
-                                    }
-                                    if (ImGui::IsItemHovered())
-                                    {
-                                        UITooltips::CurrencyTooltipOptions opt;
-                                        opt.showCount = true;
-                                        opt.count = st.count;
-                                        opt.showRarity = true;
-                                        opt.showId = true;
-                                        if (st.details.loaded)
-                                            UITooltips::RenderCurrencyTooltip(st.details, id, opt);
-                                        else
-                                            UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
-                                    }
-                                    DrawGridCurrencyCount(id, st.count, static_cast<float>(g_Settings.gridIconSizeCurrencies));
+                                    if (col % columns == 0)
+                                        ImGui::NewLine();
+                                    else
+                                        ImGui::SameLine();
                                 }
-                                ImGui::EndChild();
+
+                                ImGui::PushID(id);
+                                ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
+
+                                // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
+                                if (isCoin && col > 0)
+                                {
+                                    ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                                    ImGui::SameLine(0, 0.0f);
+                                }
+
+                                // Eigentliche Icon-Gruppe
+                                ImGui::BeginGroup();
+                                bool cellHovered = false;
+                                std::string iconUrl = st.details.iconUrl;
+                                if (id == 1 && iconUrl.empty()) iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
+                                UICommon::DrawItemIconCell(id, iconUrl, static_cast<float>(g_Settings.gridIconSizeCurrencies), st.details.loaded ? st.details.rarity : "");
+                                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) { pendingContextId = id; pendingContextName = st.details.loaded ? st.details.name : ""; }
+                                cellHovered = ImGui::IsItemHovered();
+                                DrawGridCurrencyCount(id, st.count, static_cast<float>(g_Settings.gridIconSizeCurrencies));
+                                ImGui::EndGroup();
+
+                                // Abstand nach Coin rechts
+                                if (isCoin)
+                                {
+                                    ImGui::SameLine(0, 0.0f);
+                                    ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                                }
+
+                                ImGui::EndGroup();
+                                if (cellHovered)
+                                    RenderCurrencyTooltip(id, st.count, st);
                                 ImGui::PopID();
 
                                 col++;
@@ -538,47 +633,56 @@ void RenderCurrenciesTab()
             else
             {
                 // No grouping
-                int columns = getColumns(ImGui::GetContentRegionAvail().x);
+                const float leftIndent = 15.0f;
+                ImGui::Indent(leftIndent);
+                int columns = getColumns(ImGui::GetContentRegionAvail().x - leftIndent);
                 int col = 0;
                 for (auto& [id, st] : sortedCurrencies)
                 {
                     if (st.count == 0) continue;
+
+                    bool isCoin = id == 1;
+
                     if (col > 0)
-                        ImGui::SameLine();
+                    {
+                        if (col % columns == 0)
+                            ImGui::NewLine();
+                        else
+                            ImGui::SameLine();
+                    }
 
                     ImGui::PushID(id);
-                    if (ImGui::BeginChild("##CurrencyCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar))
+                    ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
+
+                    // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
+                    if (isCoin && col > 0)
                     {
-                        // Icon
-                        ImVec2 cursor = ImGui::GetCursorPos();
-                        std::string iconUrl = st.details.iconUrl;
-                        if (id == 1 && iconUrl.empty())
-                            iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
-                        UICommon::DrawItemIconCell(id, iconUrl, static_cast<float>(g_Settings.gridIconSizeCurrencies), st.details.loaded ? st.details.rarity : "");
-
-                        // Right-click context menu
-                        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
-                        {
-                            pendingContextId = id;
-                            pendingContextName = st.details.loaded ? st.details.name : "";
-                        }
-
-                        if (ImGui::IsItemHovered())
-                        {
-                            UITooltips::CurrencyTooltipOptions opt;
-                            opt.showCount = true;
-                            opt.count = st.count;
-                            opt.showRarity = true;
-                            opt.showId = true;
-                            if (st.details.loaded)
-                                UITooltips::RenderCurrencyTooltip(st.details, id, opt);
-                            else
-                                UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
-                        }
-
-                        DrawGridCurrencyCount(id, st.count, static_cast<float>(g_Settings.gridIconSizeCurrencies));
+                        ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                        ImGui::SameLine(0, 0.0f);
                     }
-                    ImGui::EndChild();
+
+                    // Eigentliche Icon-Gruppe
+                    ImGui::BeginGroup();
+                    bool cellHovered = false;
+                    std::string iconUrl = st.details.iconUrl;
+                    if (id == 1 && iconUrl.empty())
+                        iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
+                    UICommon::DrawItemIconCell(id, iconUrl, static_cast<float>(g_Settings.gridIconSizeCurrencies), st.details.loaded ? st.details.rarity : "");
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) { pendingContextId = id; pendingContextName = st.details.loaded ? st.details.name : ""; }
+                    cellHovered = ImGui::IsItemHovered();
+                    DrawGridCurrencyCount(id, st.count, static_cast<float>(g_Settings.gridIconSizeCurrencies));
+                    ImGui::EndGroup();
+
+                    // Abstand nach Coin rechts
+                    if (isCoin)
+                    {
+                        ImGui::SameLine(0, 0.0f);
+                        ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                    }
+
+                    ImGui::EndGroup();
+                    if (cellHovered)
+                        RenderCurrencyTooltip(id, st.count, st);
                     ImGui::PopID();
 
                     col++;
@@ -587,6 +691,7 @@ void RenderCurrenciesTab()
                         col = 0;
                     }
                 }
+                ImGui::Unindent(leftIndent);
             }
 
             // Context menu popup (rendered once outside the loop)
@@ -614,50 +719,21 @@ void RenderCurrenciesTab()
                 pendingContextName = st.details.loaded ? st.details.name : "";
             }
             if (ImGui::IsItemHovered())
-            {
-                UITooltips::CurrencyTooltipOptions opt;
-                opt.showCount = true;
-                opt.count = st.count;
-                opt.showRarity = true;
-                opt.showId = true;
-                if (st.details.loaded)
-                    UITooltips::RenderCurrencyTooltip(st.details, id, opt);
-                else
-                    UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
-            }
+                RenderCurrencyTooltip(id, st.count, st);
             ImGui::TableSetColumnIndex(1);
             UICommon::AlignTableCellText(rowH);
             std::string name = st.details.loaded ? st.details.name : (id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"));
             if (st.isFavorite) { ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.4f, 1.0f), "*"); ImGui::SameLine(); }
-            
-            // Default color is white
             ImVec4 col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-            
-            // Apply gold color for favorites if setting is enabled, otherwise use default gold for favorites
             if (st.isFavorite) {
-                col = ImVec4(1.0f, 0.84f, 0.0f, 1.0f); // Default favorite gold
+                col = ImVec4(1.0f, 0.84f, 0.0f, 1.0f);
                 if (g_Settings.enableFavoriteTextColor)
                     col = ImVec4(g_Settings.favoriteTextColor[0], g_Settings.favoriteTextColor[1], g_Settings.favoriteTextColor[2], g_Settings.favoriteTextColor[3]);
             }
-            
             ImGui::TextColored(col, "%s", name.c_str());
-            if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
-            {
-                pendingContextId = id;
-                pendingContextName = st.details.loaded ? st.details.name : "";
-            }
+            if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) { pendingContextId = id; pendingContextName = st.details.loaded ? st.details.name : ""; }
             if (ImGui::IsItemHovered())
-            {
-                UITooltips::CurrencyTooltipOptions opt;
-                opt.showCount = true;
-                opt.count = st.count;
-                opt.showRarity = true;
-                opt.showId = true;
-                if (st.details.loaded)
-                    UITooltips::RenderCurrencyTooltip(st.details, id, opt);
-                else
-                    UITooltips::RenderCurrencyTooltipFallback(name, "", id, opt);
-            }
+                RenderCurrencyTooltip(id, st.count, st);
             ImGui::TableSetColumnIndex(2);
             UICommon::AlignTableCellText(rowH);
             ImVec4 countColor = st.count > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (st.count < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
@@ -741,7 +817,7 @@ void RenderCurrenciesTab()
                     for (const auto& [id, st] : sortedCurrencies) { if (ItemTracker::GetCurrencyCategory(id) == cat) { hasItems = true; break; } }
                     if (!hasItems) continue;
 
-                    if (ImGui::CollapsingHeader(cat.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+                    if (CollapsingHeaderWithIcon(cat.c_str(), "currencies", ImGuiTreeNodeFlags_DefaultOpen))
                     {
                         if (ImGui::BeginTable(("##CurrenciesTable_v3_" + cat).c_str(), 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
                         {

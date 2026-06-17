@@ -32,6 +32,7 @@ namespace Localization
             {"reset_tooltip", "Reset all farming counters (manual reset)"},
             {"tab_summary", "Dashboard"},
             {"tab_drops", "Drops"},
+            {"tab_overview", "Oversigt"},
             {"tab_loot_filter", "Loot Filter"},
             {"tab_dashboard", "Dashboard"},
             {"tab_items", "Items"},

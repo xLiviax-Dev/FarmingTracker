@@ -345,8 +345,9 @@ static bool RenderItemsSubTab()
     std::vector<int> filtered;
     for (int id : favIds)
     {
-        if (search.empty()) { filtered.push_back(id); continue; }
         Stat st = ItemTracker::GetItemStat(id);
+        if (st.isIgnored) continue;
+        if (search.empty()) { filtered.push_back(id); continue; }
         std::string name = st.details.loaded ? st.details.name : "";
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
         std::string rar = st.details.loaded ? st.details.rarity : "";
@@ -677,8 +678,9 @@ static bool RenderCurrenciesSubTab()
     std::vector<int> filtered;
     for (int id : favIds)
     {
-        if (search.empty()) { filtered.push_back(id); continue; }
         Stat st = ItemTracker::GetCurrencyStat(id);
+        if (st.isIgnored) continue;
+        if (search.empty()) { filtered.push_back(id); continue; }
         std::string name = st.details.loaded ? st.details.name : "";
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
         if (name.find(search) != std::string::npos ||
@@ -785,6 +787,8 @@ static bool RenderCurrenciesSubTab()
         {
             UITooltips::CurrencyTooltipOptions opt;
             opt.showCount = true; opt.count = st.count;
+            opt.showProfit = true; // Always enable, tooltip will decide what to show
+            opt.profit = st.GetCustomProfit();
             opt.showRarity = true; opt.showId = true;
             if (st.details.loaded) UITooltips::RenderCurrencyTooltip(st.details, id, opt);
             else UITooltips::RenderCurrencyTooltipFallback(name, "", id, opt);

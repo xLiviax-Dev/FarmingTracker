@@ -32,6 +32,7 @@ namespace Localization
             {"reset_tooltip", "Återställ alla farming-räknare (manuell återställning)"},
             {"tab_summary", "Dashboard"},
             {"tab_drops", "Droppar"},
+            {"tab_overview", "Översikt"},
             {"tab_loot_filter", "Loot Filter"},
             {"tab_dashboard", "Instrumentpanel"},
             {"tab_items", "Föremål"},

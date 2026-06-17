@@ -27,6 +27,11 @@
 
 namespace UISettings
 {
+    void RenderShortcut()
+    {
+        ImGui::Checkbox(Localization::GetText("show_main_window"), &g_Settings.showMainWindow);
+        ImGui::Checkbox(Localization::GetText("show_mini_window"), &g_Settings.showMiniWindow);
+    }
 
 // =============================================================================
 // Sidebar navigation state
@@ -665,6 +670,29 @@ static void RenderPage_Appearance()
 
     if (BeginSection("icons", Localization::GetText("icons_borders"), false, "icons_borders"))
     {
+        bool oldValue = g_Settings.showShortIcon;
+        if (ImGui::Checkbox(Localization::GetText("show_short_icon"), &g_Settings.showShortIcon)) {
+            SettingsManager::Save();
+            if (APIDefs) {
+                if (g_Settings.showShortIcon && !oldValue) {
+                    // Add the icon
+                    APIDefs->QuickAccess_Add(
+                        "QA_FT",
+                        "ICON_FT",
+                        "ICON_FT_HOVER",
+                        "FT_TOGGLE_MAIN",
+                        "Farming Tracker");
+                    APIDefs->QuickAccess_AddContextMenu("QAS_FT", "QA_FT", UISettings::RenderShortcut);
+                }
+                else if (!g_Settings.showShortIcon && oldValue) {
+                    // Remove the icon
+                    APIDefs->QuickAccess_RemoveContextMenu("QAS_FT");
+                    APIDefs->QuickAccess_Remove("QA_FT");
+                }
+            }
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_short_icon_tooltip"));
+
         if (ImGui::Checkbox(Localization::GetText("show_item_icons"), &g_Settings.showItemIcons)) SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_item_icons_tooltip"));
         if (ImGui::SliderInt(Localization::GetText("history_icon_size"), &g_Settings.historyIconSize, 16, 96)) SettingsManager::Save();
@@ -766,6 +794,11 @@ static void RenderPage_Windows()
         if (ImGui::SliderFloat("##MainFontSize", &g_Settings.mainWindowFontSize, 0.5f, 2.0f, "%.2f"))
         { SettingsManager::Save(); }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("main_window_font_size_tooltip"));
+        
+        LabelText("Tab Inhalt Schriftgröße");
+        if (ImGui::SliderFloat("##TabContentFontSize", &g_Settings.tabContentFontSize, 0.5f, 2.0f, "%.2f"))
+        { SettingsManager::Save(); }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Ändert die Schriftgröße innerhalb der Tabs");
         EndSection();
     }
 
@@ -783,14 +816,10 @@ static void RenderPage_Windows()
         if (ImGui::Checkbox(Localization::GetText("mini_window_show_tp_instant"),         &g_Settings.miniWindowShowTradingProfitInstant))SettingsManager::Save();
         if (ImGui::Checkbox(Localization::GetText("mini_window_show_total_items"),        &g_Settings.miniWindowShowTotalItems))          SettingsManager::Save();
         if (ImGui::Checkbox(Localization::GetText("mini_window_show_session_duration"),   &g_Settings.miniWindowShowSessionDuration))     SettingsManager::Save();
-        if (ImGui::Checkbox(Localization::GetText("enable_best_drop_in_mini_window"),     &g_Settings.enableBestDropInMiniWindow))        SettingsManager::Save();
-        if (g_Settings.enableBestDropInMiniWindow || g_Settings.miniWindowShowBestDropTotalValue)
-        {
-            ImGui::Indent();
-            if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_single"), &g_Settings.enableBestDropInMiniWindow)) SettingsManager::Save();
-            if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_total"),  &g_Settings.miniWindowShowBestDropTotalValue)) SettingsManager::Save();
-            ImGui::Unindent();
-        }
+        if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_single"),  &g_Settings.miniWindowShowBestDropSingle))      SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_total"),   &g_Settings.miniWindowShowBestDropTotalValue))   SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_icons"), &g_Settings.miniWindowShowBestDropIcons)) SettingsManager::Save();
+        if (ImGui::SliderInt(Localization::GetText("mini_window_best_drop_icon_size"), &g_Settings.miniWindowBestDropIconSize, 16, 96)) SettingsManager::Save();
         
         SubHeader("");
         if (ImGui::Checkbox(Localization::GetText("mini_window_hide_title_bar"), &g_Settings.miniWindowHideTitleBar)) 
@@ -1256,8 +1285,6 @@ static void RenderPage_Performance()
 
     if (BeginSection("perf", Localization::GetText("performance_settings"), false, "performance"))
     {
-        if (ImGui::Checkbox(Localization::GetText("disable_complex_visuals"), &g_Settings.disableComplexVisualsOnLowPerf)) SettingsManager::Save();
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("disable_complex_visuals_tooltip"));
         if (ImGui::Checkbox(Localization::GetText("enable_icon_cache"), &g_Settings.enableIconCache)) SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_icon_cache_tooltip"));
         if (g_Settings.enableIconCache) {

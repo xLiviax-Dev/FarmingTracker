@@ -32,6 +32,7 @@ namespace Localization
             {"reset_tooltip", "Összes farming számláló visszaállítása (kézi visszaállítás)"},
             {"tab_summary", "Dashboard"},
             {"tab_drops", "Drops"},
+            {"tab_overview", "Áttekintés"},
             {"tab_loot_filter", "Loot Filter"},
             {"tab_dashboard", "Vezérlőpult"},
             {"tab_items", "Tárgyak"},

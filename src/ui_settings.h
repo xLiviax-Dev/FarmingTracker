@@ -5,4 +5,5 @@
 namespace UISettings
 {
     void RenderOptions();
+    void RenderShortcut();
 }

@@ -22,6 +22,7 @@
 #include "ui_notifications.h"
 #include "ui_tab_icons.h"
 #include "ui_info.h"
+#include "ui_settings.h"
 #include "shared.h"
 #include "settings.h"
 #include "item_tracker.h"
@@ -790,6 +791,9 @@ static void RenderMainWindow()
 
         if (childId && ImGui::BeginChild(childId, ImVec2(0, tabContentHeight), false))
         {
+            // Reapply font scale for the child window
+            ImGui::SetWindowFontScale(g_Settings.tabContentFontSize);
+            
             if      (key == "dashboard")       UIProfit::RenderProfitTab();
             else if (key == "drops")           UIDrops::RenderDropsTab();
             else if (key == "loot_filter")     UILootFilter::RenderLootFilterTab();
@@ -853,11 +857,7 @@ static void RenderMainWindow()
     }
 }
 
-static void RenderShortcut()
-{
-    ImGui::Checkbox(Localization::GetText("show_main_window"), &g_Settings.showMainWindow);
-    ImGui::Checkbox(Localization::GetText("show_mini_window"), &g_Settings.showMiniWindow);
-}
+
 
 static void ProcessKeybind(const char* aIdentifier, bool aIsRelease)
 {
@@ -895,14 +895,16 @@ void UI::Init()
     APIDefs->GUI_Register(RT_Render, UINotifications::Render);
     APIDefs->GUI_Register(RT_OptionsRender, UISettings::RenderOptions);
 
-    APIDefs->QuickAccess_Add(
-        "QA_FT",
-        "ICON_FT",
-        "ICON_FT_HOVER",
-        "FT_TOGGLE_MAIN",
-        "Farming Tracker");
+    if (g_Settings.showShortIcon) {
+        APIDefs->QuickAccess_Add(
+            "QA_FT",
+            "ICON_FT",
+            "ICON_FT_HOVER",
+            "FT_TOGGLE_MAIN",
+            "Farming Tracker");
 
-    APIDefs->QuickAccess_AddContextMenu("QAS_FT", "QA_FT", RenderShortcut);
+        APIDefs->QuickAccess_AddContextMenu("QAS_FT", "QA_FT", UISettings::RenderShortcut);
+    }
 
     APIDefs->InputBinds_RegisterWithString("FT_TOGGLE_MAIN", ProcessKeybind, g_Settings.toggleHotkey.c_str());
     APIDefs->InputBinds_RegisterWithString("FT_TOGGLE_MINI", ProcessKeybind, g_Settings.miniWindowToggleHotkey.c_str());

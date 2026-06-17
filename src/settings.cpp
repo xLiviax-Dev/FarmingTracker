@@ -169,8 +169,11 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     j["enableSummariesInProfitTab"] = s.enableSummariesInProfitTab;
     j["enableBestDropHighlight"] = s.enableBestDropHighlight;
     j["bestDropHighlightColor"] = json::array({s.bestDropHighlightColor[0], s.bestDropHighlightColor[1], s.bestDropHighlightColor[2], s.bestDropHighlightColor[3]});
-    j["enableBestDropInMiniWindow"] = s.enableBestDropInMiniWindow;
+    j["miniWindowShowBestDropSingle"] = s.miniWindowShowBestDropSingle;
     j["miniWindowShowBestDropTotalValue"] = s.miniWindowShowBestDropTotalValue;
+    j["miniWindowShowBestDropIcons"] = s.miniWindowShowBestDropIcons;
+    j["miniWindowBestDropIconSize"] = s.miniWindowBestDropIconSize;
+    j["showShortIcon"] = s.showShortIcon;
     j["showMiniWindow"] = s.showMiniWindow;
     j["miniWindowShowProfit"] = s.miniWindowShowProfit;
     j["miniWindowShowProfitPerHour"] = s.miniWindowShowProfitPerHour;
@@ -180,6 +183,7 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     j["miniWindowShowSessionDuration"] = s.miniWindowShowSessionDuration;
     j["miniWindowClickThrough"] = s.miniWindowClickThrough;
     j["mainWindowFontSize"] = s.mainWindowFontSize;
+    j["tabContentFontSize"] = s.tabContentFontSize;
     j["notificationFontSize"] = s.notificationFontSize;
     j["miniWindowHideTitleBar"] = s.miniWindowHideTitleBar;
     j["miniWindowHideBorder"] = s.miniWindowHideBorder;
@@ -215,16 +219,20 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     // Drops Settings
     j["itemsEnableGridView"] = s.itemsEnableGridView;
     j["itemsFavoritesFirst"] = s.itemsFavoritesFirst;
+    j["itemsFavoritesAsGrid"] = s.itemsFavoritesAsGrid;
     j["itemsGroupByRarity"] = s.itemsGroupByRarity;
     j["itemsShowRarityAsTabs"] = s.itemsShowRarityAsTabs;
     j["itemsGroupByCategory"] = s.itemsGroupByCategory;
     j["itemsShowGroupAsTabs"] = s.itemsShowGroupAsTabs;
     j["currenciesEnableGridView"] = s.currenciesEnableGridView;
     j["currenciesFavoritesFirst"] = s.currenciesFavoritesFirst;
-    j["currenciesGroupByRarity"] = s.currenciesGroupByRarity;
-    j["currenciesShowRarityAsTabs"] = s.currenciesShowRarityAsTabs;
+    j["currenciesFavoritesAsGrid"] = s.currenciesFavoritesAsGrid;
     j["currenciesGroupByCategory"] = s.currenciesGroupByCategory;
     j["currenciesShowGroupAsTabs"] = s.currenciesShowGroupAsTabs;
+    j["overviewCurrenciesFirst"] = s.overviewCurrenciesFirst;
+    j["overviewEnableGridView"] = s.overviewEnableGridView;
+    j["overviewFavoritesAsGrid"] = s.overviewFavoritesAsGrid;
+    j["overviewFavoritesIconSize"] = s.overviewFavoritesIconSize;
     j["itemsSavePath"] = s.itemsSavePath;
     j["currenciesSavePath"] = s.currenciesSavePath;
     j["liveLogCustomPath"] = s.liveLogCustomPath;
@@ -499,8 +507,11 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     if (j.contains("enableBestDropHighlight")) s.enableBestDropHighlight = j["enableBestDropHighlight"].get<bool>();
     if (j.contains("bestDropHighlightColor") && j["bestDropHighlightColor"].is_array() && j["bestDropHighlightColor"].size() == 4)
         for (int i = 0; i < 4; i++) s.bestDropHighlightColor[i] = j["bestDropHighlightColor"][i].get<float>();
-    if (j.contains("enableBestDropInMiniWindow")) s.enableBestDropInMiniWindow = j["enableBestDropInMiniWindow"].get<bool>();
+    if (j.contains("miniWindowShowBestDropSingle")) s.miniWindowShowBestDropSingle = j["miniWindowShowBestDropSingle"].get<bool>();
     if (j.contains("miniWindowShowBestDropTotalValue")) s.miniWindowShowBestDropTotalValue = j["miniWindowShowBestDropTotalValue"].get<bool>();
+    if (j.contains("miniWindowShowBestDropIcons")) s.miniWindowShowBestDropIcons = j["miniWindowShowBestDropIcons"].get<bool>();
+    if (j.contains("miniWindowBestDropIconSize")) s.miniWindowBestDropIconSize = j["miniWindowBestDropIconSize"].get<int>();
+    if (j.contains("showShortIcon")) s.showShortIcon = j["showShortIcon"].get<bool>();
     if (j.contains("showMiniWindow")) s.showMiniWindow = j["showMiniWindow"].get<bool>();
     if (j.contains("miniWindowShowProfit")) s.miniWindowShowProfit = j["miniWindowShowProfit"].get<bool>();
     if (j.contains("miniWindowShowProfitPerHour")) s.miniWindowShowProfitPerHour = j["miniWindowShowProfitPerHour"].get<bool>();
@@ -510,6 +521,7 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     if (j.contains("miniWindowShowSessionDuration")) s.miniWindowShowSessionDuration = j["miniWindowShowSessionDuration"].get<bool>();
     if (j.contains("miniWindowClickThrough")) s.miniWindowClickThrough = j["miniWindowClickThrough"].get<bool>();
     if (j.contains("mainWindowFontSize")) s.mainWindowFontSize = j["mainWindowFontSize"].get<float>();
+    if (j.contains("tabContentFontSize")) s.tabContentFontSize = j["tabContentFontSize"].get<float>();
     if (j.contains("notificationFontSize")) s.notificationFontSize = j["notificationFontSize"].get<float>();
     if (j.contains("miniWindowHideTitleBar")) s.miniWindowHideTitleBar = j["miniWindowHideTitleBar"].get<bool>();
     if (j.contains("miniWindowHideBorder")) s.miniWindowHideBorder = j["miniWindowHideBorder"].get<bool>();
@@ -545,16 +557,20 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     // Drops Settings
     if (j.contains("itemsEnableGridView")) s.itemsEnableGridView = j["itemsEnableGridView"].get<bool>();
     if (j.contains("itemsFavoritesFirst")) s.itemsFavoritesFirst = j["itemsFavoritesFirst"].get<bool>();
+    if (j.contains("itemsFavoritesAsGrid")) s.itemsFavoritesAsGrid = j["itemsFavoritesAsGrid"].get<bool>();
     if (j.contains("itemsGroupByRarity")) s.itemsGroupByRarity = j["itemsGroupByRarity"].get<bool>();
     if (j.contains("itemsShowRarityAsTabs")) s.itemsShowRarityAsTabs = j["itemsShowRarityAsTabs"].get<bool>();
     if (j.contains("itemsGroupByCategory")) s.itemsGroupByCategory = j["itemsGroupByCategory"].get<bool>();
     if (j.contains("itemsShowGroupAsTabs")) s.itemsShowGroupAsTabs = j["itemsShowGroupAsTabs"].get<bool>();
     if (j.contains("currenciesEnableGridView")) s.currenciesEnableGridView = j["currenciesEnableGridView"].get<bool>();
     if (j.contains("currenciesFavoritesFirst")) s.currenciesFavoritesFirst = j["currenciesFavoritesFirst"].get<bool>();
-    if (j.contains("currenciesGroupByRarity")) s.currenciesGroupByRarity = j["currenciesGroupByRarity"].get<bool>();
-    if (j.contains("currenciesShowRarityAsTabs")) s.currenciesShowRarityAsTabs = j["currenciesShowRarityAsTabs"].get<bool>();
+    if (j.contains("currenciesFavoritesAsGrid")) s.currenciesFavoritesAsGrid = j["currenciesFavoritesAsGrid"].get<bool>();
     if (j.contains("currenciesGroupByCategory")) s.currenciesGroupByCategory = j["currenciesGroupByCategory"].get<bool>();
     if (j.contains("currenciesShowGroupAsTabs")) s.currenciesShowGroupAsTabs = j["currenciesShowGroupAsTabs"].get<bool>();
+    if (j.contains("overviewCurrenciesFirst")) s.overviewCurrenciesFirst = j["overviewCurrenciesFirst"].get<bool>();
+    if (j.contains("overviewEnableGridView")) s.overviewEnableGridView = j["overviewEnableGridView"].get<bool>();
+    if (j.contains("overviewFavoritesAsGrid")) s.overviewFavoritesAsGrid = j["overviewFavoritesAsGrid"].get<bool>();
+    if (j.contains("overviewFavoritesIconSize")) s.overviewFavoritesIconSize = j["overviewFavoritesIconSize"].get<int>();
     if (j.contains("itemsSavePath")) s.itemsSavePath = j["itemsSavePath"].get<std::string>();
     if (j.contains("currenciesSavePath")) s.currenciesSavePath = j["currenciesSavePath"].get<std::string>();
     if (j.contains("liveLogCustomPath")) s.liveLogCustomPath = j["liveLogCustomPath"].get<std::string>();

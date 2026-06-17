@@ -540,6 +540,16 @@ std::string GetLogFolder()
     return s_LogFolder;
 }
 
+void RemoveEntriesForItem(int itemId)
+{
+    std::lock_guard<std::mutex> lock(s_Mutex);
+    s_CurrentSessionEntries.erase(
+        std::remove_if(s_CurrentSessionEntries.begin(), s_CurrentSessionEntries.end(),
+            [itemId](const DropEntry& entry) { return entry.itemId == itemId; }),
+        s_CurrentSessionEntries.end()
+    );
+}
+
 std::mutex& GetSessionEntriesMutex()
 {
     return s_Mutex;

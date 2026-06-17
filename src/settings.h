@@ -79,8 +79,13 @@ struct Settings
     // Best Drop Highlight Settings
     bool enableBestDropHighlight = true;
     float bestDropHighlightColor[4] = {1.0f, 0.84f, 0.0f, 0.15f}; // Gold with low alpha
-    bool enableBestDropInMiniWindow = false;
-    bool miniWindowShowBestDropTotalValue = false; // New: Show best drop by total session value
+    bool miniWindowShowBestDropSingle = true; // Show best drop by single unit value
+    bool miniWindowShowBestDropTotalValue = false; // Show best drop by total session value
+    bool miniWindowShowBestDropIcons = true; // Show icons for best drops
+    int miniWindowBestDropIconSize = 32; // Icon size for best drops in mini window
+
+    // Short Icon (Overlay) Settings
+    bool showShortIcon = true;
 
     // Mini Window (Overlay Widget) Settings
     bool showMiniWindow = false;
@@ -94,6 +99,7 @@ struct Settings
 
     // Font Size Settings
     float mainWindowFontSize = 1.0f; // 1.0 = default, 0.8 = smaller, 1.2 = larger
+    float tabContentFontSize = 1.0f; // 1.0 = default, 0.8 = smaller, 1.2 = larger
     float notificationFontSize = 1.0f; // 1.0 = default, 0.8 = smaller, 1.2 = larger
     bool miniWindowHideTitleBar = false;
     bool miniWindowHideBorder = false;
@@ -133,6 +139,7 @@ struct Settings
     // Drops Settings
     bool itemsEnableGridView = true;
     bool itemsFavoritesFirst = false;
+    bool itemsFavoritesAsGrid = false;  // Show favorites section as grid in Items tab
     bool itemsGroupByRarity = true;
     bool itemsShowRarityAsTabs = false;
     bool itemsGroupByCategory = false;
@@ -140,10 +147,15 @@ struct Settings
 
     bool currenciesEnableGridView = true;
     bool currenciesFavoritesFirst = false;
-    bool currenciesGroupByRarity = true;
-    bool currenciesShowRarityAsTabs = false;
+    bool currenciesFavoritesAsGrid = false; // Show favorites section as grid in Currencies tab
     bool currenciesGroupByCategory = false;
     bool currenciesShowGroupAsTabs = false;
+
+    // Overview Tab Settings
+    bool overviewCurrenciesFirst = true; // Show currencies before items in favorites section
+    bool overviewEnableGridView = false; // Enable grid view for overview tab
+    bool overviewFavoritesAsGrid = true; // Show favorites section as grid in overview tab
+    int overviewFavoritesIconSize = 32; // Icon size for favorites in overview tab
 
     std::string itemsSavePath = "";
     std::string currenciesSavePath = "";

@@ -32,6 +32,7 @@ namespace Localization
             {"reset_tooltip", "Redefinir todos os contadores de farming (redefinição manual)"},
             {"tab_summary", "Dashboard"},
             {"tab_drops", "Botins"},
+            {"tab_overview", "Visão geral"},
             {"tab_loot_filter", "Filtro de Botim"},
             {"tab_dashboard", "Painel"},
             {"tab_items", "Itens"},

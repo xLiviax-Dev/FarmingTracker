@@ -3,6 +3,8 @@
 #include "magnetite_tracker.h"
 #include "custom_profit.h"
 #include "ignored_items.h"
+#include "skip_once_manager.h"
+#include "session_ignore_manager.h"
 #include "search_manager.h"
 #include "settings.h"
 #include "session_history.h"
@@ -25,6 +27,7 @@
 #include <sstream>
 #include <algorithm>
 #include <functional>
+#include <climits>
 
 using json = nlohmann::json;
 
@@ -393,25 +396,44 @@ static void UpdateOrInsert(std::map<int, Stat>& map,
     auto it = map.find(apiId);
     if (it != map.end())
     {
-        it->second.count += delta;
-        if (delta > 0)
+        it->second.isIgnored = isIgnored; // Update ignored status
+        it->second.isFavorite = isFavorite; // Update favorite status
+        
+        if (!isIgnored) // Only modify count if not ignored
         {
-            it->second.notificationPending = true;
+            it->second.count += delta;
+            if (delta > 0)
+            {
+                it->second.notificationPending = true;
+            }
         }
     }
     else
     {
-        Stat s;
-        s.apiId = apiId;
-        s.type  = type;
-        s.count = delta;
-        if (delta > 0) s.notificationPending = true;
+        if (!isIgnored) // Only add to map if not ignored
+        {
+            Stat s;
+            s.apiId = apiId;
+            s.type  = type;
+            s.count = delta;
+            if (delta > 0) s.notificationPending = true;
 
-        // Re-apply persistent flags (passed as parameters to avoid deadlock)
-        s.isFavorite = isFavorite;
-        s.isIgnored = isIgnored;
+            // Re-apply persistent flags (passed as parameters to avoid deadlock)
+            s.isFavorite = isFavorite;
+            s.isIgnored = isIgnored;
 
-        map[apiId] = s;
+            map[apiId] = s;
+        }
+        else // If ignored, still ensure we have a Stat entry with isIgnored set (so UI shows it as ignored)
+        {
+            Stat s;
+            s.apiId = apiId;
+            s.type  = type;
+            s.count = 0; // Don't track count for ignored items
+            s.isFavorite = isFavorite;
+            s.isIgnored = isIgnored;
+            map[apiId] = s;
+        }
     }
 }
 
@@ -471,25 +493,15 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
         // 1. Process Items
         for (auto& [id, delta] : items)
         {
-            // Session history entry
-            SessionHistory::DropEntry drop;
-            drop.itemId = id;
-            drop.itemName = ""; 
-            drop.isCurrency = false;
-            drop.rarity = "";
-            drop.count = static_cast<int>(delta);
-            drop.totalValue = 0; 
-            drop.magicFind = s_MagicFind.load();
-            drop.timestamp = timestamp;
-            {
-                std::lock_guard<std::mutex> accLock(UICommon::s_AccountNameMutex);
-                drop.characterName = UICommon::s_AccountNameBuf;
-            }
-            s_SessionDrops.push_back(drop);
-
-            // Update stats
+            // Check if ignored first!
             bool isFavorite = s_PersistentFavoriteItems.count(id) > 0;
-            bool isIgnored = IgnoredItemsManager::IsItemIgnored(id);
+            bool isIgnored = IgnoredItemsManager::IsItemIgnored(id) || SessionIgnoreManager::IsItemIgnoredForSession(id);
+            bool skipOnce = SkipOnceManager::IsItemSkippedOnce(id);
+            
+            if (skipOnce) {
+                isIgnored = true;
+                SkipOnceManager::UnskipOnceItem(id);
+            }
             
             auto existIt = s_Items.find(id);
             if (!isIgnored && existIt != s_Items.end() && existIt->second.details.loaded)
@@ -516,83 +528,112 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
             UpdateOrInsert(s_Items, id, delta, StatType::Item, isIgnored, isFavorite);
             s_Items[id].lastMagicFind = s_MagicFind.load();
 
-            // Prepare logging info while under lock
-            if (delta > 0) {
-            const auto& st = s_Items[id];
-            LogEntry le;
-            le.id = id;
-            le.delta = delta;
-            le.isCurrency = false;
-            // Use unit price (per single item), NOT GetStatProfit which returns count * price
-            if (st.details.loaded) {
-                long long vendorPrice = CanSellToVendor(st.details) ? (long long)st.details.vendorValue : 0;
-                long long tpSellPrice = CanSellOnTp(st.details) ? TpSellProceedsPerUnitCopper(st.details) : 0;
-                le.price  = std::max(vendorPrice, tpSellPrice);
-                le.vendorPrice = vendorPrice;
-            le.name   = st.details.name;
-                le.rarity = st.details.rarity;
-                le.type   = ItemTypeToString(st.details.itemType);
-            } else {
-            le.price  = -1; // unknown — ui_loot_log skips negative prices
-            le.vendorPrice = -1; // unknown
-            le.name   = "Item #" + std::to_string(id);
-            le.rarity = "Unknown";
-            le.type   = "Unknown";
-            }
-            logEntries.push_back(le);
+            // Only add to session history and log if not ignored
+            if (!isIgnored) {
+                // Session history entry
+                SessionHistory::DropEntry drop;
+                drop.itemId = id;
+                drop.itemName = ""; 
+                drop.isCurrency = false;
+                drop.rarity = "";
+                drop.count = static_cast<int>(delta);
+                drop.totalValue = 0; 
+                drop.magicFind = s_MagicFind.load();
+                drop.timestamp = timestamp;
+                {
+                    std::lock_guard<std::mutex> accLock(UICommon::s_AccountNameMutex);
+                    drop.characterName = UICommon::s_AccountNameBuf;
+                }
+                s_SessionDrops.push_back(drop);
+
+                // Prepare logging info while under lock
+                if (delta > 0) {
+                    const auto& st = s_Items[id];
+                    LogEntry le;
+                    le.id = id;
+                    le.delta = delta;
+                    le.isCurrency = false;
+                    // Use unit price (per single item), NOT GetStatProfit which returns count * price
+                    if (st.details.loaded) {
+                        long long vendorPrice = CanSellToVendor(st.details) ? (long long)st.details.vendorValue : 0;
+                        long long tpSellPrice = CanSellOnTp(st.details) ? TpSellProceedsPerUnitCopper(st.details) : 0;
+                        le.price  = std::max(vendorPrice, tpSellPrice);
+                        le.vendorPrice = vendorPrice;
+                        le.name   = st.details.name;
+                        le.rarity = st.details.rarity;
+                        le.type   = ItemTypeToString(st.details.itemType);
+                    } else {
+                        le.price  = -1; // unknown — ui_loot_log skips negative prices
+                        le.vendorPrice = -1; // unknown
+                        le.name   = "Item #" + std::to_string(id);
+                        le.rarity = "Unknown";
+                        le.type   = "Unknown";
+                    }
+                    logEntries.push_back(le);
+                }
             }
         }
 
         // 2. Process Currencies
         for (auto& [id, delta] : currencies)
         {
-            // Session history entry
-            SessionHistory::DropEntry drop;
-            drop.itemId = id;
-            drop.itemName = ""; 
-            drop.isCurrency = true;
-            drop.rarity = "";
-            drop.count = static_cast<int>(delta);
-            drop.totalValue = 0; 
-            drop.magicFind = s_MagicFind.load();
-            drop.timestamp = timestamp;
-            {
-                std::lock_guard<std::mutex> accLock(UICommon::s_AccountNameMutex);
-                drop.characterName = UICommon::s_AccountNameBuf;
-            }
-            s_SessionDrops.push_back(drop);
-
-            // Update stats
+            // Check if ignored first!
             bool isFavorite = s_PersistentFavoriteCurrencies.count(id) > 0;
-            bool isIgnored = IgnoredItemsManager::IsCurrencyIgnored(id);
+            bool isIgnored = IgnoredItemsManager::IsCurrencyIgnored(id) || SessionIgnoreManager::IsCurrencyIgnoredForSession(id);
+            bool skipOnce = SkipOnceManager::IsCurrencySkippedOnce(id);
+            
+            if (skipOnce) {
+                isIgnored = true;
+                SkipOnceManager::UnskipOnceCurrency(id);
+            }
+            
             UpdateOrInsert(s_Currencies, id, delta, StatType::Currency, isIgnored, isFavorite);
             s_Currencies[id].lastMagicFind = s_MagicFind.load();
 
-            // Prepare logging info while under lock
-            if (delta > 0) {
-                const auto& st = s_Currencies[id];
-                LogEntry le;
-                le.id = id;
-                le.delta = delta;
-                le.isCurrency = true;
-                // For currencies: use custom profit per unit if set, otherwise 0 (no TP price)
-                if (st.HasCustomProfit()) {
-                    le.price = CustomProfitManager::GetCustomProfit(id); // already per-unit
-                } else if (id == 1) {
-                    le.price = 1; // coins: 1 copper each
-                } else {
-                    le.price = 0; // no price for most currencies
+            // Only add to session history and log if not ignored
+            if (!isIgnored) {
+                // Session history entry
+                SessionHistory::DropEntry drop;
+                drop.itemId = id;
+                drop.itemName = ""; 
+                drop.isCurrency = true;
+                drop.rarity = "";
+                drop.count = static_cast<int>(delta);
+                drop.totalValue = 0; 
+                drop.magicFind = s_MagicFind.load();
+                drop.timestamp = timestamp;
+                {
+                    std::lock_guard<std::mutex> accLock(UICommon::s_AccountNameMutex);
+                    drop.characterName = UICommon::s_AccountNameBuf;
                 }
-                le.vendorPrice = 0; // currencies have no vendor price
-                if (st.details.loaded) {
-                    le.name = st.details.name;
-                    le.type = "Currency";
-                } else {
-                    le.name = "Currency #" + std::to_string(id);
-                    le.type = "Currency";
+                s_SessionDrops.push_back(drop);
+
+                // Prepare logging info while under lock
+                if (delta > 0) {
+                    const auto& st = s_Currencies[id];
+                    LogEntry le;
+                    le.id = id;
+                    le.delta = delta;
+                    le.isCurrency = true;
+                    // For currencies: use custom profit per unit if set, otherwise 0 (no TP price)
+                    if (st.HasCustomProfit()) {
+                        le.price = CustomProfitManager::GetCustomProfit(id); // already per-unit
+                    } else if (id == 1) {
+                        le.price = 1; // coins: 1 copper each
+                    } else {
+                        le.price = 0; // no price for most currencies
+                    }
+                    le.vendorPrice = 0; // currencies have no vendor price
+                    if (st.details.loaded) {
+                        le.name = st.details.name;
+                        le.type = "Currency";
+                    } else {
+                        le.name = "Currency #" + std::to_string(id);
+                        le.type = "Currency";
+                    }
+                    le.rarity = "";
+                    logEntries.push_back(le);
                 }
-                le.rarity = "";
-                logEntries.push_back(le);
             }
         }
     } // ← All locks released here
@@ -783,6 +824,10 @@ void ItemTracker::Reset()
     // Clear active notifications
     UINotifications::ClearAll();
 
+    // Clear skip once and session ignore
+    SkipOnceManager::ClearAll();
+    SessionIgnoreManager::ClearAll();
+
     // Global Lock Order: 1. s_PersistentMutex, 2. s_ProfitHistoryMutex, 3. s_SessionStartMutex, 4. s_SessionDropsMutex, 5. s_Mutex
     std::lock_guard<std::mutex> pLock(s_PersistentMutex);
     std::lock_guard<std::mutex> profitLock(s_ProfitHistoryMutex);
@@ -837,14 +882,28 @@ void ItemTracker::ClearPersistedData(const char* addonDir)
 
 std::map<int, Stat> ItemTracker::GetItemsCopy()
 {
+    std::lock_guard<std::mutex> pLock(s_PersistentMutex);
     std::lock_guard<std::mutex> lock(s_Mutex);
-    return s_Items;
+    
+    std::map<int, Stat> copy = s_Items;
+    for (auto& [id, stat] : copy)
+    {
+        stat.isIgnored = IgnoredItemsManager::IsItemIgnored(id) || SessionIgnoreManager::IsItemIgnoredForSession(id) || SkipOnceManager::IsItemSkippedOnce(id);
+    }
+    return copy;
 }
 
 std::map<int, Stat> ItemTracker::GetCurrenciesCopy()
 {
+    std::lock_guard<std::mutex> pLock(s_PersistentMutex);
     std::lock_guard<std::mutex> lock(s_Mutex);
-    return s_Currencies;
+    
+    std::map<int, Stat> copy = s_Currencies;
+    for (auto& [id, stat] : copy)
+    {
+        stat.isIgnored = IgnoredItemsManager::IsCurrencyIgnored(id) || SessionIgnoreManager::IsCurrencyIgnoredForSession(id) || SkipOnceManager::IsCurrencySkippedOnce(id);
+    }
+    return copy;
 }
 
 Stat ItemTracker::GetItemStat(int itemId)
@@ -852,7 +911,7 @@ Stat ItemTracker::GetItemStat(int itemId)
     // Snapshot ignored state BEFORE acquiring s_PersistentMutex/s_Mutex
     // to avoid circular lock: s_PersistentMutex -> s_Mutex -> IgnoredItems::s_Mutex
     // vs IgnoreItem: IgnoredItems::s_Mutex -> (no longer calls back)
-    bool isIgnored = IgnoredItemsManager::IsItemIgnored(itemId);
+    bool isIgnored = IgnoredItemsManager::IsItemIgnored(itemId) || SessionIgnoreManager::IsItemIgnoredForSession(itemId) || SkipOnceManager::IsItemSkippedOnce(itemId);
 
     std::lock_guard<std::mutex> pLock(s_PersistentMutex);
     std::lock_guard<std::mutex> lock(s_Mutex);
@@ -875,7 +934,7 @@ Stat ItemTracker::GetItemStat(int itemId)
 
 Stat ItemTracker::GetCurrencyStat(int currencyId)
 {
-    bool isIgnored = IgnoredItemsManager::IsCurrencyIgnored(currencyId);
+    bool isIgnored = IgnoredItemsManager::IsCurrencyIgnored(currencyId) || SessionIgnoreManager::IsCurrencyIgnoredForSession(currencyId) || SkipOnceManager::IsCurrencySkippedOnce(currencyId);
 
     std::lock_guard<std::mutex> pLock(s_PersistentMutex);
     std::lock_guard<std::mutex> lock(s_Mutex);
@@ -960,11 +1019,19 @@ void ItemTracker::SetFavorite(int apiId, bool favorite)
 
         if (favorite)
         {
-            if (isItem) s_PersistentFavoriteItems.insert(apiId);
-            if (isCurrency) s_PersistentFavoriteCurrencies.insert(apiId);
-            // If it's neither yet (e.g. adding from search), we'll add to both and the load logic will sort it out
-            if (!isItem && !isCurrency)
+            if (isItem)
             {
+                s_PersistentFavoriteItems.insert(apiId);
+                s_PersistentFavoriteCurrencies.erase(apiId);
+            }
+            else if (isCurrency)
+            {
+                s_PersistentFavoriteCurrencies.insert(apiId);
+                s_PersistentFavoriteItems.erase(apiId);
+            }
+            else
+            {
+                // If it's neither yet (e.g. adding from search), we'll add to both and the load logic will sort it out
                 s_PersistentFavoriteItems.insert(apiId);
                 s_PersistentFavoriteCurrencies.insert(apiId);
             }
@@ -1024,6 +1091,60 @@ std::set<int> ItemTracker::GetFavoriteCurrencyIds()
     return s_PersistentFavoriteCurrencies;
 }
 
+void ItemTracker::ResetItemCount(int apiId)
+{
+    std::lock_guard<std::mutex> lock(s_Mutex);
+    auto it = s_Items.find(apiId);
+    if (it != s_Items.end())
+    {
+        it->second.count = 0;
+    }
+}
+
+void ItemTracker::RemoveItem(int apiId)
+{
+    std::lock_guard<std::mutex> lock(s_Mutex);
+    std::lock_guard<std::mutex> pLock(s_PersistentMutex);
+    std::lock_guard<std::mutex> dropsLock(s_SessionDropsMutex);
+    s_Items.erase(apiId);
+    s_PersistentFavoriteItems.erase(apiId);
+    s_PersistentFavoriteCurrencies.erase(apiId);
+    s_SessionDrops.erase(
+        std::remove_if(s_SessionDrops.begin(), s_SessionDrops.end(),
+            [apiId](const SessionHistory::DropEntry& entry) { 
+                return !entry.isCurrency && entry.itemId == apiId; 
+            }),
+        s_SessionDrops.end()
+    );
+}
+
+void ItemTracker::ResetCurrencyCount(int apiId)
+{
+    std::lock_guard<std::mutex> lock(s_Mutex);
+    auto it = s_Currencies.find(apiId);
+    if (it != s_Currencies.end())
+    {
+        it->second.count = 0;
+    }
+}
+
+void ItemTracker::RemoveCurrency(int apiId)
+{
+    std::lock_guard<std::mutex> lock(s_Mutex);
+    std::lock_guard<std::mutex> pLock(s_PersistentMutex);
+    std::lock_guard<std::mutex> dropsLock(s_SessionDropsMutex);
+    s_Currencies.erase(apiId);
+    s_PersistentFavoriteItems.erase(apiId);
+    s_PersistentFavoriteCurrencies.erase(apiId);
+    s_SessionDrops.erase(
+        std::remove_if(s_SessionDrops.begin(), s_SessionDrops.end(),
+            [apiId](const SessionHistory::DropEntry& entry) { 
+                return entry.isCurrency && entry.itemId == apiId; 
+            }),
+        s_SessionDrops.end()
+    );
+}
+
 std::map<int, Stat> ItemTracker::GetFavoriteItems()
 {
     std::map<int, Stat> favorites;
@@ -1056,6 +1177,9 @@ std::map<int, Stat> ItemTracker::GetFavoriteItems()
     {
         if (favorites.find(id) == favorites.end())
         {
+            // Skip if ID is already in currencies (don't show it as item)
+            if (s_Currencies.count(id) > 0) continue;
+
             Stat s;
             s.apiId = id;
             s.type = StatType::Item;
@@ -1107,6 +1231,9 @@ std::map<int, Stat> ItemTracker::GetFavoriteCurrencies()
     {
         if (favorites.find(id) == favorites.end())
         {
+            // Skip if ID is already in items (don't show it as currency)
+            if (s_Items.count(id) > 0) continue;
+
             Stat s;
             s.apiId = id;
             s.type = StatType::Currency;
@@ -1238,15 +1365,15 @@ std::string ItemTracker::GetCurrencyCategory(int currencyId)
     }
 }
 
-// Ignored Items (delegates to IgnoredItemsManager)
+// Ignored Items (delegates to IgnoredItemsManager + Skip Once + Session Ignore)
 bool ItemTracker::IsItemIgnored(int apiId)
 {
-    return IgnoredItemsManager::IsItemIgnored(apiId);
+    return IgnoredItemsManager::IsItemIgnored(apiId) || SessionIgnoreManager::IsItemIgnoredForSession(apiId) || SkipOnceManager::IsItemSkippedOnce(apiId);
 }
 
 bool ItemTracker::IsCurrencyIgnored(int apiId)
 {
-    return IgnoredItemsManager::IsCurrencyIgnored(apiId);
+    return IgnoredItemsManager::IsCurrencyIgnored(apiId) || SessionIgnoreManager::IsCurrencyIgnoredForSession(apiId) || SkipOnceManager::IsCurrencySkippedOnce(apiId);
 }
 
 // Advanced Filtering
@@ -1404,6 +1531,8 @@ std::map<int, Stat> ItemTracker::GetFilteredItems()
     // GetFilteredItems(s_Mutex) -> IsItemIgnored(IgnoredItems::s_Mutex) vs.
     // IgnoreItem(IgnoredItems::s_Mutex) -> SetFavorite(s_PersistentMutex -> s_Mutex)
     std::set<int> ignoredSnapshot = IgnoredItemsManager::GetIgnoredItems();
+    std::set<int> sessionIgnoredSnapshot = SessionIgnoreManager::GetIgnoredItems();
+    std::set<int> skipOnceSnapshot = SkipOnceManager::GetSkippedItems();
 
     // Get filter settings snapshot BEFORE acquiring s_Mutex to avoid circular deadlock:
     // GetFilteredItems(s_Mutex) -> PassesFilter -> FilterSettings::FromGlobal(s_SettingsMutex)
@@ -1420,7 +1549,7 @@ std::map<int, Stat> ItemTracker::GetFilteredItems()
             if (stat.count == 0) continue;
 
             Stat copy = stat;
-            copy.isIgnored = (ignoredSnapshot.count(id) > 0);
+            copy.isIgnored = (ignoredSnapshot.count(id) > 0) || (sessionIgnoredSnapshot.count(id) > 0) || (skipOnceSnapshot.count(id) > 0);
             if (PassesFilterImpl(copy, filterSettings))
                 candidates.push_back({0, copy});
         }
@@ -1445,6 +1574,8 @@ std::map<int, Stat> ItemTracker::GetFilteredCurrencies()
 {
     // Get ignored snapshot BEFORE acquiring s_Mutex (same deadlock prevention as GetFilteredItems)
     std::set<int> ignoredSnapshot = IgnoredItemsManager::GetIgnoredCurrencies();
+    std::set<int> sessionIgnoredSnapshot = SessionIgnoreManager::GetIgnoredCurrencies();
+    std::set<int> skipOnceSnapshot = SkipOnceManager::GetSkippedCurrencies();
 
     // Get filter settings snapshot BEFORE acquiring s_Mutex to avoid circular deadlock
     FilterSettings filterSettings = FilterSettings::FromGlobal();
@@ -1457,7 +1588,7 @@ std::map<int, Stat> ItemTracker::GetFilteredCurrencies()
             continue;
         if (st.count == 0 && id != 1) continue;
 
-        st.isIgnored = (ignoredSnapshot.count(id) > 0);
+        st.isIgnored = (ignoredSnapshot.count(id) > 0) || (sessionIgnoredSnapshot.count(id) > 0) || (skipOnceSnapshot.count(id) > 0);
         if (PassesFilterImpl(st, filterSettings))
             filtered[id] = st;
     }
@@ -1603,6 +1734,10 @@ std::vector<std::pair<int, Stat>> ItemTracker::GetSortedCurrencies(SortMode mode
 // Custom Profit Integration
 long long ItemTracker::GetStatProfit(const Stat& stat)
 {
+    // If ignored, return 0 profit
+    if (stat.isIgnored)
+        return 0;
+    
     // Use custom profit if set
     if (stat.HasCustomProfit())
         return CustomProfitManager::GetCustomProfit(stat.apiId) * stat.count;
@@ -1850,24 +1985,38 @@ std::string ItemTracker::ExportToCsv()
 
 long long ItemTracker::CalcTotalCustomProfit()
 {
-    // Copy data first to avoid holding mutex while calling PassesFilter
+    // Snapshot ignored state BEFORE acquiring s_Mutex (deadlock prevention)
+    std::set<int> ignoredItems        = IgnoredItemsManager::GetIgnoredItems();
+    std::set<int> ignoredCurrencies    = IgnoredItemsManager::GetIgnoredCurrencies();
+    std::set<int> sessionIgnoredItems  = SessionIgnoreManager::GetIgnoredItems();
+    std::set<int> sessionIgnoredCurrencies = SessionIgnoreManager::GetIgnoredCurrencies();
+    std::set<int> skipOnceItems        = SkipOnceManager::GetSkippedItems();
+    std::set<int> skipOnceCurrencies   = SkipOnceManager::GetSkippedCurrencies();
+
     std::map<int, Stat> itemsCopy, currenciesCopy;
     {
         std::lock_guard<std::mutex> lock(s_Mutex);
-        itemsCopy = s_Items;
+        itemsCopy      = s_Items;
         currenciesCopy = s_Currencies;
     }
-    
+
     long long total = 0;
-    
-    for (const auto& [id, stat] : itemsCopy)
+
+    for (auto& [id, stat] : itemsCopy)
+    {
+        // Always use live ignored state, not the stale copy in stat.isIgnored
+        stat.isIgnored = (ignoredItems.count(id) > 0) || (sessionIgnoredItems.count(id) > 0) || (skipOnceItems.count(id) > 0);
         if (PassesFilter(stat))
             total += GetStatProfit(stat);
-    
-    for (const auto& [id, stat] : currenciesCopy)
+    }
+
+    for (auto& [id, stat] : currenciesCopy)
+    {
+        stat.isIgnored = (ignoredCurrencies.count(id) > 0) || (sessionIgnoredCurrencies.count(id) > 0) || (skipOnceCurrencies.count(id) > 0);
         if (PassesFilter(stat))
             total += GetStatProfit(stat);
-    
+    }
+
     return total;
 }
 
@@ -1992,11 +2141,22 @@ bool ItemTracker::CanSellToVendor(const ApiDetails& d)
 
 long long ItemTracker::CalcTotalTpSellProfit()
 {
-    std::lock_guard<std::mutex> lock(s_Mutex);
-    long long total = 0;
-    for (auto& [id, stat] : s_Items)
+    // Snapshot ignored state BEFORE acquiring s_Mutex (deadlock prevention)
+    std::set<int> ignoredItems       = IgnoredItemsManager::GetIgnoredItems();
+    std::set<int> sessionIgnoredItems = SessionIgnoreManager::GetIgnoredItems();
+    std::set<int> skipOnceItems       = SkipOnceManager::GetSkippedItems();
+
+    std::map<int, Stat> itemsCopy;
     {
-        if (!stat.details.loaded || IsItemIgnored(id)) continue;
+        std::lock_guard<std::mutex> lock(s_Mutex);
+        itemsCopy = s_Items;
+    }
+
+    long long total = 0;
+    for (auto& [id, stat] : itemsCopy)
+    {
+        bool isIgnored = (ignoredItems.count(id) > 0) || (sessionIgnoredItems.count(id) > 0) || (skipOnceItems.count(id) > 0);
+        if (!stat.details.loaded || isIgnored) continue;
         long long per = TpSellProceedsPerUnitCopper(stat.details);
         if (per > 0) total += stat.count * per;
     }
@@ -2005,11 +2165,22 @@ long long ItemTracker::CalcTotalTpSellProfit()
 
 long long ItemTracker::CalcTotalTpInstantProfit()
 {
-    std::lock_guard<std::mutex> lock(s_Mutex);
-    long long total = 0;
-    for (auto& [id, stat] : s_Items)
+    // Snapshot ignored state BEFORE acquiring s_Mutex (deadlock prevention)
+    std::set<int> ignoredItems       = IgnoredItemsManager::GetIgnoredItems();
+    std::set<int> sessionIgnoredItems = SessionIgnoreManager::GetIgnoredItems();
+    std::set<int> skipOnceItems       = SkipOnceManager::GetSkippedItems();
+
+    std::map<int, Stat> itemsCopy;
     {
-        if (!stat.details.loaded || IsItemIgnored(id)) continue;
+        std::lock_guard<std::mutex> lock(s_Mutex);
+        itemsCopy = s_Items;
+    }
+
+    long long total = 0;
+    for (auto& [id, stat] : itemsCopy)
+    {
+        bool isIgnored = (ignoredItems.count(id) > 0) || (sessionIgnoredItems.count(id) > 0) || (skipOnceItems.count(id) > 0);
+        if (!stat.details.loaded || isIgnored) continue;
         long long per = TpBuyProceedsPerUnitCopper(stat.details);
         if (per > 0) total += stat.count * per;
     }
@@ -2018,11 +2189,22 @@ long long ItemTracker::CalcTotalTpInstantProfit()
 
 long long ItemTracker::CalcTotalVendorProfit()
 {
-    std::lock_guard<std::mutex> lock(s_Mutex);
-    long long total = 0;
-    for (auto& [id, stat] : s_Items)
+    // Snapshot ignored state BEFORE acquiring s_Mutex (deadlock prevention)
+    std::set<int> ignoredItems       = IgnoredItemsManager::GetIgnoredItems();
+    std::set<int> sessionIgnoredItems = SessionIgnoreManager::GetIgnoredItems();
+    std::set<int> skipOnceItems       = SkipOnceManager::GetSkippedItems();
+
+    std::map<int, Stat> itemsCopy;
     {
-        if (!stat.details.loaded || IsItemIgnored(id)) continue;
+        std::lock_guard<std::mutex> lock(s_Mutex);
+        itemsCopy = s_Items;
+    }
+
+    long long total = 0;
+    for (auto& [id, stat] : itemsCopy)
+    {
+        bool isIgnored = (ignoredItems.count(id) > 0) || (sessionIgnoredItems.count(id) > 0) || (skipOnceItems.count(id) > 0);
+        if (!stat.details.loaded || isIgnored) continue;
         if (CanSellToVendor(stat.details))
             total += stat.count * stat.details.vendorValue;
     }
@@ -2633,6 +2815,13 @@ void ItemTracker::ApplyItemsFromApi(const std::vector<int>& requestedIds, const 
             int id = item["id"].get<int>();
             receivedItemIds.insert(id);
 
+            // Check if this is already a currency (skip if so!)
+            if (s_Currencies.find(id) != s_Currencies.end())
+            {
+                // Already a currency, don't add to items
+                continue;
+            }
+
             // Check if this is an item or a salvage kit tracked as currency
             auto it = s_Items.find(id);
             Stat* st = nullptr;
@@ -2913,6 +3102,10 @@ void ItemTracker::ApplyCurrencyTable(const json& currenciesArray)
     {
         if (!c.contains("id")) continue;
         int id = c["id"].get<int>();
+        
+        // Remove this ID from items map if present (so currencies aren't shown in items tab!)
+        s_Items.erase(id);
+        
         auto it = s_Currencies.find(id);
         
         Stat* st = nullptr;
@@ -2968,18 +3161,24 @@ ItemTracker::CoinSplit ItemTracker::SplitCoin(long long copperValue)
 
 std::pair<int, Stat> ItemTracker::GetBestDropTotalValue()
 {
+    // Get ignored snapshots BEFORE locking s_Mutex
+    std::set<int> ignoredSnapshot = IgnoredItemsManager::GetIgnoredItems();
+    std::set<int> sessionIgnoredSnapshot = SessionIgnoreManager::GetIgnoredItems();
+    std::set<int> skipOnceSnapshot = SkipOnceManager::GetSkippedItems();
+    
     std::lock_guard<std::mutex> lock(s_Mutex);
 
     std::pair<int, Stat> bestDrop = { 0, Stat() };
-    long long maxTotalProfit = 0;
+    long long maxTotalProfit = LLONG_MIN;
 
     for (const auto& [id, stat] : s_Items)
     {
         if (stat.count == 0) continue;
-        if (!PassesFilter(stat)) continue;
-
+        if (ignoredSnapshot.count(id) > 0 || sessionIgnoredSnapshot.count(id) > 0 || skipOnceSnapshot.count(id) > 0) continue;
+        
         long long totalProfit = GetStatProfit(stat);
-        if (totalProfit > maxTotalProfit)
+        // Wenn noch kein Drop ausgewählt oder der aktuelle Profit größer ist, nehmen wir diesen
+        if (bestDrop.first == 0 || totalProfit > maxTotalProfit)
         {
             maxTotalProfit = totalProfit;
             bestDrop = { id, stat };
@@ -2991,22 +3190,27 @@ std::pair<int, Stat> ItemTracker::GetBestDropTotalValue()
 
 std::pair<int, Stat> ItemTracker::GetBestDrop()
 {
+    // Get ignored snapshots BEFORE locking s_Mutex
+    std::set<int> ignoredSnapshot = IgnoredItemsManager::GetIgnoredItems();
+    std::set<int> sessionIgnoredSnapshot = SessionIgnoreManager::GetIgnoredItems();
+    std::set<int> skipOnceSnapshot = SkipOnceManager::GetSkippedItems();
+    
     std::lock_guard<std::mutex> lock(s_Mutex);
 
     std::pair<int, Stat> bestDrop = { 0, Stat() };
-    long long maxUnitProfit = 0;
+    long long maxUnitProfit = LLONG_MIN;
 
     for (const auto& [id, stat] : s_Items)
     {
         if (stat.count == 0) continue;
-        if (!PassesFilter(stat)) continue;
+        if (ignoredSnapshot.count(id) > 0 || sessionIgnoredSnapshot.count(id) > 0 || skipOnceSnapshot.count(id) > 0) continue;
+        
+        // Calculate unit profit using GetStatProfit(), which already handles all cases!
+        long long totalProfit = GetStatProfit(stat);
+        long long unitProfit = totalProfit / stat.count;
 
-        // Calculate unit profit
-        long long vendorPrice = CanSellToVendor(stat.details) ? (long long)stat.details.vendorValue : 0;
-        long long tpSellPrice = CanSellOnTp(stat.details) ? TpSellProceedsPerUnitCopper(stat.details) : 0;
-        long long unitProfit = std::max(vendorPrice, tpSellPrice);
-
-        if (unitProfit > maxUnitProfit)
+        // Wenn noch kein Drop ausgewählt oder der aktuelle Profit größer ist, nehmen wir diesen
+        if (bestDrop.first == 0 || unitProfit > maxUnitProfit)
         {
             maxUnitProfit = unitProfit;
             bestDrop = { id, stat };

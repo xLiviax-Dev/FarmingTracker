@@ -135,14 +135,14 @@ extern "C" __declspec(dllexport) AddonDefinition_t* GetAddonDef()
     s_AddonDef.Version.Major    = 2;
     s_AddonDef.Version.Minor    = 0;
     s_AddonDef.Version.Build    = 0;
-    s_AddonDef.Version.Revision = 3;
+    s_AddonDef.Version.Revision = 5;
     s_AddonDef.Author           = "Livia.3928";
     s_AddonDef.Description      = "Tracks farmed items and currencies in real-time via DRF (drf.rs).";
     s_AddonDef.Load             = AddonLoad;
     s_AddonDef.Unload           = AddonUnload;
     s_AddonDef.Flags            = AF_None;
     s_AddonDef.Provider         = UP_GitHub;
-    s_AddonDef.UpdateLink       = "https://github.com/xLiviax-Dev/FarmingTracker/releases/latest/download/FarmingTracker.dll";
+    s_AddonDef.UpdateLink       = "https://github.com/xLiviax-Dev/FarmingTracker";
     return &s_AddonDef;
 }
 

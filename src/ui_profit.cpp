@@ -94,7 +94,7 @@ static void KpiCard(const char* id, const char* label, const char* value,
     ImVec2 pos = ImGui::GetCursorScreenPos();
     DrawDarkGradientBox(pos, {pos.x+w, pos.y+h});
     PushCard();
-    ImGui::BeginChild(id, ImVec2(w, h), false, ImGuiWindowFlags_NoScrollbar);
+    ImGui::BeginChild(id, ImVec2(w, h), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     float inner = w - ImGui::GetStyle().WindowPadding.x * 2.f;
     CenteredText(label, ImVec4(1.f, 1.f, 1.f, 1.f), inner);
     CenteredText(value, col, inner);
@@ -666,24 +666,17 @@ void RenderProfitTab()
         }
     }
 
-    // Top Items & Currencies by Profit
-    std::vector<std::pair<int, Stat>> combinedStats;
+    // Top Items by Profit (Items only, no currencies)
+    std::vector<std::pair<int, Stat>> topItems;
     {
         auto sItems = ItemTracker::GetSortedItems(ItemTracker::SortMode::ProfitDesc);
-        auto sCurrencies = ItemTracker::GetSortedCurrencies(ItemTracker::SortMode::ProfitDesc);
-        
-        for (const auto& pair : sItems) combinedStats.push_back(pair);
-        for (const auto& pair : sCurrencies) combinedStats.push_back(pair);
-
-        std::sort(combinedStats.begin(), combinedStats.end(), [](const auto& a, const auto& b) {
-            return ItemTracker::GetStatProfit(a.second) > ItemTracker::GetStatProfit(b.second);
-        });
+        for (const auto& pair : sItems) topItems.push_back(pair);
     }
 
     long long maxIV = 0;
     { 
         int c = 0; 
-        for (auto& [id, st] : combinedStats) 
+        for (auto& [id, st] : topItems) 
         { 
             if (c >= 5) break; 
             if (!st.count) continue; 
@@ -704,9 +697,9 @@ void RenderProfitTab()
         ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 70.f);
         ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 80.f);
         ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 90.f);
-        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 100.f); // Spacer to move right side 100px left
+        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 100.f);
         int cnt = 0;
-        for (auto& [id, st] : combinedStats)
+        for (auto& [id, st] : topItems)
         {
             if (cnt >= 5) break; if (!st.count) continue;
             long long p = ItemTracker::GetStatProfit(st); if (p <= 0) continue;
@@ -715,42 +708,49 @@ void RenderProfitTab()
             char profitStr[64];
             snprintf(profitStr, sizeof(profitStr), "%s", UICommon::FormatCoin(p).c_str());
             
-            DropRow(id, nm, st.count, profitStr, kGold, p, maxIV,
-                    st.details.iconUrl, st.details.loaded ? st.details.rarity : "", iconSz);
-            
-            if (ImGui::IsItemHovered()) 
-             { 
-                 if (st.details.loaded) 
-                 {
-                     if (st.IsCurrency())
-                     {
-                         UITooltips::CurrencyTooltipOptions opt;
-                         opt.showCount = true;
-                         opt.count = st.count;
-                         opt.showProfit = true;
-                         opt.profit = p;
-                         UITooltips::RenderCurrencyTooltip(st.details, id, opt);
-                     }
-                     else
-                     {
-                         UITooltips::ItemTooltipOptions opt;
-                         opt.showCount = true;
-                         opt.count = st.count;
-                         opt.showProfit = true;
-                         opt.profit = p;
-                         UITooltips::RenderItemTooltip(st.details, id, opt);
-                     }
-                 }
-                 else 
-                 {
-                     UITooltips::ItemTooltipOptions opt;
-                     opt.showCount = true;
-                     opt.count = st.count;
-                     opt.showProfit = true;
-                     opt.profit = p;
-                     UITooltips::RenderItemTooltipFallback(nm, "", id, opt); 
-                 }
-             }
+            float rowH = UICommon::CalcTableRowHeight(iconSz);
+            ImGui::TableNextRow(0, rowH);
+
+            ImGui::TableSetColumnIndex(0);
+            UICommon::AlignTableCellIcon(rowH, iconSz);
+            UICommon::DrawItemIconCell(id, st.details.iconUrl, iconSz, st.details.loaded ? st.details.rarity : "");
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                UIContextMenu::OpenContextMenu("DashDropMenu", id, nm);
+            if (ImGui::IsItemHovered())
+            {
+                if (st.details.loaded) { UITooltips::ItemTooltipOptions opt; opt.showCount=true; opt.count=st.count; opt.showProfit=true; opt.profit=p; opt.showTrading=true; opt.showAccountFlags=true; opt.showId=true; UITooltips::RenderItemTooltip(st.details, id, opt); }
+                else { UITooltips::ItemTooltipOptions opt; opt.showCount=true; opt.count=st.count; opt.showId=true; UITooltips::RenderItemTooltipFallback(nm, "", id, opt); }
+            }
+
+            ImGui::TableSetColumnIndex(1);
+            UICommon::AlignTableCellText(rowH);
+            ImGui::Text("%s", nm.c_str());
+            if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) UIContextMenu::OpenContextMenu("DashDropMenu", id, nm);
+            if (ImGui::IsItemHovered())
+            {
+                if (st.details.loaded) { UITooltips::ItemTooltipOptions opt; opt.showCount=true; opt.count=st.count; opt.showProfit=true; opt.profit=p; opt.showTrading=true; opt.showAccountFlags=true; opt.showId=true; UITooltips::RenderItemTooltip(st.details, id, opt); }
+                else { UITooltips::ItemTooltipOptions opt; opt.showCount=true; opt.count=st.count; opt.showId=true; UITooltips::RenderItemTooltipFallback(nm, "", id, opt); }
+            }
+
+            ImGui::TableSetColumnIndex(2);
+            UICommon::AlignTableCellText(rowH);
+            ImGui::TextColored(ImVec4(1.f,1.f,1.f,1.f), "x%lld", st.count);
+
+            if (maxIV > 0)
+            {
+                ImGui::TableSetColumnIndex(3);
+                float frac = std::min(1.f, (float)p / (float)maxIV);
+                ImVec2 bp = ImGui::GetCursorScreenPos();
+                bp.y += (rowH - 4.f) * 0.5f;
+                float bw = ImGui::GetContentRegionAvail().x - 2.f;
+                ImDrawList* dl = ImGui::GetWindowDrawList();
+                dl->AddRectFilled(bp, {bp.x+bw, bp.y+4.f}, IM_COL32(50,50,50,200), 2.f);
+                dl->AddRectFilled(bp, {bp.x+bw*frac, bp.y+4.f}, ImGui::ColorConvertFloat4ToU32(ImVec4(.78f,.59f,.08f,1.f)), 2.f);
+                ImGui::Dummy(ImVec2(bw, rowH));
+                ImGui::TableSetColumnIndex(4);
+                UICommon::AlignTableCellText(rowH);
+                ImGui::TextColored(kGold, "%s", profitStr);
+            }
             cnt++;
         }
         UIContextMenu::RenderItemContextMenu("DashDropMenu", UIContextMenu::ContextMenuType::General);
@@ -776,7 +776,7 @@ void RenderProfitTab()
         ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthFixed,70.f);
         ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthFixed,80.f);
         ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthFixed,90.f);
-        ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthFixed,100.f); // Spacer to move right side 100px left
+        ImGui::TableSetupColumn("",ImGuiTableColumnFlags_WidthFixed,100.f);
         int cnt=0;
         for (auto& [id,st]:sCurr)
         {
@@ -787,13 +787,75 @@ void RenderProfitTab()
             
             long long customProfit = CustomProfitManager::GetCustomProfit(id);
             char cb[64];
-            if (customProfit != 0) {
+            if (id == 1) {
+                snprintf(cb, sizeof(cb), "%s", UICommon::FormatCoin(st.count).c_str());
+            } else if (customProfit != 0) {
                 snprintf(cb, sizeof(cb), "%s", UICommon::FormatCoin(customProfit * st.count).c_str());
             } else {
-                cb[0] = '\0'; // Show nothing if no custom profit
+                cb[0] = '\0';
             }
-            
-            DropRow(id, nm, st.count, cb, kPurple, st.count, maxCV, iconUrl, st.details.loaded ? st.details.rarity : "", iconSz);
+
+            float rowH = UICommon::CalcTableRowHeight(iconSz);
+            ImGui::TableNextRow(0, rowH);
+
+            ImGui::TableSetColumnIndex(0);
+            UICommon::AlignTableCellIcon(rowH, iconSz);
+            UICommon::DrawItemIconCell(id, iconUrl, iconSz, st.details.loaded ? st.details.rarity : "");
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) UIContextMenu::OpenContextMenu("DashDropMenu", id, nm);
+            if (ImGui::IsItemHovered())
+            {
+                UITooltips::CurrencyTooltipOptions opt;
+                opt.showCount   = true;
+                opt.count       = st.count;
+                opt.showProfit  = true;
+                opt.profit      = (id == 1) ? st.count
+                                : CustomProfitManager::GetCustomProfit(id) * st.count;
+                opt.showRarity  = false;
+                opt.showId      = true;
+                if (st.details.loaded) UITooltips::RenderCurrencyTooltip(st.details, id, opt);
+                else UITooltips::RenderCurrencyTooltipFallback(nm, "", id, opt);
+            }
+
+            ImGui::TableSetColumnIndex(1);
+            UICommon::AlignTableCellText(rowH);
+            ImGui::Text("%s", nm.c_str());
+            if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1)) UIContextMenu::OpenContextMenu("DashDropMenu", id, nm);
+            if (ImGui::IsItemHovered())
+            {
+                UITooltips::CurrencyTooltipOptions opt;
+                opt.showCount   = true;
+                opt.count       = st.count;
+                opt.showProfit  = true;
+                opt.profit      = (id == 1) ? st.count
+                                : CustomProfitManager::GetCustomProfit(id) * st.count;
+                opt.showRarity  = false;
+                opt.showId      = true;
+                if (st.details.loaded) UITooltips::RenderCurrencyTooltip(st.details, id, opt);
+                else UITooltips::RenderCurrencyTooltipFallback(nm, "", id, opt);
+            }
+
+            ImGui::TableSetColumnIndex(2);
+            UICommon::AlignTableCellText(rowH);
+            ImGui::TextColored(ImVec4(1.f,1.f,1.f,1.f), "x%lld", st.count);
+
+            if (maxCV > 0)
+            {
+                ImGui::TableSetColumnIndex(3);
+                float frac = std::min(1.f, (float)st.count / (float)maxCV);
+                ImVec2 bp = ImGui::GetCursorScreenPos();
+                bp.y += (rowH - 4.f) * 0.5f;
+                float bw = ImGui::GetContentRegionAvail().x - 2.f;
+                ImDrawList* dl = ImGui::GetWindowDrawList();
+                dl->AddRectFilled(bp, {bp.x+bw, bp.y+4.f}, IM_COL32(50,50,50,200), 2.f);
+                dl->AddRectFilled(bp, {bp.x+bw*frac, bp.y+4.f}, ImGui::ColorConvertFloat4ToU32(ImVec4(.48f,.38f,.83f,1.f)), 2.f);
+                ImGui::Dummy(ImVec2(bw, rowH));
+                if (cb[0])
+                {
+                    ImGui::TableSetColumnIndex(4);
+                    UICommon::AlignTableCellText(rowH);
+                    ImGui::TextColored(kPurple, "%s", cb);
+                }
+            }
             cnt++;
         }
         UIContextMenu::RenderCurrencyContextMenu("DashDropMenu", UIContextMenu::ContextMenuType::General);

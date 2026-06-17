@@ -121,6 +121,14 @@ namespace ItemTracker
     // Ignored Items (delegates to IgnoredItemsManager)
     bool IsItemIgnored(int apiId);
     bool IsCurrencyIgnored(int apiId);
+    
+    // Reset item/currency count to 0
+    void ResetItemCount(int apiId);
+    void ResetCurrencyCount(int apiId);
+
+    // Remove item/currency completely
+    void RemoveItem(int apiId);
+    void RemoveCurrency(int apiId);
 
     // Advanced Filtering
     std::map<int, Stat> GetFilteredItems();

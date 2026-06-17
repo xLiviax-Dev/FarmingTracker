@@ -27,7 +27,7 @@ namespace UICommon
     void EnforceIconCacheLimit();
 
     void EnsureItemIconTexture(int itemId, const std::string& url);
-    void DrawItemIconCell(int itemId, const std::string& url, float sz, const std::string& rarity = "");
+    void DrawItemIconCell(int itemId, const std::string& url, float sz, const std::string& rarity = "", bool forceShow = false);
     const char* StatusText(DrfStatus s);
     ImVec4 StatusColor(DrfStatus s);
     ImVec4 ValueColor(long long value);

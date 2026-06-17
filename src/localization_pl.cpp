@@ -32,6 +32,7 @@ namespace Localization
             {"reset_tooltip", "Zresetuj wszystkie liczniki farmingu (reset ręczny)"},
             {"tab_summary", "Dashboard"},
             {"tab_drops", "Łupy"},
+            {"tab_overview", "Przegląd"},
             {"tab_loot_filter", "Filtr Łupów"},
             {"tab_dashboard", "Panel"},
             {"tab_items", "Przedmioty"},

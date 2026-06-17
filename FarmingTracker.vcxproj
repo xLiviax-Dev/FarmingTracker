@@ -107,6 +107,7 @@
     <ClCompile Include="src\ui_items.cpp" />
     <ClCompile Include="src\ui_currencies.cpp" />
     <ClCompile Include="src\ui_drops.cpp" />
+    <ClCompile Include="src\ui_overview.cpp" />
     <ClCompile Include="src\ui_loot_filter.cpp" />
     <ClCompile Include="src\ui_profit.cpp" />
     <ClCompile Include="src\ui_favorites.cpp" />
@@ -127,6 +128,8 @@
     <ClCompile Include="src\gw2_fetcher.cpp" />
     <ClCompile Include="src\custom_profit.cpp" />
     <ClCompile Include="src\ignored_items.cpp" />
+    <ClCompile Include="src\skip_once_manager.cpp" />
+    <ClCompile Include="src\session_ignore_manager.cpp" />
     <ClCompile Include="src\search_manager.cpp" />
     <ClCompile Include="src\localization.cpp" />
     <ClCompile Include="src\localization_en.cpp" />
@@ -170,6 +173,7 @@
     <ClInclude Include="src\ui_items.h" />
     <ClInclude Include="src\ui_currencies.h" />
     <ClInclude Include="src\ui_drops.h" />
+    <ClInclude Include="src\ui_overview.h" />
     <ClInclude Include="src\ui_loot_filter.h" />
     <ClInclude Include="src\ui_profit.h" />
     <ClInclude Include="src\ui_favorites.h" />
@@ -188,6 +192,8 @@
     <ClInclude Include="src\gw2_fetcher.h" />
     <ClInclude Include="src\custom_profit.h" />
     <ClInclude Include="src\ignored_items.h" />
+    <ClInclude Include="src\skip_once_manager.h" />
+    <ClInclude Include="src\session_ignore_manager.h" />
     <ClInclude Include="src\search_manager.h" />
     <ClInclude Include="src\localization.h" />
     <ClInclude Include="src\magnetite_tracker.h" />

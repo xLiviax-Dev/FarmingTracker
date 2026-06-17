@@ -159,6 +159,17 @@ namespace
         {
             if (e.itemType == "Currency" && !s_FilterCurrencies) continue;
             if (e.itemType != "Currency" && !s_FilterItems)      continue;
+            
+            // Skip ignored items/currencies
+            if (e.itemType == "Currency")
+            {
+                if (ItemTracker::IsCurrencyIgnored(e.itemId)) continue;
+            }
+            else
+            {
+                if (ItemTracker::IsItemIgnored(e.itemId)) continue;
+            }
+            
             if (!search.empty())
             {
                 std::string nameLower = e.itemName;

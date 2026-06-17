@@ -32,6 +32,7 @@ namespace Localization
             {"reset_tooltip", "Сбросить все счётчики фарминга (ручной сброс)"},
             {"tab_summary", "Dashboard"},
             {"tab_drops", "Дропы"},
+            {"tab_overview", "Обзор"},
             {"tab_loot_filter", "Фильтр Дропа"},
             {"tab_dashboard", "Панель"},
             {"tab_items", "Предметы"},

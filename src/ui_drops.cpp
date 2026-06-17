@@ -1,4 +1,5 @@
 #include "ui_drops.h"
+#include "ui_overview.h"
 #include "ui_items.h"
 #include "ui_currencies.h"
 #include "ui_tab_icons.h"
@@ -342,7 +343,7 @@ static void RenderSettingsSubTab()
     float panelW = ImGui::GetContentRegionAvail().x;
     float colW   = (panelW - 10.f) * 0.5f;
 
-    // ── Two-column card layout ──────────────────────────────────────────
+    // ── Two-column card layout for Items and Currencies ──────────────────────────────────────────
     ImGui::BeginGroup();
 
     // Left card: Items
@@ -355,9 +356,11 @@ static void RenderSettingsSubTab()
 
     CardHeader("items", Localization::GetText("tab_items"));
 
-    if (IconToggleRow("layout-grid",    "Enable Grid View",     &g_Settings.itemsEnableGridView,     colW))
-        SettingsManager::Save();
+    if (IconToggleRow("layout-grid",    "Enable Grid View",     &g_Settings.itemsEnableGridView,     colW))        SettingsManager::Save();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_grid_view_tooltip"));
+
+    if (IconToggleRow("layout-grid",    "Favorites as Grid",    &g_Settings.itemsFavoritesAsGrid,    colW))        SettingsManager::Save();
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show the Favorites section as a grid of icons instead of a table.");
 
     if (IconToggleRow("favorites",      "Favorites First",      &g_Settings.itemsFavoritesFirst,     colW))
         SettingsManager::Save();
@@ -401,24 +404,15 @@ static void RenderSettingsSubTab()
 
     CardHeader("currencies", Localization::GetText("tab_currencies"));
 
-    if (IconToggleRow("layout-grid",    "Enable Grid View",     &g_Settings.currenciesEnableGridView,  colW))
-        SettingsManager::Save();
+    if (IconToggleRow("layout-grid",    "Enable Grid View",     &g_Settings.currenciesEnableGridView,  colW))        SettingsManager::Save();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_grid_view_tooltip"));
+
+    if (IconToggleRow("layout-grid",    "Favorites as Grid",    &g_Settings.currenciesFavoritesAsGrid, colW))        SettingsManager::Save();
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show the Favorites section as a grid of icons instead of a table.");
 
     if (IconToggleRow("favorites",      "Favorites First",      &g_Settings.currenciesFavoritesFirst,  colW))
         SettingsManager::Save();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("favorites_first_tooltip"));
-
-    if (IconToggleRow("color-swatch",   "Group by Rarity",      &g_Settings.currenciesGroupByRarity,   colW))
-        SettingsManager::Save();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("group_by_rarity_tooltip"));
-
-    if (g_Settings.currenciesGroupByRarity)
-    {
-        if (IconToggleRow("layout-columns", "Rarity as Tabs",    &g_Settings.currenciesShowRarityAsTabs, colW, true))
-            SettingsManager::Save();
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_rarity_as_tabs_tooltip"));
-    }
 
     if (IconToggleRow("groupcategory", "Group by Category",    &g_Settings.currenciesGroupByCategory,  colW))
         SettingsManager::Save();
@@ -430,6 +424,44 @@ static void RenderSettingsSubTab()
             SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_group_as_tabs_tooltip"));
     }
+
+    ImGui::EndChild();
+    ImGui::EndGroup();
+
+    // ── Overview card below ───────────────────────────────────────────────────────
+    ImGui::Spacing();
+    ImGui::Spacing();
+
+    ImGui::BeginGroup();
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.11f, 0.11f, 0.11f, 1.f));
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 6.f);
+    ImGui::BeginChild("##col_overview", ImVec2(colW, 270.f), true);
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar();
+    ImGui::Spacing();
+
+    CardHeader("summaries", Localization::GetText("tab_overview"));
+
+    if (IconToggleRow("layout-grid",    "Enable Grid View",     &g_Settings.overviewEnableGridView,     colW))        SettingsManager::Save();
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_grid_view_tooltip"));
+
+    if (IconToggleRow("favorites",      "Favorites as Grid",      &g_Settings.overviewFavoritesAsGrid,     colW))
+        SettingsManager::Save();
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show favorites section as grid in overview tab");
+
+    if (IconToggleRow("currencies",      "Favorite currencies first",      &g_Settings.overviewCurrenciesFirst,     colW))
+        SettingsManager::Save();
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show currencies before items in favorites section");
+
+    ImGui::Spacing();
+    ImGui::Spacing();
+
+    ImGui::BeginGroup();
+    if (ImGui::SliderInt("##FavoritesIconSize", &g_Settings.overviewFavoritesIconSize, 16, 64)) SettingsManager::Save();
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Size of icons in favorites section");
+    ImGui::SameLine();
+    ImGui::Text("Favorites Icon Size");
+    ImGui::EndGroup();
 
     ImGui::EndChild();
     ImGui::EndGroup();
@@ -469,22 +501,25 @@ void RenderDropsTab()
     ImGui::Spacing();
 
     const char* subTabLabels[] = {
+        Localization::GetText("tab_overview"),
         Localization::GetText("tab_items"),
         Localization::GetText("tab_currencies"),
         Localization::GetText("settings_tab")
     };
 
     UITabIcons::RenderSubPillTabBar({
-        { "items",      subTabLabels[0] },
-        { "currencies", subTabLabels[1] },
-        { "general",    subTabLabels[2] }
+        { "summaries",  subTabLabels[0] },
+        { "items",      subTabLabels[1] },
+        { "currencies", subTabLabels[2] },
+        { "general",    subTabLabels[3] }
     }, s_SubTab);
 
     switch (s_SubTab)
     {
-        case 0: UIItems::RenderItemsTab();          break;
-        case 1: UICurrencies::RenderCurrenciesTab(); break;
-        case 2: RenderSettingsSubTab();              break;
+        case 0: UIOverview::RenderOverviewTab();    break;
+        case 1: UIItems::RenderItemsTab();          break;
+        case 2: UICurrencies::RenderCurrenciesTab(); break;
+        case 3: RenderSettingsSubTab();              break;
     }
 }
 }

@@ -32,6 +32,7 @@ namespace Localization
             {"reset_tooltip", "Resetovat všechny počítadla farmingu (manuální reset)"},
             {"tab_summary", "Dashboard"},
             {"tab_drops", "Kořisti"},
+            {"tab_overview", "Přehled"},
             {"tab_loot_filter", "Filtr Kořisti"},
             {"tab_dashboard", "Dashboard"},
             {"tab_items", "Položky"},

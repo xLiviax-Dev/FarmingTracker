@@ -20,6 +20,8 @@ namespace UITooltips
 
     static void RenderItemTooltipLoaded(const ApiDetails& d, int itemId, const ItemTooltipOptions& opt)
     {
+        // Temporarily set default item spacing for tooltip (to avoid large gaps from grid views)
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 4.0f));
         ImGui::BeginTooltip();
         if (!d.rarity.empty())
             ImGui::TextColored(RarityColor(d.rarity), "%s", d.name.c_str());
@@ -45,13 +47,19 @@ namespace UITooltips
             ImGui::TextColored(valueColor, "%s: %s", Localization::GetText(opt.valueLabelKey), UICommon::FormatCoin(opt.value).c_str());
         }
 
-        char rarityLabel[256];
-        snprintf(rarityLabel, sizeof(rarityLabel), Localization::GetText("rarity_label"), d.rarity.c_str());
-        ImGui::TextColored(RarityColor(d.rarity), "%s", rarityLabel);
+        if (!d.rarity.empty())
+        {
+            char rarityLabel[256];
+            snprintf(rarityLabel, sizeof(rarityLabel), Localization::GetText("rarity_label"), d.rarity.c_str());
+            ImGui::TextColored(RarityColor(d.rarity), "%s", rarityLabel);
+        }
 
-        char typeLabel[256];
-        snprintf(typeLabel, sizeof(typeLabel), Localization::GetText("type_label"), static_cast<int>(d.itemType));
-        ImGui::Text("%s", typeLabel);
+        if (d.itemType != ItemType::Unknown)
+        {
+            char typeLabel[256];
+            snprintf(typeLabel, sizeof(typeLabel), Localization::GetText("type_label"), static_cast<int>(d.itemType));
+            ImGui::Text("%s", typeLabel);
+        }
 
         if (opt.showTrading)
         {
@@ -94,10 +102,13 @@ namespace UITooltips
         }
 
         ImGui::EndTooltip();
+        ImGui::PopStyleVar();
     }
 
     static void RenderItemTooltipFallbackImpl(const std::string& name, const std::string& rarity, int itemId, const ItemTooltipOptions& opt)
     {
+        // Temporarily set default item spacing for tooltip (to avoid large gaps from grid views)
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 4.0f));
         ImGui::BeginTooltip();
         if (!rarity.empty())
             ImGui::TextColored(RarityColor(rarity), "%s", name.c_str());
@@ -139,73 +150,87 @@ namespace UITooltips
         }
 
         ImGui::EndTooltip();
+        ImGui::PopStyleVar();
     }
 
     static void RenderCurrencyTooltipLoaded(const ApiDetails& d, int currencyId, const CurrencyTooltipOptions& opt)
     {
+        // Temporarily set default item spacing for tooltip (to avoid large gaps from grid views)
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 4.0f));
         ImGui::BeginTooltip();
-        ImGui::Text("%s", d.name.c_str());
+    ImGui::Text("%s", d.name.c_str());
+    ImGui::Separator();
+
+    if (opt.showCount)
+    {
+        ImVec4 countColor = UICommon::ValueColor(opt.count);
+        ImGui::TextColored(countColor, "%s %lld", Localization::GetText("count_label"), opt.count);
+    }
+
+    // Always show profit for Coin, or if custom profit is set for other currencies
+    bool shouldShowProfit = (currencyId == 1) || (opt.showProfit && opt.profit != 0);
+    if (shouldShowProfit)
+    {
+        long long profit = (currencyId == 1) ? opt.count : opt.profit;
+        ImVec4 profitColor = UICommon::ValueColor(profit);
+        ImGui::TextColored(profitColor, "%s %s", Localization::GetText("profit_label"), UICommon::FormatCoin(profit).c_str());
+    }
+
+    if (opt.showRarity && !d.rarity.empty())
+    {
+        ImGui::TextColored(RarityColor(d.rarity), "%s", d.rarity.c_str());
+    }
+
+    if (opt.showId)
+    {
         ImGui::Separator();
+        char currencyIdLabel[256];
+        snprintf(currencyIdLabel, sizeof(currencyIdLabel), Localization::GetText("currency_id_label"), currencyId);
+        ImGui::Text("%s", currencyIdLabel);
+    }
 
-        if (opt.showCount)
-        {
-            ImVec4 countColor = UICommon::ValueColor(opt.count);
-            ImGui::TextColored(countColor, "%s %lld", Localization::GetText("count_label"), opt.count);
-        }
-
-        if (opt.showProfit)
-        {
-            ImVec4 profitColor = UICommon::ValueColor(opt.profit);
-            ImGui::TextColored(profitColor, "%s %s", Localization::GetText("profit_label"), UICommon::FormatCoin(opt.profit).c_str());
-        }
-
-        if (opt.showRarity && !d.rarity.empty())
-        {
-            ImGui::TextColored(RarityColor(d.rarity), "%s", d.rarity.c_str());
-        }
-
-        if (opt.showId)
-        {
-            char currencyIdLabel[256];
-            snprintf(currencyIdLabel, sizeof(currencyIdLabel), Localization::GetText("currency_id_label"), currencyId);
-            ImGui::Text("%s", currencyIdLabel);
-        }
-
-        ImGui::EndTooltip();
+    ImGui::EndTooltip();
+        ImGui::PopStyleVar();
     }
 
     static void RenderCurrencyTooltipFallbackImpl(const std::string& name, const std::string& rarity, int currencyId, const CurrencyTooltipOptions& opt)
     {
+        // Temporarily set default item spacing for tooltip (to avoid large gaps from grid views)
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 4.0f));
         ImGui::BeginTooltip();
-        ImGui::Text("%s", name.c_str());
-        ImGui::Separator();
+    ImGui::Text("%s", name.c_str());
+    ImGui::Separator();
 
-        if (opt.showCount)
-        {
-            ImVec4 countColor = UICommon::ValueColor(opt.count);
-            ImGui::TextColored(countColor, "%s %lld", Localization::GetText("count_label"), opt.count);
-        }
-
-        if (opt.showProfit)
-        {
-            ImVec4 profitColor = UICommon::ValueColor(opt.profit);
-            ImGui::TextColored(profitColor, "%s %s", Localization::GetText("profit_label"), UICommon::FormatCoin(opt.profit).c_str());
-        }
-
-        if (opt.showRarity && !rarity.empty())
-        {
-            ImGui::TextColored(RarityColor(rarity), "%s", rarity.c_str());
-        }
-
-        if (opt.showId)
-        {
-            char currencyIdLabel[256];
-            snprintf(currencyIdLabel, sizeof(currencyIdLabel), Localization::GetText("currency_id_label"), currencyId);
-            ImGui::Text("%s", currencyIdLabel);
-        }
-
-        ImGui::EndTooltip();
+    if (opt.showCount)
+    {
+        ImVec4 countColor = UICommon::ValueColor(opt.count);
+        ImGui::TextColored(countColor, "%s %lld", Localization::GetText("count_label"), opt.count);
     }
+
+    // Always show profit for Coin, or if custom profit is set for other currencies
+    bool shouldShowProfit = (currencyId == 1) || (opt.showProfit && opt.profit != 0);
+    if (shouldShowProfit)
+    {
+        long long profit = (currencyId == 1) ? opt.count : opt.profit;
+        ImVec4 profitColor = UICommon::ValueColor(profit);
+        ImGui::TextColored(profitColor, "%s %s", Localization::GetText("profit_label"), UICommon::FormatCoin(profit).c_str());
+    }
+
+    if (opt.showRarity && !rarity.empty())
+    {
+        ImGui::TextColored(RarityColor(rarity), "%s", rarity.c_str());
+    }
+
+    if (opt.showId)
+    {
+        ImGui::Separator();
+        char currencyIdLabel[256];
+        snprintf(currencyIdLabel, sizeof(currencyIdLabel), Localization::GetText("currency_id_label"), currencyId);
+        ImGui::Text("%s", currencyIdLabel);
+    }
+
+    ImGui::EndTooltip();
+}
 
     void RenderItemTooltip(const ApiDetails& details, int itemId, const ItemTooltipOptions& opt)
     {

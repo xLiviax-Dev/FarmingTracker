@@ -32,6 +32,7 @@ namespace Localization
             {"reset_tooltip", "Réinitialiser tous les compteurs de farming (réinitialisation manuelle)"},
             {"tab_summary", "Dashboard"},
             {"tab_drops", "Butins"},
+            {"tab_overview", "Vue d'ensemble"},
             {"tab_loot_filter", "Filtre de butin"},
             {"tab_dashboard", "Tableau de bord"},
             {"tab_items", "Objets"},

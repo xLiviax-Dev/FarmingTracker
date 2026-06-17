@@ -32,6 +32,7 @@ namespace Localization
             {"reset_tooltip", "Resetează toate contoarele de farming (resetare manuală)"},
             {"tab_summary", "Dashboard"},
             {"tab_drops", "Drops"},
+            {"tab_overview", "Prezentare generală"},
             {"tab_loot_filter", "Loot Filter"},
             {"tab_dashboard", "Panou de control"},
             {"tab_items", "Obiecte"},

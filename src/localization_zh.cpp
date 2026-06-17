@@ -32,6 +32,7 @@ namespace Localization
             {"reset_tooltip", "重置所有 farming 计数器（手动重置）"},
             {"tab_summary", "Dashboard"},
             {"tab_drops", "掉落"},
+            {"tab_overview", "概览"},
             {"tab_loot_filter", "战利品过滤器"},
             {"tab_dashboard", "仪表板"},
             {"tab_items", "物品"},

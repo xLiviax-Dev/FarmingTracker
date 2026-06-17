@@ -185,7 +185,7 @@ static void RenderTable(
     if (ImGui::BeginTable(tableId, 4, flags, ImVec2(0.0f, availH)))
     {
         ImGui::TableSetupScrollFreeze(0, 1);
-        ImGui::TableSetupColumn("##icon",                                ImGuiTableColumnFlags_WidthFixed,   iconW);
+        ImGui::TableSetupColumn(Localization::GetText("column_icon"),    ImGuiTableColumnFlags_WidthFixed,   iconW);
         ImGui::TableSetupColumn(Localization::GetText("column_name"),    ImGuiTableColumnFlags_WidthStretch, 1.0f);
         ImGui::TableSetupColumn(Localization::GetText("custom_profit_value"), ImGuiTableColumnFlags_WidthFixed, coinW);
         ImGui::TableSetupColumn("##act",                                 ImGuiTableColumnFlags_WidthFixed,   actionsW);

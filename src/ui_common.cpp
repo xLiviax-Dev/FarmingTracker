@@ -404,9 +404,9 @@ namespace UICommon
         }
     }
 
-    void DrawItemIconCell(int itemId, const std::string& url, float sz, const std::string& rarity)
+    void DrawItemIconCell(int itemId, const std::string& url, float sz, const std::string& rarity, bool forceShow)
     {
-        if (!g_Settings.showItemIcons || url.empty())
+        if ((!g_Settings.showItemIcons && !forceShow) || url.empty())
         {
             ImGui::Dummy(ImVec2(sz, sz));
             return;

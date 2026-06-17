@@ -1,7 +1,10 @@
 #include "ui_context_menu.h"
 #include "item_tracker.h"
 #include "ignored_items.h"
+#include "skip_once_manager.h"
+#include "session_ignore_manager.h"
 #include "localization.h"
+#include "loot_logger.h"
 #include "imgui/imgui.h"
 #include <cstdio>
 #include <map>
@@ -71,6 +74,23 @@ namespace UIContextMenu
                     {
                         IgnoredItemsManager::UnignoreItem(contextItemId);
                     }
+                }
+                
+                if (ImGui::MenuItem(Localization::GetText("context_menu_ignore_for_session")))
+                {
+                    ItemTracker::ResetItemCount(contextItemId);
+                    SessionIgnoreManager::IgnoreItemForSession(contextItemId);
+                }
+                
+                if (ImGui::MenuItem(Localization::GetText("context_menu_skip_once")))
+                {
+                    SkipOnceManager::SkipOnceItem(contextItemId);
+                }
+                
+                if (ImGui::MenuItem(Localization::GetText("context_menu_delete")))
+                {
+                    ItemTracker::RemoveItem(contextItemId);
+                    LootLogger::RemoveEntriesForItem(contextItemId);
                 }
             }
 
@@ -144,6 +164,23 @@ namespace UIContextMenu
                     {
                         IgnoredItemsManager::UnignoreCurrency(contextItemId);
                     }
+                }
+                
+                if (ImGui::MenuItem(Localization::GetText("context_menu_ignore_for_session")))
+                {
+                    ItemTracker::ResetCurrencyCount(contextItemId);
+                    SessionIgnoreManager::IgnoreCurrencyForSession(contextItemId);
+                }
+                
+                if (ImGui::MenuItem(Localization::GetText("context_menu_skip_once")))
+                {
+                    SkipOnceManager::SkipOnceCurrency(contextItemId);
+                }
+                
+                if (ImGui::MenuItem(Localization::GetText("context_menu_delete")))
+                {
+                    ItemTracker::RemoveCurrency(contextItemId);
+                    LootLogger::RemoveEntriesForItem(contextItemId);
                 }
             }
 

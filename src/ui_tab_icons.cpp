@@ -35,6 +35,7 @@ static const std::unordered_map<std::string, int> kIconResources =
     { "general",         IDB_ICON_GENERAL         },
     { "favorites",       IDB_ICON_FAVORITES       },
     { "ignored",         IDB_ICON_IGNORED         },
+    { "summaries",       IDB_ICON_SUMMARIES       },
     { "filter",          IDB_ICON_FILTER          },
     { "live_log",        IDB_ICON_LOOT_LOG        },
     { "settings",        IDB_ICON_GENERAL         },
