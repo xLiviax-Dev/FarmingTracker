@@ -1,103 +1,128 @@
-# Farming Tracker
+# 🌾 Farming Tracker
 
-A Guild Wars 2 Nexus addon that tracks items and currencies collected during farming sessions in real-time, with detailed profit calculations, filtering, and customizable display options.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Release](https://img.shields.io/github/v/release/xLiviax-Dev/FarmingTracker)](https://github.com/xLiviax-Dev/FarmingTracker/releases)
+[![GW2](https://img.shields.io/badge/Guild%20Wars%202-Addon-blue)](https://www.guildwars2.com/)
+[![Nexus](https://img.shields.io/badge/Nexus-Addon-green)](https://raidcore.gg/Nexus)
 
-## Requirements
+> A powerful Guild Wars 2 Nexus addon that tracks items and currencies collected during farming sessions in real-time, with detailed profit calculations, advanced filtering, and customizable display options.
 
-- **[Nexus Addon Manager](https://raidcore.gg/Nexus)** — required to load the addon
-- **[DRF (drf.rs)](https://drf.rs/)** — required for real-time item and currency data
-  - Install via Nexus Addon Manager or directly from [https://drf.rs/](https://drf.rs/)
-- **GW2 API Key** — required for item details and Trading Post prices
-  - Create one at [https://account.guildwars2.com/applications](https://account.guildwars2.com/applications)
-  - Required permissions: `account`, `characters`, `inventories`, `wallet`, `tradingpost`
+---
 
-## Installation
+## ✨ Features
 
-1. Download the latest release from [GitHub](https://github.com/xLiviax-Dev/FarmingTracker)
-2. Place the `.dll` file in your addons folder:
+- **🔴 Real-time Tracking** — Live item and currency tracking via DRF integration
+- **💰 Profit Calculation** — Vendor prices, Trading Post values, and custom profit overrides
+- **🔧 Advanced Filtering** — Filter by sell method, item type, currency, API status, and more
+- **📊 Session History** — Save, review, and compare past farming sessions
+- **⭐ Favorites System** — Quick access to your most important items and currencies
+- **🚫 Ignore System** — Hide items you don't want to track
+- **🎨 Custom UI** — List & Grid views, customizable colors, mini window overlay
+- **⌨️ Hotkey Support** — Quick access to main and mini windows
+- **🌍 Multi-Language** — Available in 18 languages
+- **💾 Backup & Restore** — Export and import your settings and data
+- **🔔 Notifications** — Custom alerts for profit goals and session milestones
+- **🔄 Auto-Reset** — Automatic session reset based on schedule
+
+---
+
+## 🌍 Supported Languages
+
+🇨🇿 Czech | 🇩🇪 German | 🇬🇧 English | 🇪🇸 Spanish | 🇫🇷 French | 🇮🇹 Italian | 🇵🇱 Polish | 🇵🇹 Portuguese | 🇷🇺 Russian | 🇨🇳 Chinese | 🇩🇰 Danish | 🇬🇷 Greek | 🇫🇮 Finnish | 🇭🇺 Hungarian | 🇳🇱 Dutch | 🇳🇴 Norwegian | 🇷🇴 Romanian | 🇸🇪 Swedish
+
+---
+
+## 📋 Requirements
+
+| Requirement | Description |
+|------------|-------------|
+| **[Nexus Addon Manager](https://raidcore.gg/Nexus)** | Required to load the addon |
+| **[DRF (drf.rs)](https://drf.rs/)** | Required for real-time item and currency data |
+| **GW2 API Key** | Required for item details and Trading Post prices |
+
+### GW2 API Key Permissions
+
+Create your API key at [account.guildwars2.com/applications](https://account.guildwars2.com/applications) with these permissions:
+
+```
+account • characters • inventories • wallet • tradingpost
+```
+
+---
+
+## 🚀 Installation
+
+1. **Download** the latest release from [GitHub](https://github.com/xLiviax-Dev/FarmingTracker/releases)
+2. **Place** the `.dll` file in your addons folder:
    ```
    Guild Wars 2\addons\FarmingTracker\
    ```
-3. Load the addon through Nexus Addon Manager
-4. Enter your **DRF Token** and **GW2 API Key** in the Farming Tracker settings (Nexus Options Panel)
+3. **Load** the addon through Nexus Addon Manager
+4. **Configure** your DRF Token and GW2 API Key in the settings
 
-## Configuration
+---
 
-### DRF Token
+## ⚙️ Configuration
+
+### 🔑 DRF Token
+
 1. Open DRF and copy your personal token from its settings
-2. Paste it into the Farming Tracker settings under **Account Management**
+2. Paste it into Farming Tracker settings under **Account Management**
 3. Click **Save**
 
-### GW2 API Key
-1. Visit [https://account.guildwars2.com/applications](https://account.guildwars2.com/applications)
-2. Create a new API key with the required permissions listed above
-3. Paste it into the Farming Tracker settings under **Account Management** (Note: A valid key must consist of exactly 9 blocks separated by hyphens)
+### 🔑 GW2 API Key
+
+1. Visit [account.guildwars2.com/applications](https://account.guildwars2.com/applications)
+2. Create a new API key with the required permissions
+3. Paste it into Farming Tracker settings under **Account Management**
 4. Click **Save**
 
-### Hotkeys
+> **Note:** A valid API key must consist of exactly 9 blocks separated by hyphens (e.g., `XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`)
+
+### ⌨️ Hotkeys
+
 Customizable in **Nexus → Keybinds**:
-- **Main Window**: `CTRL+F` (default)
-- **Mini Window**: `CTRL+SHIFT+M` (default)
 
-## Tabs
+| Action | Default Hotkey |
+|--------|---------------|
+| Main Window | `CTRL+F` |
+| Mini Window | `CTRL+SHIFT+M` |
 
-### Summary
-Overview of the current session — DRF connection status, total profit, item count, and quick action buttons (Reset, Refresh).
+---
 
-### Profit
-Detailed profit breakdown including vendor value, Trading Post value, and custom profit totals.
+## 📑 Tabs Overview
 
-### Timeline
-Chronological view of all drops and currency changes in the current session. Enable in settings.
+| Tab | Description |
+|-----|-------------|
+| **Summary** | Session overview with DRF status, total profit, item count, and quick actions |
+| **Profit** | Detailed breakdown of vendor value, Trading Post value, and custom profit |
+| **Timeline** | Chronological view of all drops and currency changes |
+| **Items** | All tracked items with List/Grid views, right-click for actions |
+| **Currencies** | All tracked currencies including Coin, Karma, Laurels, map currencies |
+| **Favorites** | Quick access to your favorite items and currencies |
+| **Ignored** | Items and currencies you've chosen to hide |
+| **Session History** | Browse and compare past farming sessions |
+| **Custom Profit** | Manage custom profit values for specific items |
+| **Filter** | Advanced filtering options for items and currencies |
+| **Debug** | DRF/API logs, profit calculations, memory usage, and diagnostics |
 
-### Items
-All tracked items from the current session. Supports **List** and **Grid** view. Each item shows icon, name, count change, and profit. Right-click an item to ignore, favorite, or set a custom profit value.
+---
 
-### Currencies
-All tracked currencies including Coin, Karma, Laurels, map currencies, WvW currencies, and more.
+## 🎯 Filter Options
 
-### Favorites
-Items and currencies marked as favorites for quick access. Enable in settings.
+Filter items and currencies by:
 
-### Ignored
-Items and currencies you have chosen to hide from the main lists. Enable in settings.
-
-### Session History
-Browse and compare past farming sessions. Enable in settings. Configurable number of sessions to keep.
-
-### Custom Profit
-Manage custom profit values for specific items. Enable in settings.
-
-### Filter
-Filter items and currencies displayed in the tracker by:
-- **Sell method** — Vendor, Trading Post, Custom Profit
-- **API knowledge** — Known / Unknown by API
-- **Item type** — Armor, Weapon, Trinket, Bag, Container, Crafting Material, Consumable, Trophy, and more
+- **Sell Method** — Vendor, Trading Post, Custom Profit
+- **API Knowledge** — Known / Unknown by GW2 API
+- **Item Type** — Armor, Weapon, Trinket, Bag, Container, Crafting Material, Consumable, Trophy, and more
 - **Currencies** — Main currencies, WvW/PvP currencies, Map currencies
 - **Additional** — Account Bound, No-sell, Favorite, Ignored, price range, count range
 
-### Debug
-DRF and API logs, profit calculations, filter status, memory usage, request counts, and more. Enable in settings.
+---
 
-## Features
+## ⏰ Auto-Reset Options
 
-- **Real-time tracking** via DRF integration
-- **Profit calculation** using vendor prices, Trading Post sell/buy prices, and custom values
-- **Salvage Kit tracking** — Copper-Fed, Silver-Fed, and Runecrafter's
-- **List & Grid view** for Items and Currencies tabs
-- **Favorites system** — mark items for quick access
-- **Ignore system** — hide items you don't care about
-- **Session History** — save and review past sessions
-- **Custom Profit** — override API prices with your own values per item
-- **Advanced filters** — show exactly what you want
-- **Mini Window** — compact overlay with key stats, click-through mode, fully repositionable
-- **Auto-Reset** — reset session data automatically based on a schedule
-- **Hotkey support** for main and mini window
-- **Multi-language support** — Czech, German, English, Spanish, French, Italian, Polish, Portuguese, Russian, Chinese
-- **Backup & Restore** — export and import your settings and data
-- **Search** — quickly find items and currencies
-
-## Auto-Reset Options
+Choose when to automatically reset your session data:
 
 - Never (manual only)
 - On addon load
@@ -108,31 +133,61 @@ DRF and API logs, profit calculations, filter status, memory usage, request coun
 - Map bonus reset (Thursday 20:00 UTC)
 - Minutes after game shutdown
 
-## Troubleshooting
+---
 
-**DRF not connected**
-- Make sure DRF is running and your DRF Token is entered correctly in settings
+## 🔧 Troubleshooting
 
-**Items show "Loading..."**
-- Make sure your GW2 API Key is entered and has the correct permissions
-- Check your internet connection
+### DRF not connected
 
-**No data appearing**
-- Wait a few seconds after loading into a map for DRF to transmit data
-- Verify DRF connection status in the Summary tab
+- ✅ Make sure DRF is running
+- ✅ Verify your DRF Token is entered correctly in settings
+- ✅ Check that DRF is transmitting data
 
-## Credits
+### Items show "Loading..."
 
-- Built with [Nexus Addon API](https://raidcore.gg/Nexus)
-- UI rendered with [Dear ImGui](https://github.com/ocornut/imgui)
-- Item and price data from the [GW2 API](https://wiki.guildwars2.com/wiki/API:Main)
-- Real-time data from [DRF (drf.rs)](https://drf.rs/) Special thanks to DRF for the dedication and for providing such an amazing resource!
-- JSON parsing with [nlohmann/json](https://github.com/nlohmann/json)
+- ✅ Ensure your GW2 API Key is entered with correct permissions
+- ✅ Check your internet connection
+- ✅ Verify the API key format (9 blocks with hyphens)
 
-## License
+### No data appearing
 
-This project is licensed under the MIT License — see the [LICENSE] file for details.
+- ✅ Wait a few seconds after loading into a map for DRF to transmit data
+- ✅ Verify DRF connection status in the Summary tab
+- ✅ Check that you're in a map where items can drop
 
-## Support
+---
 
-For issues, feature requests, or questions, please visit the [GitHub repository](https://github.com/xLiviax-Dev/FarmingTracker).
+## 🙏 Credits
+
+This project is built with amazing open-source tools and services:
+
+- **[Nexus Addon API](https://raidcore.gg/Nexus)** — Addon framework
+- **[Dear ImGui](https://github.com/ocornut/imgui)** — UI rendering
+- **[GW2 API](https://wiki.guildwars2.com/wiki/API:Main)** — Item and price data
+- **[DRF (drf.rs)](https://drf.rs/)** — Real-time game data (Special thanks to DRF for their dedication!)
+- **[nlohmann/json](https://github.com/nlohmann/json)** — JSON parsing
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 💬 Support
+
+For issues, feature requests, or questions, please visit:
+
+- **[GitHub Repository](https://github.com/xLiviax-Dev/FarmingTracker)** — Report issues and request features
+- **[Discord](https://discord.gg/)** — Join the community (add link if available)
+
+---
+
+<div align="center">
+
+**Made with ❤️ for the Guild Wars 2 community**
+
+[⬆ Back to top](#-farming-tracker)
+
+</div>

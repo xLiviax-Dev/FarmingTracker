@@ -130,7 +130,7 @@ namespace UITimeline
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.f, 8.f));
             ImGui::BeginChild("##tlkcoins", ImVec2(kw4, cardH), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
-            const char* label = "Coins";
+            const char* label = Localization::GetText("coins");
             std::string value = UICommon::FormatCoin(coins);
             float labelWidth = ImGui::CalcTextSize(label).x;
             float valueWidth = ImGui::CalcTextSize(value.c_str()).x;
@@ -305,7 +305,7 @@ namespace UITimeline
                         UITooltips::RenderItemTooltip(bestSt.details, bestId, opt);
                     else
                         UITooltips::RenderItemTooltipFallback(
-                            bestSt.details.name.empty() ? "..." : bestSt.details.name,
+                            bestSt.details.name.empty() ? Localization::GetText("ellipsis") : bestSt.details.name,
                             bestSt.details.rarity, bestId, opt);
                 }
                 ImGui::SameLine(0, 6);
@@ -329,11 +329,11 @@ namespace UITimeline
             }
             else
             {
-                float labelWidth = ImGui::CalcTextSize("-").x;
+                float labelWidth = ImGui::CalcTextSize(Localization::GetText("dash")).x;
                 float centerX = (kw4 - labelWidth) * 0.5f;
                 centerX = std::max(centerX, 10.0f); // Don't let text go left of padding
                 ImGui::SetCursorPosX(centerX);
-                ImGui::TextColored(kMuted, "-");
+                ImGui::TextColored(kMuted, "%s", Localization::GetText("dash"));
             }
 
             ImGui::EndChild();
@@ -431,7 +431,7 @@ namespace UITimeline
                     if (hasCurrencies)
                     {
                         ImGui::SameLine();
-                        ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "|");
+                        ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "%s", Localization::GetText("pipe"));
                         ImGui::SameLine();
                         ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "%s:", Localization::GetText("timeline_currencies"));
                         

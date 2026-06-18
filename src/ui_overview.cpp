@@ -405,7 +405,7 @@ namespace UIOverview
                     }
 
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : "Loading");
+                    ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : Localization::GetText("loading"));
 
                     ImGui::TableSetColumnIndex(2);
                     ImGui::Text("%lld", st.count);
@@ -464,7 +464,7 @@ namespace UIOverview
 
         if (currencies.empty())
         {
-            ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.f), "%s", "No currencies");
+            ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.f), "%s", Localization::GetText("no_currencies"));
             ImGui::Spacing();
             return;
         }
@@ -629,7 +629,7 @@ namespace UIOverview
                     }
 
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : "Loading");
+                    ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : Localization::GetText("loading"));
 
                     ImGui::TableSetColumnIndex(2);
                     ImGui::Text("%lld", st.count);
@@ -783,7 +783,7 @@ namespace UIOverview
                     }
 
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : "Loading");
+                    ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : Localization::GetText("loading"));
 
                     ImGui::TableSetColumnIndex(2);
                     ImGui::Text("%lld", st.count);
