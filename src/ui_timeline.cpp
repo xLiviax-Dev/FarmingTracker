@@ -99,12 +99,14 @@ namespace UITimeline
                 Localization::GetText("approx_trading_profits_listings_label"),
                 UICommon::FormatCoin(tpSell).c_str(),
                 kGold, kw4, cardH);
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("approx_trading_profits_listings_tooltip"));
         ImGui::SameLine();
 
         KpiCard("##tlk4",
                 Localization::GetText("approx_trading_profits_instant_label"),
                 UICommon::FormatCoin(tpInstant).c_str(),
                 kGold, kw4, cardH);
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("approx_trading_profits_instant_tooltip"));
 
         ImGui::Spacing();
 
@@ -130,7 +132,7 @@ namespace UITimeline
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.f, 8.f));
             ImGui::BeginChild("##tlkcoins", ImVec2(kw4, cardH), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
-            const char* label = Localization::GetText("coins");
+            const char* label = Localization::GetText("timeline_liquid_coins");
             std::string value = UICommon::FormatCoin(coins);
             float labelWidth = ImGui::CalcTextSize(label).x;
             float valueWidth = ImGui::CalcTextSize(value.c_str()).x;
@@ -146,6 +148,7 @@ namespace UITimeline
             ImGui::EndChild();
             ImGui::PopStyleVar();
         }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("coins_tooltip"));
 
         ImGui::SameLine();
 
@@ -198,6 +201,7 @@ namespace UITimeline
             ImGui::EndChild();
             ImGui::PopStyleVar();
         }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("timeline_profit_hour_listings_tooltip"));
 
         ImGui::SameLine();
 
@@ -250,6 +254,7 @@ namespace UITimeline
             ImGui::EndChild();
             ImGui::PopStyleVar();
         }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("timeline_profit_hour_instant_tooltip"));
 
         ImGui::SameLine();
 
@@ -339,6 +344,7 @@ namespace UITimeline
             ImGui::EndChild();
             ImGui::PopStyleVar();
         }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("best_drop_tooltip"));
 
         ImGui::Spacing();
         ImGui::Separator();
@@ -412,16 +418,16 @@ namespace UITimeline
                     ImGui::SameLine();
                     ImGui::TextColored(ImVec4(0.5f, 0.65f, 0.8f, 1.0f), "%s", ts.c_str());
 
-                    // 2. Item Drops Label + MF
-                    ImGui::Text("%s", Localization::GetText("timeline_item_drops"));
+                    // 2. MF if available
                     if (groupMF >= 0)
                     {
-                        ImGui::SameLine();
                         // Light green color for MF
-                        ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), Localization::GetText("magic_find_abbreviation"), groupMF);
+                        ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "%s: %d%%", Localization::GetText("magic_find"), groupMF);
                     }
 
                     // 3. Gold Value and Currencies in one row below "Item Drops"
+                    ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "%s:", Localization::GetText("timeline_liquid_coins"));
+                    ImGui::SameLine();
                     ImGui::TextColored(ImVec4(1.0f, 0.84f, 0.0f, 1.0f), "%s", UICommon::FormatCoin(groupValue).c_str());
                     
                     // Check if there are currencies to display
@@ -518,7 +524,9 @@ namespace UITimeline
                             }
                             ImGui::SameLine();
                             
-                            ImGui::Text("%s", countStr.c_str());
+                            // Color currency text same as overview
+                            ImVec4 textCol = (displayProfit != 0 || itemId == 1) ? (displayProfit < 0 ? ImVec4(0.9f,0.3f,0.3f,1.f) : ImVec4(0.95f,0.7f,0.1f,1.f)) : ImVec4(0.8f,0.8f,0.8f,1.f);
+                            ImGui::TextColored(textCol, "%s", countStr.c_str());
                             if (ImGui::IsItemHovered())
                             {
                                 UITooltips::CurrencyTooltipOptions opt;
@@ -604,28 +612,62 @@ namespace UITimeline
                         ImGui::BeginGroup();
                         UICommon::DrawItemIconCell(d.itemId, d.iconUrl, iconSize, d.rarity);
                         
-                        // Draw count with shadow
+                        // Draw count with new design (white + black outline)
                         char countStr[32];
                         snprintf(countStr, sizeof(countStr), "%d", d.count);
                         
-                        ImVec2 pos = ImGui::GetItemRectMin();
-                        float fontSize = iconSize * 0.4f;
-                        ImGui::SetWindowFontScale(fontSize / ImGui::GetFontSize());
+                        ImVec2 origin = ImGui::GetItemRectMin();
                         
-                        // Count position similar to grid view
-                        ImVec2 textSize = ImGui::CalcTextSize(countStr);
-                        ImVec2 countPos = ImVec2(pos.x + iconSize - textSize.x - 2.0f, 
-                                                 pos.y + iconSize - textSize.y - 2.0f);
-
-                        // Draw 8-way shadow/outline for better readability
-                        ImVec2 shadowOffsets[] = { {-1, -1}, {1, -1}, {-1, 1}, {1, 1}, {0, -1}, {0, 1}, {-1, 0}, {1, 0} };
-                        for (int s = 0; s < 8; s++) {
-                            ImGui::GetWindowDrawList()->AddText(ImVec2(countPos.x + shadowOffsets[s].x, countPos.y + shadowOffsets[s].y), 
-                                IM_COL32(0, 0, 0, 255), countStr);
+                        // Calculate font size as 54% of icon size (same as overview)
+                        float desiredPixelSize = iconSize * 0.54f;
+                        ImFont* font = ImGui::GetFont();
+                        
+                        // Text size calculation
+                        ImVec2 textSize = font->CalcTextSizeA(desiredPixelSize, FLT_MAX, 0.0f, countStr);
+                        
+                        // Position: bottom right of icon
+                        ImVec2 pos = ImVec2(origin.x + iconSize - textSize.x - 2.0f,
+                                                 origin.y + iconSize - textSize.y - 2.0f);
+                        
+                        // 1. Very thin white outline (outer 8-way, 5 pixels)
+                        static const ImVec2 kOffWhiteOuter[] = {
+                            {-5,-5}, {-4,-5}, {-3,-5}, {-2,-5}, {-1,-5}, {0,-5}, {1,-5}, {2,-5}, {3,-5}, {4,-5}, {5,-5},
+                            {-5,-4}, {5,-4},
+                            {-5,-3}, {5,-3},
+                            {-5,-2}, {5,-2},
+                            {-5,-1}, {5,-1},
+                            {-5,0}, {5,0},
+                            {-5,1}, {5,1},
+                            {-5,2}, {5,2},
+                            {-5,3}, {5,3},
+                            {-5,4}, {5,4},
+                            {-5,5}, {-4,5}, {-3,5}, {-2,5}, {-1,5}, {0,5}, {1,5}, {2,5}, {3,5}, {4,5}, {5,5}
+                        };
+                        for (const auto& off : kOffWhiteOuter) {
+                            ImGui::GetWindowDrawList()->AddText(font, desiredPixelSize, ImVec2(pos.x + off.x, pos.y + off.y), 
+                                IM_COL32(255, 255, 255, 255), countStr);
                         }
-                        ImGui::GetWindowDrawList()->AddText(countPos, IM_COL32(255, 255, 255, 255), countStr);
                         
-                        ImGui::SetWindowFontScale(1.0f);
+                        // 2. Thicker black outline (inner, 4 pixels)
+                        static const ImVec2 kOffBlack[] = {
+                            {-4,-4}, {-3,-4}, {-2,-4}, {-1,-4}, {0,-4}, {1,-4}, {2,-4}, {3,-4}, {4,-4},
+                            {-4,-3}, {4,-3},
+                            {-4,-2}, {4,-2},
+                            {-4,-1}, {4,-1},
+                            {-4,0}, {4,0},
+                            {-4,1}, {4,1},
+                            {-4,2}, {4,2},
+                            {-4,3}, {4,3},
+                            {-4,4}, {-3,4}, {-2,4}, {-1,4}, {0,4}, {1,4}, {2,4}, {3,4}, {4,4}
+                        };
+                        for (const auto& off : kOffBlack) {
+                            ImGui::GetWindowDrawList()->AddText(font, desiredPixelSize, ImVec2(pos.x + off.x, pos.y + off.y), 
+                                IM_COL32(0,0,0,255), countStr);
+                        }
+                        
+                        // 3. Actual text with proper colors (same as overview)
+                        ImVec4 col = d.count < 0 ? ImVec4(0.9f,0.3f,0.3f,1.f) : ImVec4(0.95f,0.7f,0.1f,1.f);
+                        ImGui::GetWindowDrawList()->AddText(font, desiredPixelSize, pos, ImGui::ColorConvertFloat4ToU32(col), countStr);
 
                         if (ImGui::IsItemHovered())
                         {

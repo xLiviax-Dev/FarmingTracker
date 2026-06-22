@@ -44,12 +44,20 @@ namespace UIContextMenu
                     {
                         ItemTracker::SetFavorite(contextItemId, true);
                     }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("%s", Localization::GetText("context_menu_add_favorites_tooltip"));
+                    }
                 }
                 else
                 {
                     if (ImGui::MenuItem(Localization::GetText("context_menu_remove_favorites")))
                     {
                         ItemTracker::SetFavorite(contextItemId, false);
+                    }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("%s", Localization::GetText("context_menu_remove_favorites_tooltip"));
                     }
                 }
             }
@@ -67,12 +75,20 @@ namespace UIContextMenu
                         ItemTracker::SetFavorite(contextItemId, false);
                         IgnoredItemsManager::IgnoreItem(contextItemId);
                     }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("%s", Localization::GetText("context_menu_ignore_tooltip"));
+                    }
                 }
                 else
                 {
                     if (ImGui::MenuItem(Localization::GetText("context_menu_unignore")))
                     {
                         IgnoredItemsManager::UnignoreItem(contextItemId);
+                    }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("%s", Localization::GetText("context_menu_unignore_tooltip"));
                     }
                 }
                 
@@ -81,16 +97,28 @@ namespace UIContextMenu
                     ItemTracker::ResetItemCount(contextItemId);
                     SessionIgnoreManager::IgnoreItemForSession(contextItemId);
                 }
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("%s", Localization::GetText("context_menu_ignore_for_session_tooltip"));
+                }
                 
                 if (ImGui::MenuItem(Localization::GetText("context_menu_skip_once")))
                 {
                     SkipOnceManager::SkipOnceItem(contextItemId);
+                }
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("%s", Localization::GetText("context_menu_skip_once_tooltip"));
                 }
                 
                 if (ImGui::MenuItem(Localization::GetText("context_menu_delete")))
                 {
                     ItemTracker::RemoveItem(contextItemId);
                     LootLogger::RemoveEntriesForItem(contextItemId);
+                }
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("%s", Localization::GetText("context_menu_delete_tooltip"));
                 }
             }
 
@@ -102,11 +130,19 @@ namespace UIContextMenu
             {
                 ImGui::SetClipboardText(contextItemName.c_str());
             }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("%s", Localization::GetText("context_menu_copy_name_tooltip"));
+            }
             if (ImGui::MenuItem(Localization::GetText("context_menu_copy_id")))
             {
                 char idStr[32];
                 snprintf(idStr, sizeof(idStr), "%d", contextItemId);
                 ImGui::SetClipboardText(idStr);
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("%s", Localization::GetText("context_menu_copy_id_tooltip"));
             }
 
             ImGui::EndPopup();
@@ -134,12 +170,20 @@ namespace UIContextMenu
                     {
                         ItemTracker::SetFavorite(contextItemId, true);
                     }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("%s", Localization::GetText("context_menu_add_favorites_tooltip"));
+                    }
                 }
                 else
                 {
                     if (ImGui::MenuItem(Localization::GetText("context_menu_remove_favorites")))
                     {
                         ItemTracker::SetFavorite(contextItemId, false);
+                    }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("%s", Localization::GetText("context_menu_remove_favorites_tooltip"));
                     }
                 }
             }
@@ -157,12 +201,20 @@ namespace UIContextMenu
                         ItemTracker::SetFavorite(contextItemId, false);
                         IgnoredItemsManager::IgnoreCurrency(contextItemId);
                     }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("%s", Localization::GetText("context_menu_ignore_tooltip"));
+                    }
                 }
                 else
                 {
                     if (ImGui::MenuItem(Localization::GetText("context_menu_unignore")))
                     {
                         IgnoredItemsManager::UnignoreCurrency(contextItemId);
+                    }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("%s", Localization::GetText("context_menu_unignore_tooltip"));
                     }
                 }
                 
@@ -171,16 +223,28 @@ namespace UIContextMenu
                     ItemTracker::ResetCurrencyCount(contextItemId);
                     SessionIgnoreManager::IgnoreCurrencyForSession(contextItemId);
                 }
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("%s", Localization::GetText("context_menu_ignore_for_session_tooltip"));
+                }
                 
                 if (ImGui::MenuItem(Localization::GetText("context_menu_skip_once")))
                 {
                     SkipOnceManager::SkipOnceCurrency(contextItemId);
+                }
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("%s", Localization::GetText("context_menu_skip_once_tooltip"));
                 }
                 
                 if (ImGui::MenuItem(Localization::GetText("context_menu_delete")))
                 {
                     ItemTracker::RemoveCurrency(contextItemId);
                     LootLogger::RemoveEntriesForItem(contextItemId);
+                }
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("%s", Localization::GetText("context_menu_delete_tooltip"));
                 }
             }
 
@@ -192,11 +256,19 @@ namespace UIContextMenu
             {
                 ImGui::SetClipboardText(contextItemName.c_str());
             }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("%s", Localization::GetText("context_menu_copy_name_tooltip"));
+            }
             if (ImGui::MenuItem(Localization::GetText("context_menu_copy_id")))
             {
                 char idStr[32];
                 snprintf(idStr, sizeof(idStr), "%d", contextItemId);
                 ImGui::SetClipboardText(idStr);
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("%s", Localization::GetText("context_menu_copy_id_tooltip"));
             }
 
             ImGui::EndPopup();

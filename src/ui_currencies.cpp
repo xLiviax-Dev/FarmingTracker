@@ -74,7 +74,6 @@ static void RenderCurrencyTooltip(int id, long long count, const Stat& st)
 
 static void DrawGridCurrencyCount(int id, long long count, float iconSz)
 {
-    const float fontSize = iconSz * 0.45f;
     std::string cs;
     if (id == 1) {
         cs = UICommon::FormatCoin(count);
@@ -82,21 +81,60 @@ static void DrawGridCurrencyCount(int id, long long count, float iconSz)
         cs = UICommon::FormatCompact(count);
     }
     const char* countStr = cs.c_str();
-    ImGui::PushFont(ImGui::GetFont());
-    ImGui::SetWindowFontScale(fontSize / ImGui::GetFontSize());
-    ImVec2 textSize = ImGui::CalcTextSize(countStr);
+    
+    // Origin holen
     ImVec2 origin   = ImGui::GetItemRectMin();
-    ImVec2 pos = ImVec2(origin.x + (iconSz - textSize.x) * 0.5f,
-                        origin.y + (iconSz - textSize.y) * 0.5f);
-    ImVec4 col = count < 0 ? ImVec4(0.9f,0.2f,0.2f,1.f)
-                           : ImVec4(1.f,1.f,1.f,1.f);
+    
+    // Basis-Schriftgröße berechnen - 10% kleiner!
+    const float desiredPixelSize = id == 1 ? iconSz * 0.495f : iconSz * 0.54f;
+    ImFont* font = ImGui::GetFont();
+    
+    // Text Größe berechnen MIT der gewünschten Schriftgröße
+    ImVec2 textSize = font->CalcTextSizeA(desiredPixelSize, FLT_MAX, 0.0f, countStr);
+    
+    const float rightPush = (id == 1) ? 35.0f : 0.0f;
+    ImVec2 pos = ImVec2(origin.x + iconSz - textSize.x + rightPush,
+                        origin.y + iconSz - textSize.y - 2.0f);
+    ImVec4 col = count < 0 ? ImVec4(0.9f,0.3f,0.3f,1.f)
+                           : ImVec4(0.95f,0.7f,0.1f,1.f);
     ImDrawList* dl = ImGui::GetWindowDrawList();
-    static const ImVec2 kOff[8] = {{-1,-1},{1,-1},{-1,1},{1,1},{0,-1},{0,1},{-1,0},{1,0}};
-    for (int k = 0; k < 8; k++)
-        dl->AddText(ImVec2(pos.x+kOff[k].x, pos.y+kOff[k].y), IM_COL32(0,0,0,255), countStr);
-    dl->AddText(pos, ImGui::ColorConvertFloat4ToU32(col), countStr);
-    ImGui::SetWindowFontScale(1.f);
-    ImGui::PopFont();
+    
+    // 1. Sehr dünner weißer Outline (außen 5 Pixel)
+    static const ImVec2 kOffWhiteOuter[] = {
+        {-5,-5}, {-4,-5}, {-3,-5}, {-2,-5}, {-1,-5}, {0,-5}, {1,-5}, {2,-5}, {3,-5}, {4,-5}, {5,-5},
+        {-5,-4}, {5,-4},
+        {-5,-3}, {5,-3},
+        {-5,-2}, {5,-2},
+        {-5,-1}, {5,-1},
+        {-5,0}, {5,0},
+        {-5,1}, {5,1},
+        {-5,2}, {5,2},
+        {-5,3}, {5,3},
+        {-5,4}, {5,4},
+        {-5,5}, {-4,5}, {-3,5}, {-2,5}, {-1,5}, {0,5}, {1,5}, {2,5}, {3,5}, {4,5}, {5,5}
+    };
+    for (const auto& off : kOffWhiteOuter) {
+        dl->AddText(font, desiredPixelSize, ImVec2(pos.x + off.x, pos.y + off.y), IM_COL32(255,255,255,255), countStr);
+    }
+    
+    // 2. Dickerer schwarzer Outline (4 Pixel)
+    static const ImVec2 kOffBlack[] = {
+        {-4,-4}, {-3,-4}, {-2,-4}, {-1,-4}, {0,-4}, {1,-4}, {2,-4}, {3,-4}, {4,-4},
+        {-4,-3}, {4,-3},
+        {-4,-2}, {4,-2},
+        {-4,-1}, {4,-1},
+        {-4,0}, {4,0},
+        {-4,1}, {4,1},
+        {-4,2}, {4,2},
+        {-4,3}, {4,3},
+        {-4,4}, {-3,4}, {-2,4}, {-1,4}, {0,4}, {1,4}, {2,4}, {3,4}, {4,4}
+    };
+    for (const auto& off : kOffBlack) {
+        dl->AddText(font, desiredPixelSize, ImVec2(pos.x + off.x, pos.y + off.y), IM_COL32(0,0,0,255), countStr);
+    }
+    
+    // 3. Eigentlicher Text
+    dl->AddText(font, desiredPixelSize, pos, ImGui::ColorConvertFloat4ToU32(col), countStr);
 }
 void RenderCurrenciesTab()
 {
@@ -234,6 +272,12 @@ void RenderCurrenciesTab()
                     else
                         ImGui::SameLine();
                 }
+                else
+                {
+                    // Erste Zeile
+                    if (isCoin)
+                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f); // +20px mehr
+                }
 
                 ImGui::PushID(id);
                 ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
@@ -241,7 +285,7 @@ void RenderCurrenciesTab()
                 // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
                 if (isCoin && count > 0)
                 {
-                    ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                    ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
                     ImGui::SameLine(0, 0.0f);
                 }
 
@@ -279,7 +323,7 @@ void RenderCurrenciesTab()
                 if (isCoin)
                 {
                     ImGui::SameLine(0, 0.0f);
-                    ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                    ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
                 }
 
                 ImGui::EndGroup();
@@ -467,7 +511,8 @@ void RenderCurrenciesTab()
             return std::max(1, static_cast<int>((width - scrollbarWidth + spacing) / (cellSize + spacing)));
         };
 
-        if (ImGui::BeginChild("##CurrenciesGrid", ImVec2(0, 0), true))
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        if (ImGui::BeginChild("##CurrenciesGrid", ImVec2(0, 0), false))
             {
                 if (g_Settings.currenciesGroupByCategory)
             {
@@ -519,6 +564,12 @@ void RenderCurrenciesTab()
                                         else
                                             ImGui::SameLine();
                                     }
+                                    else
+                                    {
+                                        // Erste Zeile
+                                        if (isCoin)
+                                            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f); // +20px mehr
+                                    }
 
                                     ImGui::PushID(id);
                                     ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
@@ -526,7 +577,7 @@ void RenderCurrenciesTab()
                                     // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
                                     if (isCoin && col > 0)
                                     {
-                                        ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                                        ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
                                         ImGui::SameLine(0, 0.0f);
                                     }
 
@@ -545,7 +596,7 @@ void RenderCurrenciesTab()
                                     if (isCoin)
                                     {
                                         ImGui::SameLine(0, 0.0f);
-                                        ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                                        ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
                                     }
 
                                     ImGui::EndGroup();
@@ -589,6 +640,12 @@ void RenderCurrenciesTab()
                                     else
                                         ImGui::SameLine();
                                 }
+                                else
+                                {
+                                    // Erste Zeile
+                                    if (isCoin)
+                                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f); // +20px mehr
+                                }
 
                                 ImGui::PushID(id);
                                 ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
@@ -596,7 +653,7 @@ void RenderCurrenciesTab()
                                 // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
                                 if (isCoin && col > 0)
                                 {
-                                    ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                                    ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
                                     ImGui::SameLine(0, 0.0f);
                                 }
 
@@ -615,7 +672,7 @@ void RenderCurrenciesTab()
                                 if (isCoin)
                                 {
                                     ImGui::SameLine(0, 0.0f);
-                                    ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                                    ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
                                 }
 
                                 ImGui::EndGroup();
@@ -633,9 +690,7 @@ void RenderCurrenciesTab()
             else
             {
                 // No grouping
-                const float leftIndent = 15.0f;
-                ImGui::Indent(leftIndent);
-                int columns = getColumns(ImGui::GetContentRegionAvail().x - leftIndent);
+                int columns = getColumns(ImGui::GetContentRegionAvail().x);
                 int col = 0;
                 for (auto& [id, st] : sortedCurrencies)
                 {
@@ -650,6 +705,12 @@ void RenderCurrenciesTab()
                         else
                             ImGui::SameLine();
                     }
+                    else
+                    {
+                        // Erste Zeile
+                        if (isCoin)
+                            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f); // +20px mehr
+                    }
 
                     ImGui::PushID(id);
                     ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
@@ -657,7 +718,7 @@ void RenderCurrenciesTab()
                     // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
                     if (isCoin && col > 0)
                     {
-                        ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                        ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
                         ImGui::SameLine(0, 0.0f);
                     }
 
@@ -677,7 +738,7 @@ void RenderCurrenciesTab()
                     if (isCoin)
                     {
                         ImGui::SameLine(0, 0.0f);
-                        ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                        ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
                     }
 
                     ImGui::EndGroup();
@@ -691,7 +752,6 @@ void RenderCurrenciesTab()
                         col = 0;
                     }
                 }
-                ImGui::Unindent(leftIndent);
             }
 
             // Context menu popup (rendered once outside the loop)
@@ -700,6 +760,7 @@ void RenderCurrenciesTab()
             UIContextMenu::RenderCurrencyContextMenu("CurrencyContextMenu", UIContextMenu::ContextMenuType::General);
         }
         ImGui::EndChild();
+        ImGui::PopStyleVar();
     }
     else
     {

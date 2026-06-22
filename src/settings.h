@@ -108,7 +108,7 @@ struct Settings
     float miniWindowPosY = 50.0f;
     float miniWindowWidth = 350.0f;
     float miniWindowHeight = 200.0f;
-    bool miniWindowEnableTextShadow = false;
+    bool miniWindowEnableTextShadow = true;
     int miniWindowTextColor = 0xFFFFFF; // White
     float miniWindowFontSize = 14.0f;
     std::vector<std::string> miniWindowElementOrder = {"Profit", "Profit/Hour", "TP Sell", "TP Instant", "Total Items", "Session Duration"};
@@ -155,7 +155,7 @@ struct Settings
     bool overviewCurrenciesFirst = true; // Show currencies before items in favorites section
     bool overviewEnableGridView = false; // Enable grid view for overview tab
     bool overviewFavoritesAsGrid = true; // Show favorites section as grid in overview tab
-    int overviewFavoritesIconSize = 32; // Icon size for favorites in overview tab
+    int overviewFavoritesIconSize = 45; // Icon size for favorites in overview tab
 
     std::string itemsSavePath = "";
     std::string currenciesSavePath = "";
@@ -407,12 +407,12 @@ struct Settings
     bool enableGridViewSummaryFavorites = false;
     bool enableGridViewSummaryCurrencies = false;
     bool enableGridViewSummaryItems = false;
-    int gridIconSize = 48;
-    int gridIconSizeCurrencies = 48;
+    int gridIconSize = 45;
+    int gridIconSizeCurrencies = 45;
 
     // Timeline Tab Settings
-    int timelineIconSizeItems = 40;
-    int timelineIconSizeCurrencies = 26;
+    int timelineIconSizeItems = 45;
+    int timelineIconSizeCurrencies = 30;
 
     // UI State Settings
     bool showTopItems = true;

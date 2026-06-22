@@ -57,24 +57,64 @@ static bool CollapsingHeaderWithIcon(const char* label, const char* iconKey, ImG
 
 static void DrawGridItemCount(long long count, float iconSz)
 {
-    const float fontSize = iconSz * 0.45f;
     std::string cs = UICommon::FormatCompact(count);
     const char* countStr = cs.c_str();
-    ImGui::PushFont(ImGui::GetFont());
-    ImGui::SetWindowFontScale(fontSize / ImGui::GetFontSize());
-    ImVec2 textSize = ImGui::CalcTextSize(countStr);
+
+    // Origin holen
     ImVec2 origin   = ImGui::GetItemRectMin();
-    ImVec2 pos = ImVec2(origin.x + (iconSz - textSize.x) * 0.5f,
-                        origin.y + (iconSz - textSize.y) * 0.5f);
-    ImVec4 col = count < 0 ? ImVec4(0.9f,0.2f,0.2f,1.f)
-                           : ImVec4(1.f,1.f,1.f,1.f);
+
+    // Basis-Schriftgröße berechnen - 10% kleiner!
+    const float desiredPixelSize = iconSz * 0.54f;
+    ImFont* font = ImGui::GetFont();
+
+    // Text Größe berechnen MIT der gewünschten Schriftgröße
+    ImVec2 textSize = font->CalcTextSizeA(desiredPixelSize, FLT_MAX, 0.0f, countStr);
+
+    // Position unten rechts
+    ImVec2 pos = ImVec2(origin.x + iconSz - textSize.x,
+                      origin.y + iconSz - textSize.y - 2.0f);
+
+    // Same colors as overview
+    ImVec4 col = count < 0 ? ImVec4(0.9f,0.3f,0.3f,1.f)
+                          : ImVec4(0.95f,0.7f,0.1f,1.f);
     ImDrawList* dl = ImGui::GetWindowDrawList();
-    static const ImVec2 kOff[8] = {{-1,-1},{1,-1},{-1,1},{1,1},{0,-1},{0,1},{-1,0},{1,0}};
-    for (int k = 0; k < 8; k++)
-        dl->AddText(ImVec2(pos.x+kOff[k].x, pos.y+kOff[k].y), IM_COL32(0,0,0,255), countStr);
-    dl->AddText(pos, ImGui::ColorConvertFloat4ToU32(col), countStr);
-    ImGui::SetWindowFontScale(1.f);
-    ImGui::PopFont();
+
+    // 1. Sehr dünner weißer Outline (außen 5 Pixel)
+    static const ImVec2 kOffWhiteOuter[] = {
+        {-5,-5}, {-4,-5}, {-3,-5}, {-2,-5}, {-1,-5}, {0,-5}, {1,-5}, {2,-5}, {3,-5}, {4,-5}, {5,-5},
+        {-5,-4}, {5,-4},
+        {-5,-3}, {5,-3},
+        {-5,-2}, {5,-2},
+        {-5,-1}, {5,-1},
+        {-5,0}, {5,0},
+        {-5,1}, {5,1},
+        {-5,2}, {5,2},
+        {-5,3}, {5,3},
+        {-5,4}, {5,4},
+        {-5,5}, {-4,5}, {-3,5}, {-2,5}, {-1,5}, {0,5}, {1,5}, {2,5}, {3,5}, {4,5}, {5,5}
+    };
+    for (const auto& off : kOffWhiteOuter) {
+        dl->AddText(font, desiredPixelSize, ImVec2(pos.x + off.x, pos.y + off.y), IM_COL32(255,255,255,255), countStr);
+    }
+
+    // 2. Dickerer schwarzer Outline (4 Pixel)
+    static const ImVec2 kOffBlack[] = {
+        {-4,-4}, {-3,-4}, {-2,-4}, {-1,-4}, {0,-4}, {1,-4}, {2,-4}, {3,-4}, {4,-4},
+        {-4,-3}, {4,-3},
+        {-4,-2}, {4,-2},
+        {-4,-1}, {4,-1},
+        {-4,0}, {4,0},
+        {-4,1}, {4,1},
+        {-4,2}, {4,2},
+        {-4,3}, {4,3},
+        {-4,4}, {-3,4}, {-2,4}, {-1,4}, {0,4}, {1,4}, {2,4}, {3,4}, {4,4}
+    };
+    for (const auto& off : kOffBlack) {
+        dl->AddText(font, desiredPixelSize, ImVec2(pos.x + off.x, pos.y + off.y), IM_COL32(0,0,0,255), countStr);
+    }
+
+    // 3. Eigentlicher Text
+    dl->AddText(font, desiredPixelSize, pos, ImGui::ColorConvertFloat4ToU32(col), countStr);
 }
 
 void RenderItemsTab()
@@ -174,14 +214,13 @@ void RenderItemsTab()
 
         if (g_Settings.itemsFavoritesAsGrid)
         {
-            // Grid View for Favorite Items - FIX Bug 2: Rechtsklick-Menü
+            // Grid View for Favorite Items
             float cellSize = static_cast<float>(g_Settings.gridIconSize) + 10.0f;
             float spacing = ImGui::GetStyle().ItemSpacing.x;
             float scrollbarWidth = 20.0f;
             int columns = std::max(1, static_cast<int>((ImGui::GetContentRegionAvail().x - scrollbarWidth + spacing) / (cellSize + spacing)));
 
             int count = 0;
-            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 4.0f));
             for (auto& [id, st] : favoriteItems)
             {
                 if (st.isIgnored || st.count == 0 || st.IsCurrency()) continue;
@@ -191,50 +230,50 @@ void RenderItemsTab()
                     if (count % columns == 0)
                         ImGui::NewLine();
                     else
-                        ImGui::SameLine(0, 4.0f);
+                        ImGui::SameLine();
                 }
 
                 ImGui::PushID(id);
-                ImGui::BeginGroup();
-                ImVec2 cur = ImGui::GetCursorScreenPos();
-
-                // Draw favorite row background if enabled
-                if (st.isFavorite && g_Settings.enableFavoriteRowColor)
+                if (ImGui::BeginChild("##FavItemCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar))
                 {
-                    ImVec2 bgEnd = ImVec2(cur.x + g_Settings.gridIconSize, cur.y + g_Settings.gridIconSize);
-                    ImGui::GetWindowDrawList()->AddRectFilled(cur, bgEnd, ImGui::ColorConvertFloat4ToU32(ImVec4(g_Settings.favoriteRowColor[0], g_Settings.favoriteRowColor[1], g_Settings.favoriteRowColor[2], g_Settings.favoriteRowColor[3])));
+                    ImVec2 cur = ImGui::GetCursorScreenPos();
+                    
+                    // Draw favorite row background if enabled
+                    if (st.isFavorite && g_Settings.enableFavoriteRowColor)
+                    {
+                        ImVec2 bgEnd = ImVec2(cur.x + g_Settings.gridIconSize, cur.y + g_Settings.gridIconSize);
+                        ImGui::GetWindowDrawList()->AddRectFilled(cur, bgEnd, ImGui::ColorConvertFloat4ToU32(ImVec4(g_Settings.favoriteRowColor[0], g_Settings.favoriteRowColor[1], g_Settings.favoriteRowColor[2], g_Settings.favoriteRowColor[3])));
+                    }
+
+                    UICommon::DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.gridIconSize), st.details.loaded ? st.details.rarity : "");
+
+                    // Draw favorite star
+                    if (st.isFavorite)
+                        ImGui::GetWindowDrawList()->AddText(ImVec2(cur.x + 2.0f, cur.y + 2.0f), IM_COL32(255, 215, 0, 255), "*");
+
+                    if (ImGui::IsItemHovered())
+                    {
+                        UITooltips::ItemTooltipOptions opt;
+                        opt.showCount = true; opt.count = st.count;
+                        opt.showProfit = true; opt.profit = ItemTracker::GetStatProfit(st);
+                        opt.showTrading = true; opt.showAccountFlags = true; opt.showId = true;
+                        if (st.details.loaded) UITooltips::RenderItemTooltip(st.details, id, opt);
+                        else UITooltips::RenderItemTooltipFallback(Localization::GetText("loading"), "", id, opt);
+                    }
+
+                    // Rechtsklick → pending setzen
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    {
+                        s_FavGridPendingId   = id;
+                        s_FavGridPendingName = st.details.loaded ? st.details.name : "";
+                    }
+
+                    DrawGridItemCount(st.count, static_cast<float>(g_Settings.gridIconSize));
                 }
-
-                UICommon::DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.gridIconSize), st.details.loaded ? st.details.rarity : "");
-
-                // Draw favorite star
-                if (st.isFavorite)
-                    ImGui::GetWindowDrawList()->AddText(ImVec2(cur.x + 2.0f, cur.y + 2.0f), IM_COL32(255, 215, 0, 255), "*");
-
-                if (ImGui::IsItemHovered())
-                {
-                    UITooltips::ItemTooltipOptions opt;
-                    opt.showCount = true; opt.count = st.count;
-                    opt.showProfit = true; opt.profit = ItemTracker::GetStatProfit(st);
-                    opt.showTrading = true; opt.showAccountFlags = true; opt.showId = true;
-                    if (st.details.loaded) UITooltips::RenderItemTooltip(st.details, id, opt);
-                    else UITooltips::RenderItemTooltipFallback(Localization::GetText("loading"), "", id, opt);
-                }
-
-                // FIX Bug 2: Rechtsklick → pending setzen statt OpenContextMenu direkt
-                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
-                {
-                    s_FavGridPendingId   = id;
-                    s_FavGridPendingName = st.details.loaded ? st.details.name : "";
-                }
-
-                DrawGridItemCount(st.count, static_cast<float>(g_Settings.gridIconSize));
-
-                ImGui::EndGroup();
+                ImGui::EndChild();
                 ImGui::PopID();
                 count++;
             }
-            ImGui::PopStyleVar();
 
             // FIX Bug 2: Context-Menu außerhalb der Schleife rendern
             if (s_FavGridPendingId != -1)

@@ -57,188 +57,295 @@ void RenderMiniWindow()
             if (element == "Profit" && g_Settings.miniWindowShowProfit)
             {
                 long long totalProfit = ItemTracker::CalcTotalCustomProfit();
-                ImVec4 profitColor = totalProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (totalProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                ImVec4 profitColor = totalProfit > 0 ? ImVec4(1.f, 0.9f, 0.2f, 1.f) : (totalProfit < 0 ? ImVec4(1.f, 0.3f, 0.3f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
                 
-                if (g_Settings.miniWindowEnableTextShadow)
-                {
-                    ImVec2 cursor = ImGui::GetCursorPos();
-                    // Render text 8 times with slight offset for outline effect
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
-                    ImGui::SetCursorPos(cursor);
-                }
+                ImVec2 cursor = ImGui::GetCursorPos();
+                // Render text 8 times with slight offset for outline effect
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit"));
+                ImGui::SetCursorPos(cursor);
                 
                 ImGui::TextColored(textColor, "%s: ", Localization::GetText("profit"));
                 ImGui::SameLine();
-                ImGui::TextColored(profitColor, "%s", UICommon::FormatCoin(totalProfit).c_str());
+                
+                std::string profitStr = UICommon::FormatCoin(totalProfit);
+                ImVec2 valueCursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitStr.c_str());
+                ImGui::SetCursorPos(valueCursor);
+                ImGui::TextColored(profitColor, "%s", profitStr.c_str());
             }
             else if (element == "Profit/Hour" && g_Settings.miniWindowShowProfitPerHour)
             {
                 auto duration = ItemTracker::GetSessionDuration();
                 long long profitPerHour = ItemTracker::GetTotalProfitPerHour(duration);
-                ImVec4 profitPerHourColor = profitPerHour > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (profitPerHour < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                ImVec4 profitPerHourColor = profitPerHour > 0 ? ImVec4(1.f, 0.9f, 0.2f, 1.f) : (profitPerHour < 0 ? ImVec4(1.f, 0.3f, 0.3f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
                 
-                if (g_Settings.miniWindowEnableTextShadow)
-                {
-                    ImVec2 cursor = ImGui::GetCursorPos();
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
-                    ImGui::SetCursorPos(cursor);
-                }
+                ImVec2 cursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("profit_per_hour"));
+                ImGui::SetCursorPos(cursor);
                 
                 ImGui::TextColored(textColor, "%s: ", Localization::GetText("profit_per_hour"));
                 ImGui::SameLine();
-                ImGui::TextColored(profitPerHourColor, "%s", UICommon::FormatCoin(profitPerHour).c_str());
+                
+                std::string profitPerHourStr = UICommon::FormatCoin(profitPerHour);
+                ImVec2 valueCursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitPerHourStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitPerHourStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitPerHourStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitPerHourStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitPerHourStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitPerHourStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitPerHourStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", profitPerHourStr.c_str());
+                ImGui::SetCursorPos(valueCursor);
+                ImGui::TextColored(profitPerHourColor, "%s", profitPerHourStr.c_str());
             }
             else if (element == "TP Sell" && g_Settings.miniWindowShowTradingProfitSell)
             {
                 long long tpSell = ItemTracker::CalcTotalTpSellProfit();
-                ImVec4 tpSellColor = tpSell > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (tpSell < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                ImVec4 tpSellColor = tpSell > 0 ? ImVec4(1.f, 0.9f, 0.2f, 1.f) : (tpSell < 0 ? ImVec4(1.f, 0.3f, 0.3f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
                 
-                if (g_Settings.miniWindowEnableTextShadow)
-                {
-                    ImVec2 cursor = ImGui::GetCursorPos();
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
-                    ImGui::SetCursorPos(cursor);
-                }
+                ImVec2 cursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_sell"));
+                ImGui::SetCursorPos(cursor);
                 
                 ImGui::TextColored(textColor, "%s: ", Localization::GetText("tp_sell"));
                 ImGui::SameLine();
-                ImGui::TextColored(tpSellColor, "%s", UICommon::FormatCoin(tpSell).c_str());
+                
+                std::string tpSellStr = UICommon::FormatCoin(tpSell);
+                ImVec2 valueCursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpSellStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpSellStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpSellStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpSellStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpSellStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpSellStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpSellStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpSellStr.c_str());
+                ImGui::SetCursorPos(valueCursor);
+                ImGui::TextColored(tpSellColor, "%s", tpSellStr.c_str());
             }
             else if (element == "TP Instant" && g_Settings.miniWindowShowTradingProfitInstant)
             {
                 long long tpInstant = ItemTracker::CalcTotalTpInstantProfit();
-                ImVec4 tpInstantColor = tpInstant > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (tpInstant < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                ImVec4 tpInstantColor = tpInstant > 0 ? ImVec4(1.f, 0.9f, 0.2f, 1.f) : (tpInstant < 0 ? ImVec4(1.f, 0.3f, 0.3f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
                 
-                if (g_Settings.miniWindowEnableTextShadow)
-                {
-                    ImVec2 cursor = ImGui::GetCursorPos();
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
-                    ImGui::SetCursorPos(cursor);
-                }
+                ImVec2 cursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("tp_instant"));
+                ImGui::SetCursorPos(cursor);
                 
                 ImGui::TextColored(textColor, "%s: ", Localization::GetText("tp_instant"));
                 ImGui::SameLine();
-                ImGui::TextColored(tpInstantColor, "%s", UICommon::FormatCoin(tpInstant).c_str());
+                
+                std::string tpInstantStr = UICommon::FormatCoin(tpInstant);
+                ImVec2 valueCursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpInstantStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpInstantStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpInstantStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpInstantStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpInstantStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpInstantStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpInstantStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", tpInstantStr.c_str());
+                ImGui::SetCursorPos(valueCursor);
+                ImGui::TextColored(tpInstantColor, "%s", tpInstantStr.c_str());
             }
             else if (element == "Total Items" && g_Settings.miniWindowShowTotalItems)
             {
                 auto items = ItemTracker::GetFilteredItems();
                 size_t totalItems = items.size();
-                ImVec4 totalItemsColor = totalItems > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (totalItems < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                ImVec4 totalItemsColor = totalItems > 0 ? ImVec4(1.f, 0.9f, 0.2f, 1.f) : (totalItems < 0 ? ImVec4(1.f, 0.3f, 0.3f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
                 
-                if (g_Settings.miniWindowEnableTextShadow)
-                {
-                    ImVec2 cursor = ImGui::GetCursorPos();
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
-                    ImGui::SetCursorPos(cursor);
-                }
+                ImVec2 cursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("total_items"));
+                ImGui::SetCursorPos(cursor);
                 
                 ImGui::TextColored(textColor, "%s: ", Localization::GetText("total_items"));
                 ImGui::SameLine();
-                ImGui::TextColored(totalItemsColor, "%zu", totalItems);
+                
+                std::string totalItemsStr = std::to_string(totalItems);
+                ImVec2 valueCursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalItemsStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalItemsStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalItemsStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalItemsStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalItemsStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalItemsStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalItemsStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalItemsStr.c_str());
+                ImGui::SetCursorPos(valueCursor);
+                ImGui::TextColored(totalItemsColor, "%s", totalItemsStr.c_str());
             }
             else if (element == "Session Duration" && g_Settings.miniWindowShowSessionDuration)
             {
                 auto duration = ItemTracker::GetSessionDuration();
+                std::string durationStr = UICommon::FormatDuration(duration.count());
                 
-                if (g_Settings.miniWindowEnableTextShadow)
-                {
-                    ImVec2 cursor = ImGui::GetCursorPos();
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("session"), UICommon::FormatDuration(duration.count()).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("session"), UICommon::FormatDuration(duration.count()).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("session"), UICommon::FormatDuration(duration.count()).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("session"), UICommon::FormatDuration(duration.count()).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("session"), UICommon::FormatDuration(duration.count()).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("session"), UICommon::FormatDuration(duration.count()).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("session"), UICommon::FormatDuration(duration.count()).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("session"), UICommon::FormatDuration(duration.count()).c_str());
-                    ImGui::SetCursorPos(cursor);
-                }
+                // First render label with outline
+                ImVec2 cursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("session"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("session"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("session"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("session"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("session"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("session"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("session"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("session"));
+                ImGui::SetCursorPos(cursor);
                 
-                ImGui::TextColored(textColor, "%s: %s", Localization::GetText("session"), UICommon::FormatDuration(duration.count()).c_str());
+                ImGui::TextColored(textColor, "%s: ", Localization::GetText("session"));
+                ImGui::SameLine();
+                
+                // Now render duration value with outline
+                ImVec2 valueCursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", durationStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", durationStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", durationStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", durationStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", durationStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", durationStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", durationStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", durationStr.c_str());
+                ImGui::SetCursorPos(valueCursor);
+                
+                ImGui::TextColored(textColor, "%s", durationStr.c_str());
             }
         }
 
@@ -251,30 +358,27 @@ void RenderMiniWindow()
                 ImGui::Separator();
                 
                 // Best Drop Label
-                if (g_Settings.miniWindowEnableTextShadow)
-                {
-                    ImVec2 cursor = ImGui::GetCursorPos();
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
-                    ImGui::SetCursorPos(cursor);
-                }
+                ImVec2 cursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
+                ImGui::SetCursorPos(cursor);
                 ImGui::TextColored(textColor, "%s: ", Localization::GetText("best_drop_single"));
-                ImGui::SameLine();
                 
+                // New line for icon and item name
                 // Show icon if enabled
                 if (g_Settings.miniWindowShowBestDropIcons)
                 {
@@ -289,55 +393,75 @@ void RenderMiniWindow()
                 long long totalProfit = ItemTracker::GetStatProfit(bestDrop.second);
                 long long unitProfit = totalProfit / bestDrop.second.count;
                 
-                ImVec4 bestDropColor = unitProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (unitProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                ImVec4 bestDropColor = unitProfit > 0 ? ImVec4(1.f, 0.9f, 0.2f, 1.f) : (unitProfit < 0 ? ImVec4(1.f, 0.3f, 0.3f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
                 
                 // Best Drop Name
-                if (g_Settings.miniWindowEnableTextShadow)
-                {
-                    ImVec2 cursor = ImGui::GetCursorPos();
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(cursor);
-                }
+                cursor = ImGui::GetCursorPos(); // Keine neue Definition, nur Zuweisung!
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(cursor);
                 ImGui::TextColored(bestDropColor, "%s", bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading"));
                 
-                // Unit Value Label
-                if (g_Settings.miniWindowEnableTextShadow)
-                {
-                    ImVec2 cursor = ImGui::GetCursorPos();
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("unit_value"), UICommon::FormatCoin(unitProfit).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("unit_value"), UICommon::FormatCoin(unitProfit).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("unit_value"), UICommon::FormatCoin(unitProfit).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("unit_value"), UICommon::FormatCoin(unitProfit).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("unit_value"), UICommon::FormatCoin(unitProfit).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("unit_value"), UICommon::FormatCoin(unitProfit).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("unit_value"), UICommon::FormatCoin(unitProfit).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: %s", Localization::GetText("unit_value"), UICommon::FormatCoin(unitProfit).c_str());
-                    ImGui::SetCursorPos(cursor);
-                }
-                ImGui::TextColored(textColor, "%s: %s", Localization::GetText("unit_value"), UICommon::FormatCoin(unitProfit).c_str());
+                // Add small gap
+                ImGui::Spacing();
+                
+                // Unit Value Label - first label with outline
+                cursor = ImGui::GetCursorPos(); // Wieder nur Zuweisung!
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("unit_value"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("unit_value"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("unit_value"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("unit_value"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("unit_value"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("unit_value"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("unit_value"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("unit_value"));
+                ImGui::SetCursorPos(cursor);
+                ImGui::TextColored(textColor, "%s: ", Localization::GetText("unit_value"));
+                ImGui::SameLine();
+                
+                // Now value with outline
+                std::string unitProfitStr = UICommon::FormatCoin(unitProfit);
+                ImVec2 valueCursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", unitProfitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", unitProfitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", unitProfitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", unitProfitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", unitProfitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", unitProfitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", unitProfitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", unitProfitStr.c_str());
+                ImGui::SetCursorPos(valueCursor);
+                ImGui::TextColored(bestDropColor, "%s", unitProfitStr.c_str());
                 
                 showSingle = true;
             }
@@ -351,29 +475,27 @@ void RenderMiniWindow()
                 if (!showSingle) ImGui::Separator();
                 
                 // Best Drop Total Label
-                if (g_Settings.miniWindowEnableTextShadow)
-                {
-                    ImVec2 cursor = ImGui::GetCursorPos();
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
-                    ImGui::SetCursorPos(cursor);
-                }
+                ImVec2 cursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
+                ImGui::SetCursorPos(cursor);
                 ImGui::TextColored(textColor, "%s: ", Localization::GetText("best_drop_total"));
-                ImGui::SameLine();
+                
+                // New line for icon and item name
                 
                 // Show icon if enabled
                 if (g_Settings.miniWindowShowBestDropIcons)
@@ -386,54 +508,76 @@ void RenderMiniWindow()
                 }
                 
                 long long bestTotalProfit = ItemTracker::GetStatProfit(bestTotal.second);
-                ImVec4 bestTotalColor = bestTotalProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (bestTotalProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
+                ImVec4 bestTotalColor = bestTotalProfit > 0 ? ImVec4(1.f, 0.9f, 0.2f, 1.f) : (bestTotalProfit < 0 ? ImVec4(1.f, 0.3f, 0.3f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
                 
                 // Best Drop Total Name
-                if (g_Settings.miniWindowEnableTextShadow)
-                {
-                    ImVec2 cursor = ImGui::GetCursorPos();
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
-                    ImGui::SetCursorPos(cursor);
-                }
+                cursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
+                ImGui::SetCursorPos(cursor);
                 ImGui::TextColored(bestTotalColor, "%s", bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading"));
                 
-                // Total Value Label
-                if (g_Settings.miniWindowEnableTextShadow)
-                {
-                    ImVec2 cursor = ImGui::GetCursorPos();
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s (%zu): %s", Localization::GetText("total_value"), bestTotal.second.count, UICommon::FormatCoin(bestTotalProfit).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s (%zu): %s", Localization::GetText("total_value"), bestTotal.second.count, UICommon::FormatCoin(bestTotalProfit).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s (%zu): %s", Localization::GetText("total_value"), bestTotal.second.count, UICommon::FormatCoin(bestTotalProfit).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s (%zu): %s", Localization::GetText("total_value"), bestTotal.second.count, UICommon::FormatCoin(bestTotalProfit).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s (%zu): %s", Localization::GetText("total_value"), bestTotal.second.count, UICommon::FormatCoin(bestTotalProfit).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s (%zu): %s", Localization::GetText("total_value"), bestTotal.second.count, UICommon::FormatCoin(bestTotalProfit).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s (%zu): %s", Localization::GetText("total_value"), bestTotal.second.count, UICommon::FormatCoin(bestTotalProfit).c_str());
-                    ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
-                    ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s (%zu): %s", Localization::GetText("total_value"), bestTotal.second.count, UICommon::FormatCoin(bestTotalProfit).c_str());
-                    ImGui::SetCursorPos(cursor);
-                }
-                ImGui::TextColored(textColor, "%s (%zu): %s", Localization::GetText("total_value"), bestTotal.second.count, UICommon::FormatCoin(bestTotalProfit).c_str());
+                // Add small gap
+                ImGui::Spacing();
+                
+                // Total Value Label - first label + count with outline
+                cursor = ImGui::GetCursorPos();
+                std::string totalLabel = std::string(Localization::GetText("total_value")) + " (" + std::to_string(bestTotal.second.count) + "): ";
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalLabel.c_str());
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalLabel.c_str());
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalLabel.c_str());
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalLabel.c_str());
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalLabel.c_str());
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalLabel.c_str());
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalLabel.c_str());
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalLabel.c_str());
+                ImGui::SetCursorPos(cursor);
+                ImGui::TextColored(textColor, "%s", totalLabel.c_str());
+                ImGui::SameLine();
+                
+                // Now value with outline
+                std::string totalProfitStr = UICommon::FormatCoin(bestTotalProfit);
+                ImVec2 valueCursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalProfitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalProfitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalProfitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalProfitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalProfitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalProfitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x - 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalProfitStr.c_str());
+                ImGui::SetCursorPos(ImVec2(valueCursor.x + 1, valueCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalProfitStr.c_str());
+                ImGui::SetCursorPos(valueCursor);
+                ImGui::TextColored(bestTotalColor, "%s", totalProfitStr.c_str());
             }
         }
     }

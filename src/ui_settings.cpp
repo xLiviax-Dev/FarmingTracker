@@ -709,6 +709,8 @@ static void RenderPage_Appearance()
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("grid_icon_size_items_tooltip"));
         if (ImGui::SliderInt(Localization::GetText("grid_icon_size_currencies"), &g_Settings.gridIconSizeCurrencies, 16, 96)) SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("grid_icon_size_currencies_tooltip"));
+        if (ImGui::SliderInt(Localization::GetText("overview_favorites_icon_size"), &g_Settings.overviewFavoritesIconSize, 16, 96)) SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("overview_favorites_icon_size_tooltip"));
         if (ImGui::Checkbox(Localization::GetText("show_rarity_borders"), &g_Settings.showRarityBorder)) SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_rarity_borders_tooltip"));
         if (g_Settings.showRarityBorder)
@@ -795,10 +797,10 @@ static void RenderPage_Windows()
         { SettingsManager::Save(); }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("main_window_font_size_tooltip"));
         
-        LabelText("Tab Inhalt Schriftgröße");
+        LabelText(Localization::GetText("tab_content_font_size"));
         if (ImGui::SliderFloat("##TabContentFontSize", &g_Settings.tabContentFontSize, 0.5f, 2.0f, "%.2f"))
         { SettingsManager::Save(); }
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Ändert die Schriftgröße innerhalb der Tabs");
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("tab_content_font_size_tooltip"));
         EndSection();
     }
 
@@ -828,8 +830,6 @@ static void RenderPage_Windows()
             SettingsManager::Save();
         }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_hide_title_bar_tooltip"));
-        if (ImGui::Checkbox(Localization::GetText("mini_window_enable_text_shadow"), &g_Settings.miniWindowEnableTextShadow)) SettingsManager::Save();
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_enable_text_shadow_tooltip"));
         
         LabelText(Localization::GetText("mini_window_font_size"));
         if (ImGui::SliderFloat("##MiniFontSize", &g_Settings.miniWindowFontSize, 10.0f, 30.0f, "%.1f"))

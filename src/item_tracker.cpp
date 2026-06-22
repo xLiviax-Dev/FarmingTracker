@@ -391,7 +391,8 @@ static void CheckAndTriggerNotification(int apiId, Stat& st)
 
 static void UpdateOrInsert(std::map<int, Stat>& map,
                            int apiId, long long delta, StatType type,
-                           bool isIgnored = false, bool isFavorite = false)
+                           bool isIgnored = false, bool isFavorite = false,
+                           bool skipDelta = false)
 {
     auto it = map.find(apiId);
     if (it != map.end())
@@ -399,7 +400,7 @@ static void UpdateOrInsert(std::map<int, Stat>& map,
         it->second.isIgnored = isIgnored; // Update ignored status
         it->second.isFavorite = isFavorite; // Update favorite status
         
-        if (!isIgnored) // Only modify count if not ignored
+        if (!isIgnored && !skipDelta) // Only modify count if not ignored and not skipping delta
         {
             it->second.count += delta;
             if (delta > 0)
@@ -415,8 +416,8 @@ static void UpdateOrInsert(std::map<int, Stat>& map,
             Stat s;
             s.apiId = apiId;
             s.type  = type;
-            s.count = delta;
-            if (delta > 0) s.notificationPending = true;
+            s.count = skipDelta ? 0 : delta;
+            if (delta > 0 && !skipDelta) s.notificationPending = true;
 
             // Re-apply persistent flags (passed as parameters to avoid deadlock)
             s.isFavorite = isFavorite;
@@ -497,9 +498,10 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
             bool isFavorite = s_PersistentFavoriteItems.count(id) > 0;
             bool isIgnored = IgnoredItemsManager::IsItemIgnored(id) || SessionIgnoreManager::IsItemIgnoredForSession(id);
             bool skipOnce = SkipOnceManager::IsItemSkippedOnce(id);
+            bool isIgnoredForDrop = isIgnored;
             
             if (skipOnce) {
-                isIgnored = true;
+                isIgnoredForDrop = true;
                 SkipOnceManager::UnskipOnceItem(id);
             }
             
@@ -522,14 +524,15 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
                 if (shouldIgnore) {
                     IgnoredItemsManager::IgnoreItem(id);
                     isIgnored = true;
+                    isIgnoredForDrop = true;
                 }
             }
             
-            UpdateOrInsert(s_Items, id, delta, StatType::Item, isIgnored, isFavorite);
+            UpdateOrInsert(s_Items, id, delta, StatType::Item, isIgnored, isFavorite, skipOnce);
             s_Items[id].lastMagicFind = s_MagicFind.load();
 
             // Only add to session history and log if not ignored
-            if (!isIgnored) {
+            if (!isIgnoredForDrop) {
                 // Session history entry
                 SessionHistory::DropEntry drop;
                 drop.itemId = id;
@@ -581,17 +584,18 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
             bool isFavorite = s_PersistentFavoriteCurrencies.count(id) > 0;
             bool isIgnored = IgnoredItemsManager::IsCurrencyIgnored(id) || SessionIgnoreManager::IsCurrencyIgnoredForSession(id);
             bool skipOnce = SkipOnceManager::IsCurrencySkippedOnce(id);
+            bool isIgnoredForDrop = isIgnored;
             
             if (skipOnce) {
-                isIgnored = true;
+                isIgnoredForDrop = true;
                 SkipOnceManager::UnskipOnceCurrency(id);
             }
             
-            UpdateOrInsert(s_Currencies, id, delta, StatType::Currency, isIgnored, isFavorite);
+            UpdateOrInsert(s_Currencies, id, delta, StatType::Currency, isIgnored, isFavorite, skipOnce);
             s_Currencies[id].lastMagicFind = s_MagicFind.load();
 
             // Only add to session history and log if not ignored
-            if (!isIgnored) {
+            if (!isIgnoredForDrop) {
                 // Session history entry
                 SessionHistory::DropEntry drop;
                 drop.itemId = id;
@@ -888,7 +892,7 @@ std::map<int, Stat> ItemTracker::GetItemsCopy()
     std::map<int, Stat> copy = s_Items;
     for (auto& [id, stat] : copy)
     {
-        stat.isIgnored = IgnoredItemsManager::IsItemIgnored(id) || SessionIgnoreManager::IsItemIgnoredForSession(id) || SkipOnceManager::IsItemSkippedOnce(id);
+        stat.isIgnored = IgnoredItemsManager::IsItemIgnored(id) || SessionIgnoreManager::IsItemIgnoredForSession(id);
     }
     return copy;
 }
@@ -901,7 +905,7 @@ std::map<int, Stat> ItemTracker::GetCurrenciesCopy()
     std::map<int, Stat> copy = s_Currencies;
     for (auto& [id, stat] : copy)
     {
-        stat.isIgnored = IgnoredItemsManager::IsCurrencyIgnored(id) || SessionIgnoreManager::IsCurrencyIgnoredForSession(id) || SkipOnceManager::IsCurrencySkippedOnce(id);
+        stat.isIgnored = IgnoredItemsManager::IsCurrencyIgnored(id) || SessionIgnoreManager::IsCurrencyIgnoredForSession(id);
     }
     return copy;
 }
@@ -911,7 +915,7 @@ Stat ItemTracker::GetItemStat(int itemId)
     // Snapshot ignored state BEFORE acquiring s_PersistentMutex/s_Mutex
     // to avoid circular lock: s_PersistentMutex -> s_Mutex -> IgnoredItems::s_Mutex
     // vs IgnoreItem: IgnoredItems::s_Mutex -> (no longer calls back)
-    bool isIgnored = IgnoredItemsManager::IsItemIgnored(itemId) || SessionIgnoreManager::IsItemIgnoredForSession(itemId) || SkipOnceManager::IsItemSkippedOnce(itemId);
+    bool isIgnored = IgnoredItemsManager::IsItemIgnored(itemId) || SessionIgnoreManager::IsItemIgnoredForSession(itemId);
 
     std::lock_guard<std::mutex> pLock(s_PersistentMutex);
     std::lock_guard<std::mutex> lock(s_Mutex);
@@ -934,7 +938,7 @@ Stat ItemTracker::GetItemStat(int itemId)
 
 Stat ItemTracker::GetCurrencyStat(int currencyId)
 {
-    bool isIgnored = IgnoredItemsManager::IsCurrencyIgnored(currencyId) || SessionIgnoreManager::IsCurrencyIgnoredForSession(currencyId) || SkipOnceManager::IsCurrencySkippedOnce(currencyId);
+    bool isIgnored = IgnoredItemsManager::IsCurrencyIgnored(currencyId) || SessionIgnoreManager::IsCurrencyIgnoredForSession(currencyId);
 
     std::lock_guard<std::mutex> pLock(s_PersistentMutex);
     std::lock_guard<std::mutex> lock(s_Mutex);
@@ -1368,12 +1372,12 @@ std::string ItemTracker::GetCurrencyCategory(int currencyId)
 // Ignored Items (delegates to IgnoredItemsManager + Skip Once + Session Ignore)
 bool ItemTracker::IsItemIgnored(int apiId)
 {
-    return IgnoredItemsManager::IsItemIgnored(apiId) || SessionIgnoreManager::IsItemIgnoredForSession(apiId) || SkipOnceManager::IsItemSkippedOnce(apiId);
+    return IgnoredItemsManager::IsItemIgnored(apiId) || SessionIgnoreManager::IsItemIgnoredForSession(apiId);
 }
 
 bool ItemTracker::IsCurrencyIgnored(int apiId)
 {
-    return IgnoredItemsManager::IsCurrencyIgnored(apiId) || SessionIgnoreManager::IsCurrencyIgnoredForSession(apiId) || SkipOnceManager::IsCurrencySkippedOnce(apiId);
+    return IgnoredItemsManager::IsCurrencyIgnored(apiId) || SessionIgnoreManager::IsCurrencyIgnoredForSession(apiId);
 }
 
 // Advanced Filtering

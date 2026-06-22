@@ -115,29 +115,72 @@ namespace UIOverview
 
     static void DrawGridCount(long long count, float iconSz, bool isCurrency = false, int currencyId = 0)
     {
-        const float fontSize = iconSz * 0.45f;
+        bool isCoin = (isCurrency && currencyId == 1);
+        
         std::string cs;
-        if (isCurrency && currencyId == 1) {
+        if (isCoin) {
             cs = UICommon::FormatCoin(count);
         } else {
             cs = UICommon::FormatCompact(count);
         }
         const char* countStr = cs.c_str();
-        ImGui::PushFont(ImGui::GetFont());
-        ImGui::SetWindowFontScale(fontSize / ImGui::GetFontSize());
-        ImVec2 textSize = ImGui::CalcTextSize(countStr);
+        
+        // Origin holen
         ImVec2 origin   = ImGui::GetItemRectMin();
-        ImVec2 pos = ImVec2(origin.x + (iconSz - textSize.x) * 0.5f,
-                            origin.y + (iconSz - textSize.y) * 0.5f);
-        ImVec4 col = count < 0 ? ImVec4(0.9f,0.2f,0.2f,1.f)
-                               : ImVec4(1.f,1.f,1.f,1.f);
+        
+        // Basis-Schriftgröße berechnen - 10% kleiner!
+        const float desiredPixelSize = isCoin ? iconSz * 0.495f : iconSz * 0.54f;
+        ImFont* font = ImGui::GetFont();
+        
+        // Text Größe berechnen MIT der gewünschten Schriftgröße
+        ImVec2 textSize = font->CalcTextSizeA(desiredPixelSize, FLT_MAX, 0.0f, countStr);
+        
+        // Position: nur bei Coin weiter nach rechts!
+        const float rightPush = (isCurrency && currencyId == 1) ? 35.0f : 0.0f;
+        ImVec2 pos = ImVec2(origin.x + iconSz - textSize.x + rightPush,
+                          origin.y + iconSz - textSize.y - 2.0f);
+        
+        // Farben
+        ImVec4 col = count < 0 ? ImVec4(0.9f,0.3f,0.3f,1.f)
+                              : ImVec4(0.95f,0.7f,0.1f,1.f);
         ImDrawList* dl = ImGui::GetWindowDrawList();
-        static const ImVec2 kOff[8] = {{-1,-1},{1,-1},{-1,1},{1,1},{0,-1},{0,1},{-1,0},{1,0}};
-        for (int k = 0; k < 8; k++)
-            dl->AddText(ImVec2(pos.x+kOff[k].x, pos.y+kOff[k].y), IM_COL32(0,0,0,255), countStr);
-        dl->AddText(pos, ImGui::ColorConvertFloat4ToU32(col), countStr);
-        ImGui::SetWindowFontScale(1.f);
-        ImGui::PopFont();
+        
+        // 1. Sehr dünner weißer Outline (außen 5 Pixel)
+        static const ImVec2 kOffWhiteOuter[] = {
+            {-5,-5}, {-4,-5}, {-3,-5}, {-2,-5}, {-1,-5}, {0,-5}, {1,-5}, {2,-5}, {3,-5}, {4,-5}, {5,-5},
+            {-5,-4}, {5,-4},
+            {-5,-3}, {5,-3},
+            {-5,-2}, {5,-2},
+            {-5,-1}, {5,-1},
+            {-5,0}, {5,0},
+            {-5,1}, {5,1},
+            {-5,2}, {5,2},
+            {-5,3}, {5,3},
+            {-5,4}, {5,4},
+            {-5,5}, {-4,5}, {-3,5}, {-2,5}, {-1,5}, {0,5}, {1,5}, {2,5}, {3,5}, {4,5}, {5,5}
+        };
+        for (const auto& off : kOffWhiteOuter) {
+            dl->AddText(font, desiredPixelSize, ImVec2(pos.x + off.x, pos.y + off.y), IM_COL32(255,255,255,255), countStr);
+        }
+        
+        // 2. Dickerer schwarzer Outline (4 Pixel)
+        static const ImVec2 kOffBlack[] = {
+            {-4,-4}, {-3,-4}, {-2,-4}, {-1,-4}, {0,-4}, {1,-4}, {2,-4}, {3,-4}, {4,-4},
+            {-4,-3}, {4,-3},
+            {-4,-2}, {4,-2},
+            {-4,-1}, {4,-1},
+            {-4,0}, {4,0},
+            {-4,1}, {4,1},
+            {-4,2}, {4,2},
+            {-4,3}, {4,3},
+            {-4,4}, {-3,4}, {-2,4}, {-1,4}, {0,4}, {1,4}, {2,4}, {3,4}, {4,4}
+        };
+        for (const auto& off : kOffBlack) {
+            dl->AddText(font, desiredPixelSize, ImVec2(pos.x + off.x, pos.y + off.y), IM_COL32(0,0,0,255), countStr);
+        }
+        
+        // 3. Eigentlicher Text
+        dl->AddText(font, desiredPixelSize, pos, ImGui::ColorConvertFloat4ToU32(col), countStr);
     }
 
     static void DrawGridItemCount(long long count, float iconSz)
@@ -145,22 +188,13 @@ namespace UIOverview
         DrawGridCount(count, iconSz, false, 0);
     }
 
-    static void RenderFavoritesSection()
+    static void RenderFavoritesSubsection(const std::vector<int>& ids, bool isCurrency, const char* headerLabel, const char* iconKey,
+                                        int& pendingId, std::string& pendingName, bool& pendingIsCurrency,
+                                        const char* gridContextMenuId, const char* tableContextMenuId)
     {
-        auto favoriteItemsMap = ItemTracker::GetFavoriteItems();
-        auto favoriteCurrenciesMap = ItemTracker::GetFavoriteCurrencies();
+        CardHeader(iconKey, headerLabel);
 
-        std::vector<int> favoriteItems;
-        for (auto& [id, st] : favoriteItemsMap)
-            if (st.count > 0)
-                favoriteItems.push_back(id);
-
-        std::vector<int> favoriteCurrencies;
-        for (auto& [id, st] : favoriteCurrenciesMap)
-            if (st.count > 0)
-                favoriteCurrencies.push_back(id);
-
-        if (favoriteItems.empty() && favoriteCurrencies.empty())
+        if (ids.empty())
         {
             ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.f), "%s", Localization::GetText("no_favorites_yet"));
             ImGui::Spacing();
@@ -169,9 +203,9 @@ namespace UIOverview
 
         if (g_Settings.overviewFavoritesAsGrid)
         {
-            // Grid view for favorites
-            float iconSize = static_cast<float>(g_Settings.overviewFavoritesIconSize);
-            float cellSize = iconSize + 65.0f;
+            // Grid view for this subsection
+            float iconSize = isCurrency ? static_cast<float>(g_Settings.overviewFavoritesIconSize) : static_cast<float>(g_Settings.gridIconSize);
+            float cellSize = isCurrency ? (iconSize + 65.0f) : (iconSize + 10.0f);
             float spacing = ImGui::GetStyle().ItemSpacing.x;
             float scrollbarWidth = 20.0f;
 
@@ -182,25 +216,7 @@ namespace UIOverview
             int columns = getColumns(ImGui::GetContentRegionAvail().x);
             int count = 0;
 
-            std::vector<std::pair<int, bool>> favorites; // pair<id, isCurrency>
-
-            if (g_Settings.overviewCurrenciesFirst)
-            {
-                for (auto& currencyId : favoriteCurrencies) favorites.push_back({currencyId, true});
-                for (auto& itemId : favoriteItems) favorites.push_back({itemId, false});
-            }
-            else
-            {
-                for (auto& itemId : favoriteItems) favorites.push_back({itemId, false});
-                for (auto& currencyId : favoriteCurrencies) favorites.push_back({currencyId, true});
-            }
-
-            // FIX Bug 1: Pending-System für Rechtsklick im Grid
-            static int s_FavGridPendingId = -1;
-            static std::string s_FavGridPendingName;
-            static bool s_FavGridPendingIsCurrency = false;
-
-            for (auto& [id, isCurrency] : favorites)
+            for (int id : ids)
             {
                 Stat st;
                 if (isCurrency)
@@ -208,56 +224,61 @@ namespace UIOverview
                 else
                     st = ItemTracker::GetItemStat(id);
                 
-                if (st.isIgnored) continue;
+                if (st.isIgnored || st.count == 0) continue;
 
                 bool isCoin = isCurrency && id == 1;
 
                 if (count > 0)
                 {
                     if (count % columns == 0)
+                    {
                         ImGui::NewLine();
+                    }
                     else
+                    {
                         ImGui::SameLine();
-                }
-
-                ImGui::PushID(id);
-                ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
-
-                // Abstand vor Coin links
-                if (isCoin)
-                {
-                    ImGui::Dummy(ImVec2(30.0f, 0.0f));
-                    ImGui::SameLine(0, 0.0f);
-                }
-
-                // Eigentliche Icon-Gruppe
-                ImGui::BeginGroup();
-                ImVec2 cur = ImGui::GetCursorScreenPos();
-
-                if (st.isFavorite && isCurrency && g_Settings.enableFavoriteRowColor)
-                {
-                    ImVec2 bgEnd = ImVec2(cur.x + iconSize, cur.y + iconSize);
-                    ImGui::GetWindowDrawList()->AddRectFilled(cur, bgEnd, ImGui::ColorConvertFloat4ToU32(ImVec4(g_Settings.favoriteRowColor[0], g_Settings.favoriteRowColor[1], g_Settings.favoriteRowColor[2], g_Settings.favoriteRowColor[3])));
-                }
-
-                if (isCurrency)
-                {
-                    std::string iconUrl = st.details.iconUrl;
-                    if (id == 1 && iconUrl.empty()) iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
-                    UICommon::DrawItemIconCell(id, iconUrl, iconSize, st.details.loaded ? st.details.rarity : "");
+                    }
                 }
                 else
                 {
-                    UICommon::DrawItemIconCell(id, st.details.iconUrl, iconSize, st.details.loaded ? st.details.rarity : "");
+                    // Erste Zeile
+                    if (isCoin)
+                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f); // +20px mehr
                 }
 
-                if (st.isFavorite)
-                    ImGui::GetWindowDrawList()->AddText(ImVec2(cur.x + 2.f, cur.y + 2.f), IM_COL32(255, 215, 0, 255), "*");
-
-                // Tooltip
-                if (ImGui::IsItemHovered())
+                ImGui::PushID(id);
+                
+                if (isCurrency)
                 {
-                    if (isCurrency)
+                    // Keep the old group approach for currencies
+                    ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
+
+                    // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
+                    if (isCoin && count > 0)
+                    {
+                        ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
+                        ImGui::SameLine(0, 0.0f);
+                    }
+
+                    // Eigentliche Icon-Gruppe
+                    ImGui::BeginGroup();
+                    ImVec2 cur = ImGui::GetCursorScreenPos();
+
+                    if (st.isFavorite && isCurrency && g_Settings.enableFavoriteRowColor)
+                    {
+                        ImVec2 bgEnd = ImVec2(cur.x + iconSize, cur.y + iconSize);
+                        ImGui::GetWindowDrawList()->AddRectFilled(cur, bgEnd, ImGui::ColorConvertFloat4ToU32(ImVec4(g_Settings.favoriteRowColor[0], g_Settings.favoriteRowColor[1], g_Settings.favoriteRowColor[2], g_Settings.favoriteRowColor[3])));
+                    }
+
+                    std::string iconUrl = st.details.iconUrl;
+                    if (id == 1 && iconUrl.empty()) iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
+                    UICommon::DrawItemIconCell(id, iconUrl, iconSize, st.details.loaded ? st.details.rarity : "");
+
+                    if (st.isFavorite)
+                        ImGui::GetWindowDrawList()->AddText(ImVec2(cur.x + 2.f, cur.y + 2.f), IM_COL32(255, 215, 0, 255), "*");
+
+                    // Tooltip
+                    if (ImGui::IsItemHovered())
                     {
                         UITooltips::CurrencyTooltipOptions opt;
                         opt.showCount = true;
@@ -271,63 +292,89 @@ namespace UIOverview
                         else
                             UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
                     }
-                    else
+
+                    // Right-click: nur pending setzen
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
                     {
-                        UITooltips::ItemTooltipOptions opt;
-                        opt.showCount = true;
-                        opt.count = st.count;
-                        opt.showProfit = true;
-                        opt.profit = ItemTracker::GetStatProfit(st);
-                        opt.showTrading = true;
-                        opt.showAccountFlags = true;
-                        opt.showId = true;
-                        if (st.details.loaded)
-                            UITooltips::RenderItemTooltip(st.details, id, opt);
-                        else
-                            UITooltips::RenderItemTooltipFallback(Localization::GetText("loading"), "", id, opt);
+                        pendingId = id;
+                        pendingName = st.details.loaded ? st.details.name : "";
+                        pendingIsCurrency = isCurrency;
                     }
-                }
 
-                // Right-click: nur pending setzen, Render nach Schleife
-                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    DrawGridCount(st.count, iconSize, isCurrency, id);
+                    ImGui::EndGroup();
+
+                    // Abstand nach Coin rechts
+                    if (isCoin)
+                    {
+                        ImGui::SameLine(0, 0.0f);
+                        ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
+                    }
+
+                    ImGui::EndGroup();
+                }
+                else
                 {
-                    s_FavGridPendingId   = id;
-                    s_FavGridPendingName = st.details.loaded ? st.details.name : "";
-                    s_FavGridPendingIsCurrency = isCurrency;
+                    // Use the same child approach as regular items for favorite items
+                    if (ImGui::BeginChild("##FavItemCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar))
+                    {
+                        UICommon::DrawItemIconCell(id, st.details.iconUrl, iconSize, st.details.loaded ? st.details.rarity : "");
+
+                        if (st.isFavorite)
+                        {
+                            ImVec2 cur = ImGui::GetCursorScreenPos();
+                            ImGui::GetWindowDrawList()->AddText(ImVec2(cur.x + 2.f, cur.y + 2.f), IM_COL32(255, 215, 0, 255), "*");
+                        }
+
+                        if (ImGui::IsItemHovered())
+                        {
+                            UITooltips::ItemTooltipOptions opt;
+                            opt.showCount = true;
+                            opt.count = st.count;
+                            opt.showProfit = true;
+                            opt.profit = ItemTracker::GetStatProfit(st);
+                            opt.showTrading = true;
+                            opt.showAccountFlags = true;
+                            opt.showId = true;
+                            if (st.details.loaded)
+                                UITooltips::RenderItemTooltip(st.details, id, opt);
+                            else
+                                UITooltips::RenderItemTooltipFallback(Localization::GetText("loading"), "", id, opt);
+                        }
+
+                        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                        {
+                            pendingId = id;
+                            pendingName = st.details.loaded ? st.details.name : "";
+                            pendingIsCurrency = isCurrency;
+                        }
+
+                        DrawGridItemCount(st.count, iconSize);
+                    }
+                    ImGui::EndChild();
                 }
 
-                DrawGridCount(st.count, iconSize, isCurrency, id);
-                ImGui::EndGroup();
-
-                // Abstand nach Coin rechts
-                if (isCoin)
-                {
-                    ImGui::SameLine(0, 0.0f);
-                    ImGui::Dummy(ImVec2(30.0f, 0.0f));
-                }
-
-                ImGui::EndGroup();
                 ImGui::PopID();
 
                 count++;
             }
 
-
-            // FIX Bug 1: Context-Menu außerhalb der Schleife rendern
-            if (s_FavGridPendingId != -1)
+            // Render context menu for this subsection
+            if (pendingId != -1)
             {
-                UIContextMenu::OpenContextMenu(
-                    s_FavGridPendingIsCurrency ? "OvFavCurContextMenu" : "OvFavItemContextMenu",
-                    s_FavGridPendingId, s_FavGridPendingName);
-                s_FavGridPendingId = -1;
+                UIContextMenu::OpenContextMenu(gridContextMenuId, pendingId, pendingName);
+                pendingId = -1;
             }
-            UIContextMenu::RenderItemContextMenu("OvFavItemContextMenu", UIContextMenu::ContextMenuType::Favorites);
-            UIContextMenu::RenderCurrencyContextMenu("OvFavCurContextMenu", UIContextMenu::ContextMenuType::Favorites);
+            if (isCurrency)
+                UIContextMenu::RenderCurrencyContextMenu(gridContextMenuId, UIContextMenu::ContextMenuType::Favorites);
+            else
+                UIContextMenu::RenderItemContextMenu(gridContextMenuId, UIContextMenu::ContextMenuType::Favorites);
         }
         else
         {
-            // Table view for favorites
-            if (ImGui::BeginTable("##OverviewFavoritesTable", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+            // Table view for this subsection
+            std::string tableId = isCurrency ? "##OverviewFavCurrenciesTable" : "##OverviewFavItemsTable";
+            if (ImGui::BeginTable(tableId.c_str(), 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
             {
                 ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 70.0f);
                 ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 300.0f);
@@ -335,32 +382,15 @@ namespace UIOverview
                 ImGui::TableSetupColumn(Localization::GetText("column_profit"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
                 ImGui::TableHeadersRow();
 
-                std::vector<std::pair<int, bool>> favorites;
-
-                if (g_Settings.overviewCurrenciesFirst)
+                for (int id : ids)
                 {
-                    for (auto& currencyId : favoriteCurrencies) favorites.push_back({currencyId, true});
-                    for (auto& itemId : favoriteItems) favorites.push_back({itemId, false});
-                }
-                else
-                {
-                    for (auto& itemId : favoriteItems) favorites.push_back({itemId, false});
-                    for (auto& currencyId : favoriteCurrencies) favorites.push_back({currencyId, true});
-                }
+                    Stat st;
+                    if (isCurrency)
+                        st = ItemTracker::GetCurrencyStat(id);
+                    else
+                        st = ItemTracker::GetItemStat(id);
 
-                static int s_FavTablePendingId = -1;
-                static std::string s_FavTablePendingName;
-                static bool s_FavTablePendingIsCurrency = false;
-
-                for (auto& [id, isCurrency] : favorites)
-            {
-                Stat st;
-                if (isCurrency)
-                    st = ItemTracker::GetCurrencyStat(id);
-                else
-                    st = ItemTracker::GetItemStat(id);
-
-                if (st.isIgnored || st.count == 0) continue;
+                    if (st.isIgnored || st.count == 0) continue;
 
                     float rowH = UICommon::CalcTableRowHeight(32.0f);
                     ImGui::TableNextRow(0, rowH);
@@ -399,9 +429,9 @@ namespace UIOverview
                     }
                     if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
                     {
-                        s_FavTablePendingId = id;
-                        s_FavTablePendingName = st.details.loaded ? st.details.name : "";
-                        s_FavTablePendingIsCurrency = isCurrency;
+                        pendingId = id;
+                        pendingName = st.details.loaded ? st.details.name : "";
+                        pendingIsCurrency = isCurrency;
                     }
 
                     ImGui::TableSetColumnIndex(1);
@@ -444,18 +474,62 @@ namespace UIOverview
 
                 ImGui::EndTable();
 
-                // Context menu für Tabellen-Ansicht
-                if (s_FavTablePendingId != -1)
+                // Render context menu for this subsection
+                if (pendingId != -1)
                 {
-                    UIContextMenu::OpenContextMenu(
-                        s_FavTablePendingIsCurrency ? "OvFavCurTblMenu" : "OvFavItemTblMenu",
-                        s_FavTablePendingId, s_FavTablePendingName);
-                    s_FavTablePendingId = -1;
+                    UIContextMenu::OpenContextMenu(tableContextMenuId, pendingId, pendingName);
+                    pendingId = -1;
                 }
-                UIContextMenu::RenderItemContextMenu("OvFavItemTblMenu", UIContextMenu::ContextMenuType::Favorites);
-                UIContextMenu::RenderCurrencyContextMenu("OvFavCurTblMenu", UIContextMenu::ContextMenuType::Favorites);
+                if (isCurrency)
+                    UIContextMenu::RenderCurrencyContextMenu(tableContextMenuId, UIContextMenu::ContextMenuType::Favorites);
+                else
+                    UIContextMenu::RenderItemContextMenu(tableContextMenuId, UIContextMenu::ContextMenuType::Favorites);
             }
         }
+    }
+
+    static void RenderFavoritesSection()
+    {
+        // Holen wir uns alle Favoriten-IDs, UNABHÄNGIG von der aktuellen Count!
+        auto favoriteItemsMap = ItemTracker::GetFavoriteItems();
+        auto favoriteCurrenciesMap = ItemTracker::GetFavoriteCurrencies();
+
+        std::vector<int> favoriteItems;
+        for (auto& [id, st] : favoriteItemsMap)
+            favoriteItems.push_back(id);
+
+        std::vector<int> favoriteCurrencies;
+        for (auto& [id, st] : favoriteCurrenciesMap)
+            favoriteCurrencies.push_back(id);
+
+        // Pending variables for context menus
+        static int s_CurGridPendingId = -1;
+        static std::string s_CurGridPendingName;
+        static bool s_CurGridPendingIsCurrency = false;
+
+        static int s_ItemGridPendingId = -1;
+        static std::string s_ItemGridPendingName;
+        static bool s_ItemGridPendingIsCurrency = false;
+
+        static int s_CurTablePendingId = -1;
+        static std::string s_CurTablePendingName;
+        static bool s_CurTablePendingIsCurrency = false;
+
+        static int s_ItemTablePendingId = -1;
+        static std::string s_ItemTablePendingName;
+        static bool s_ItemTablePendingIsCurrency = false;
+
+        // Render subsections in order (Currencies first, then Items)
+        RenderFavoritesSubsection(favoriteCurrencies, true, Localization::GetText("favorite_currencies"), "favorites",
+                                  s_CurGridPendingId, s_CurGridPendingName, s_CurGridPendingIsCurrency,
+                                  "OvFavCurGridMenu", "OvFavCurTableMenu");
+
+        ImGui::Spacing();
+        ImGui::Spacing();
+
+        RenderFavoritesSubsection(favoriteItems, false, Localization::GetText("favorite_items"), "favorites",
+                                  s_ItemGridPendingId, s_ItemGridPendingName, s_ItemGridPendingIsCurrency,
+                                  "OvFavItemGridMenu", "OvFavItemTableMenu");
     }
 
     static void RenderCurrenciesSection()
@@ -472,20 +546,17 @@ namespace UIOverview
         if (g_Settings.overviewEnableGridView)
         {
             // Grid view for Currencies
-            const float leftIndent = 10.0f;
             float iconSize = static_cast<float>(g_Settings.gridIconSizeCurrencies);
             float cellSize = iconSize + 20.0f; // Same padding as in Currencies tab
             float gridSpacing = ImGui::GetStyle().ItemSpacing.x;
             float scrollbarWidth = 20.0f;
-            float availW = ImGui::GetContentRegionAvail().x - leftIndent;
 
             auto getColumns = [&](float width) {
                 return std::max(1, static_cast<int>((width - scrollbarWidth + gridSpacing) / (cellSize + gridSpacing)));
             };
 
-            int columns = getColumns(availW);
+            int columns = getColumns(ImGui::GetContentRegionAvail().x);
             int count = 0;
-            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + leftIndent);
 
             // FIX Bug 1 (Currencies-Teil): Pending-System
             static int s_CurGridPendingId = -1;
@@ -502,7 +573,6 @@ namespace UIOverview
                     if (count % columns == 0)
                     {
                         ImGui::NewLine();
-                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + leftIndent);
                     }
                     else
                     {
@@ -513,9 +583,7 @@ namespace UIOverview
                 {
                     // Erste Zeile
                     if (isCoin)
-                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + leftIndent + 30.0f);
-                    else
-                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + leftIndent);
+                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f); // +20px mehr
                 }
 
                 ImGui::PushID(id);
@@ -524,7 +592,7 @@ namespace UIOverview
                 // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
                 if (isCoin && count > 0)
                 {
-                    ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                    ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
                     ImGui::SameLine(0, 0.0f);
                 }
 
@@ -563,7 +631,7 @@ namespace UIOverview
                 if (isCoin)
                 {
                     ImGui::SameLine(0, 0.0f);
-                    ImGui::Dummy(ImVec2(30.0f, 0.0f));
+                    ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
                 }
 
                 ImGui::EndGroup();
@@ -816,7 +884,6 @@ namespace UIOverview
 
     void RenderOverviewTab()
 {
-    CardHeader("favorites", Localization::GetText("tab_favorites"));
     RenderFavoritesSection();
 
     ImGui::Spacing();

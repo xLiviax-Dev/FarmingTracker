@@ -453,15 +453,7 @@ static void RenderSettingsSubTab()
         SettingsManager::Save();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show currencies before items in favorites section");
 
-    ImGui::Spacing();
-    ImGui::Spacing();
 
-    ImGui::BeginGroup();
-    if (ImGui::SliderInt("##FavoritesIconSize", &g_Settings.overviewFavoritesIconSize, 16, 64)) SettingsManager::Save();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Size of icons in favorites section");
-    ImGui::SameLine();
-    ImGui::Text("Favorites Icon Size");
-    ImGui::EndGroup();
 
     ImGui::EndChild();
     ImGui::EndGroup();
