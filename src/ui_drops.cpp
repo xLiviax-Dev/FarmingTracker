@@ -48,7 +48,7 @@ static bool Toggle(const char* id, bool* value)
 }
 
 // Render toggle without click handling (for use with InvisibleButton)
-static void RenderToggleOnly(const char* id, bool* value)
+static void RenderToggleOnly(const char* id, bool* value, bool disabled = false)
 {
     const float  w      = 36.f;
     const float  h      = 18.f;
@@ -56,17 +56,18 @@ static void RenderToggleOnly(const char* id, bool* value)
     const float  knobR  = r - 2.f;
     const ImVec4 colOn  = ImVec4(0.165f, 0.604f, 0.165f, 1.f); // Green when active
     const ImVec4 colOff = ImVec4(0.333f, 0.333f, 0.333f, 1.f);
+    const ImVec4 colDisabled = ImVec4(0.2f, 0.2f, 0.2f, 1.f);
 
     ImVec2 pos  = ImGui::GetCursorScreenPos();
     ImDrawList* dl = ImGui::GetWindowDrawList();
 
-    ImVec4 trackCol = *value ? colOn : colOff;
+    ImVec4 trackCol = disabled ? colDisabled : (*value ? colOn : colOff);
     dl->AddRectFilled(pos, ImVec2(pos.x + w, pos.y + h),
         ImGui::ColorConvertFloat4ToU32(trackCol), r);
 
     float knobX = *value ? (pos.x + w - r) : (pos.x + r);
-    dl->AddCircleFilled(ImVec2(knobX, pos.y + r), knobR,
-        IM_COL32(255, 255, 255, 255));
+    ImU32 knobCol = disabled ? IM_COL32(150, 150, 150, 255) : IM_COL32(255, 255, 255, 255);
+    dl->AddCircleFilled(ImVec2(knobX, pos.y + r), knobR, knobCol);
 }
 
 static bool SettingsToggleRow(const char* label, bool* value, float colWidth, bool indent = false)
@@ -136,7 +137,7 @@ static void PathRow(const char* sublabel, const std::string& effectivePath, floa
 }
 
 // Draws an icon from the tab icon system at current cursor position inline
-static void InlineIcon(const char* key, float sz = 14.f)
+static void InlineIcon(const char* key, float sz = 14.f, bool disabled = false)
 {
     void* tex = UITabIcons::GetIcon(key);
     if (!tex) return;
@@ -145,29 +146,32 @@ static void InlineIcon(const char* key, float sz = 14.f)
     float offY  = (lineH - sz) * 0.5f;
     ImDrawList* dl = ImGui::GetWindowDrawList();
 
-    // Glow effect - draw icon multiple times with offset and alpha
-    const float glowOffset = 2.0f;
-    const float glowAlpha = 0.3f;
-    dl->AddImage(
-        (ImTextureID)tex,
-        ImVec2(pos.x - glowOffset, pos.y + offY - glowOffset),
-        ImVec2(pos.x + sz + glowOffset, pos.y + offY + sz + glowOffset),
-        ImVec2(0,0), ImVec2(1,1),
-        IM_COL32(255, 255, 255, (int)(255 * glowAlpha)));
-    dl->AddImage(
-        (ImTextureID)tex,
-        ImVec2(pos.x - glowOffset * 0.5f, pos.y + offY - glowOffset * 0.5f),
-        ImVec2(pos.x + sz + glowOffset * 0.5f, pos.y + offY + sz + glowOffset * 0.5f),
-        ImVec2(0,0), ImVec2(1,1),
-        IM_COL32(255, 255, 255, (int)(255 * glowAlpha * 0.6f)));
+    if (!disabled)
+    {
+        // Glow effect - draw icon multiple times with offset and alpha
+        const float glowOffset = 2.0f;
+        const float glowAlpha = 0.3f;
+        dl->AddImage(
+            (ImTextureID)tex,
+            ImVec2(pos.x - glowOffset, pos.y + offY - glowOffset),
+            ImVec2(pos.x + sz + glowOffset, pos.y + offY + sz + glowOffset),
+            ImVec2(0,0), ImVec2(1,1),
+            IM_COL32(255, 255, 255, (int)(255 * glowAlpha)));
+        dl->AddImage(
+            (ImTextureID)tex,
+            ImVec2(pos.x - glowOffset * 0.5f, pos.y + offY - glowOffset * 0.5f),
+            ImVec2(pos.x + sz + glowOffset * 0.5f, pos.y + offY + sz + glowOffset * 0.5f),
+            ImVec2(0,0), ImVec2(1,1),
+            IM_COL32(255, 255, 255, (int)(255 * glowAlpha * 0.6f)));
+    }
 
-    // Main icon - white
+    // Main icon
     dl->AddImage(
         (ImTextureID)tex,
         ImVec2(pos.x, pos.y + offY),
         ImVec2(pos.x + sz, pos.y + offY + sz),
         ImVec2(0,0), ImVec2(1,1),
-        IM_COL32(255, 255, 255, 255));
+        disabled ? IM_COL32(100, 100, 100, 255) : IM_COL32(255, 255, 255, 255));
     ImGui::Dummy(ImVec2(sz + 5.f, lineH));
     ImGui::SameLine(0, 0);
 }
@@ -222,7 +226,7 @@ static void CardHeader(const char* iconKey, const char* label)
 
 // Toggle row with a small icon, label, optional indent, and toggle on the right
 static bool IconToggleRow(const char* iconKey, const char* label, bool* value,
-                          float colWidth, bool indent = false)
+                          float colWidth, bool indent = false, bool disabled = false)
 {
     const float iconSz   = 14.f;
     const float iconGap  = 5.f;
@@ -243,12 +247,12 @@ static bool IconToggleRow(const char* iconKey, const char* label, bool* value,
     const float acB = g_Settings.accentColorB;
 
     // Gradient background colors (matching Filter tab design, 70% active, 16% inactive)
-    ImU32 bgTopOn    = ImGui::ColorConvertFloat4ToU32(ImVec4(acR, acG, acB, 0.7f));
-    ImU32 bgBotOn    = ImGui::ColorConvertFloat4ToU32(ImVec4(acR * 0.25f, acG * 0.25f, acB * 0.25f, 0.7f));
-    ImU32 bgTopOff   = ImGui::ColorConvertFloat4ToU32(ImVec4(acR, acG, acB, 0.16f));
-    ImU32 bgBotOff   = ImGui::ColorConvertFloat4ToU32(ImVec4(acR * 0.25f, acG * 0.25f, acB * 0.25f, 0.16f));
-    ImU32 borderColor = ImGui::ColorConvertFloat4ToU32(ImVec4(acR * 0.75f, acG * 0.75f, acB * 0.75f, 0.5f));
-    ImU32 accentBar  = ImGui::ColorConvertFloat4ToU32(ImVec4(acR, acG, acB, 0.8f));
+    ImU32 bgTopOn    = ImGui::ColorConvertFloat4ToU32(ImVec4(acR, acG, acB, disabled ? 0.35f : 0.7f));
+    ImU32 bgBotOn    = ImGui::ColorConvertFloat4ToU32(ImVec4(acR * 0.25f, acG * 0.25f, acB * 0.25f, disabled ? 0.35f : 0.7f));
+    ImU32 bgTopOff   = ImGui::ColorConvertFloat4ToU32(ImVec4(acR, acG, acB, disabled ? 0.08f : 0.16f));
+    ImU32 bgBotOff   = ImGui::ColorConvertFloat4ToU32(ImVec4(acR * 0.25f, acG * 0.25f, acB * 0.25f, disabled ? 0.08f : 0.16f));
+    ImU32 borderColor = ImGui::ColorConvertFloat4ToU32(ImVec4(acR * 0.75f, acG * 0.75f, acB * 0.75f, disabled ? 0.25f : 0.5f));
+    ImU32 accentBar  = ImGui::ColorConvertFloat4ToU32(ImVec4(acR, acG, acB, disabled ? 0.4f : 0.8f));
 
     float rounding = 4.f;
 
@@ -270,11 +274,11 @@ static bool IconToggleRow(const char* iconKey, const char* label, bool* value,
     // Left accent bar
     dl->AddRectFilled(ImVec2(cursorPos.x, cursorPos.y), ImVec2(cursorPos.x + 3.f, cursorPos.y + rowH), accentBar, 2.f);
 
-    // Invisible button for click detection
+    // Invisible button for click detection (only if not disabled)
     ImGui::SetCursorScreenPos(cursorPos);
     ImGui::InvisibleButton(("##itog_btn_" + std::string(label)).c_str(), ImVec2(colWidth, rowH));
     bool changed = false;
-    if (ImGui::IsItemClicked())
+    if (!disabled && ImGui::IsItemClicked())
     {
         *value = !(*value);
         changed = true;
@@ -285,11 +289,19 @@ static bool IconToggleRow(const char* iconKey, const char* label, bool* value,
 
     // Left: icon + label
     ImGui::SetCursorPosX(curX + indentW + padX + 3.f);
-    InlineIcon(iconKey, iconSz);
+    InlineIcon(iconKey, iconSz, disabled);
 
-    const ImVec4 lblCol = indent
-        ? ImVec4(0.67f, 0.67f, 0.67f, 1.f)
-        : ImVec4(1.f, 1.f, 1.f, 1.f);
+    ImVec4 lblCol;
+    if (disabled)
+    {
+        lblCol = ImVec4(0.4f, 0.4f, 0.4f, 1.f); // Grau für disabled
+    }
+    else
+    {
+        lblCol = indent
+            ? ImVec4(0.67f, 0.67f, 0.67f, 1.f)
+            : ImVec4(1.f, 1.f, 1.f, 1.f);
+    }
     ImGui::SameLine(0, iconGap);
     ImGui::TextColored(lblCol, "%s", label);
 
@@ -299,7 +311,7 @@ static bool IconToggleRow(const char* iconKey, const char* label, bool* value,
     char id[64];
     snprintf(id, sizeof(id), "##itog_%s", label);
     // Render toggle without click handling (click is handled by InvisibleButton)
-    RenderToggleOnly(id, value);
+    RenderToggleOnly(id, value, disabled);
 
     ImGui::SetCursorScreenPos(ImVec2(cursorPos.x, cursorPos.y + rowH + 4.f));
     return changed;
@@ -362,13 +374,12 @@ static void RenderSettingsSubTab()
     if (IconToggleRow("layout-grid",    "Favorites as Grid",    &g_Settings.itemsFavoritesAsGrid,    colW))        SettingsManager::Save();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show the Favorites section as a grid of icons instead of a table.");
 
-    if (IconToggleRow("favorites",      "Favorites First",      &g_Settings.itemsFavoritesFirst,     colW))
-        SettingsManager::Save();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("favorites_first_tooltip"));
-
-    if (IconToggleRow("color-swatch",   "Group by Rarity",      &g_Settings.itemsGroupByRarity,      colW))
-        SettingsManager::Save();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("group_by_rarity_tooltip"));
+    {
+        bool rarityDisabled = g_Settings.itemsGroupByCategory;
+        if (IconToggleRow("color-swatch",   "Group by Rarity",      &g_Settings.itemsGroupByRarity,      colW, false, rarityDisabled))
+            SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(rarityDisabled ? "Not available while Group by Category is active." : Localization::GetText("group_by_rarity_tooltip"));
+    }
 
     if (g_Settings.itemsGroupByRarity)
     {
@@ -377,9 +388,12 @@ static void RenderSettingsSubTab()
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_rarity_as_tabs_tooltip"));
     }
 
-    if (IconToggleRow("groupcategory", "Group by Category",    &g_Settings.itemsGroupByCategory,    colW))
-        SettingsManager::Save();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("group_by_category_tooltip"));
+    {
+        bool categoryDisabled = g_Settings.itemsGroupByRarity;
+        if (IconToggleRow("groupcategory", "Group by Category",    &g_Settings.itemsGroupByCategory,    colW, false, categoryDisabled))
+            SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(categoryDisabled ? "Not available while Group by Rarity is active." : Localization::GetText("group_by_category_tooltip"));
+    }
 
     if (g_Settings.itemsGroupByCategory)
     {
@@ -409,10 +423,6 @@ static void RenderSettingsSubTab()
 
     if (IconToggleRow("layout-grid",    "Favorites as Grid",    &g_Settings.currenciesFavoritesAsGrid, colW))        SettingsManager::Save();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show the Favorites section as a grid of icons instead of a table.");
-
-    if (IconToggleRow("favorites",      "Favorites First",      &g_Settings.currenciesFavoritesFirst,  colW))
-        SettingsManager::Save();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("favorites_first_tooltip"));
 
     if (IconToggleRow("groupcategory", "Group by Category",    &g_Settings.currenciesGroupByCategory,  colW))
         SettingsManager::Save();
@@ -449,9 +459,33 @@ static void RenderSettingsSubTab()
         SettingsManager::Save();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show favorites section as grid in overview tab");
 
-    if (IconToggleRow("currencies",      "Favorite currencies first",      &g_Settings.overviewCurrenciesFirst,     colW))
-        SettingsManager::Save();
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show currencies before items in favorites section");
+    {
+        bool rarityDisabled = g_Settings.overviewGroupByCategory;
+        if (IconToggleRow("color-swatch",   "Group by Rarity",      &g_Settings.overviewGroupByRarity,      colW, false, rarityDisabled))
+            SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(rarityDisabled ? "Not available while Group by Category is active." : Localization::GetText("group_by_rarity_tooltip"));
+    }
+
+    if (g_Settings.overviewGroupByRarity)
+    {
+        if (IconToggleRow("layout-columns", "Rarity as Tabs",    &g_Settings.overviewShowRarityAsTabs,  colW, true))
+            SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_rarity_as_tabs_tooltip"));
+    }
+
+    {
+        bool categoryDisabled = g_Settings.overviewGroupByRarity;
+        if (IconToggleRow("groupcategory", "Group by Category",    &g_Settings.overviewGroupByCategory,    colW, false, categoryDisabled))
+            SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(categoryDisabled ? "Not available while Group by Rarity is active." : Localization::GetText("group_by_category_tooltip"));
+    }
+
+    if (g_Settings.overviewGroupByCategory)
+    {
+        if (IconToggleRow("layout-columns", "Category as Tabs",  &g_Settings.overviewShowGroupAsTabs,   colW, true))
+            SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_group_as_tabs_tooltip"));
+    }
 
 
 

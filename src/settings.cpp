@@ -233,6 +233,12 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     j["overviewEnableGridView"] = s.overviewEnableGridView;
     j["overviewFavoritesAsGrid"] = s.overviewFavoritesAsGrid;
     j["overviewFavoritesIconSize"] = s.overviewFavoritesIconSize;
+    j["overviewItemSortMode"] = s.overviewItemSortMode;
+    j["overviewItemRarityFilterMin"] = s.overviewItemRarityFilterMin;
+    j["overviewGroupByRarity"] = s.overviewGroupByRarity;
+    j["overviewShowRarityAsTabs"] = s.overviewShowRarityAsTabs;
+    j["overviewGroupByCategory"] = s.overviewGroupByCategory;
+    j["overviewShowGroupAsTabs"] = s.overviewShowGroupAsTabs;
     j["itemsSavePath"] = s.itemsSavePath;
     j["currenciesSavePath"] = s.currenciesSavePath;
     j["liveLogCustomPath"] = s.liveLogCustomPath;
@@ -556,21 +562,27 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
 
     // Drops Settings
     if (j.contains("itemsEnableGridView")) s.itemsEnableGridView = j["itemsEnableGridView"].get<bool>();
-    if (j.contains("itemsFavoritesFirst")) s.itemsFavoritesFirst = j["itemsFavoritesFirst"].get<bool>();
+    s.itemsFavoritesFirst = true; // Force enabled, no user control
     if (j.contains("itemsFavoritesAsGrid")) s.itemsFavoritesAsGrid = j["itemsFavoritesAsGrid"].get<bool>();
     if (j.contains("itemsGroupByRarity")) s.itemsGroupByRarity = j["itemsGroupByRarity"].get<bool>();
     if (j.contains("itemsShowRarityAsTabs")) s.itemsShowRarityAsTabs = j["itemsShowRarityAsTabs"].get<bool>();
     if (j.contains("itemsGroupByCategory")) s.itemsGroupByCategory = j["itemsGroupByCategory"].get<bool>();
     if (j.contains("itemsShowGroupAsTabs")) s.itemsShowGroupAsTabs = j["itemsShowGroupAsTabs"].get<bool>();
     if (j.contains("currenciesEnableGridView")) s.currenciesEnableGridView = j["currenciesEnableGridView"].get<bool>();
-    if (j.contains("currenciesFavoritesFirst")) s.currenciesFavoritesFirst = j["currenciesFavoritesFirst"].get<bool>();
+    s.currenciesFavoritesFirst = true; // Force enabled, no user control
     if (j.contains("currenciesFavoritesAsGrid")) s.currenciesFavoritesAsGrid = j["currenciesFavoritesAsGrid"].get<bool>();
     if (j.contains("currenciesGroupByCategory")) s.currenciesGroupByCategory = j["currenciesGroupByCategory"].get<bool>();
     if (j.contains("currenciesShowGroupAsTabs")) s.currenciesShowGroupAsTabs = j["currenciesShowGroupAsTabs"].get<bool>();
-    if (j.contains("overviewCurrenciesFirst")) s.overviewCurrenciesFirst = j["overviewCurrenciesFirst"].get<bool>();
+    s.overviewCurrenciesFirst = true; // Force enabled, no user control
     if (j.contains("overviewEnableGridView")) s.overviewEnableGridView = j["overviewEnableGridView"].get<bool>();
     if (j.contains("overviewFavoritesAsGrid")) s.overviewFavoritesAsGrid = j["overviewFavoritesAsGrid"].get<bool>();
     if (j.contains("overviewFavoritesIconSize")) s.overviewFavoritesIconSize = j["overviewFavoritesIconSize"].get<int>();
+    if (j.contains("overviewItemSortMode")) s.overviewItemSortMode = j["overviewItemSortMode"].get<int>();
+    if (j.contains("overviewItemRarityFilterMin")) s.overviewItemRarityFilterMin = j["overviewItemRarityFilterMin"].get<int>();
+    if (j.contains("overviewGroupByRarity")) s.overviewGroupByRarity = j["overviewGroupByRarity"].get<bool>();
+    if (j.contains("overviewShowRarityAsTabs")) s.overviewShowRarityAsTabs = j["overviewShowRarityAsTabs"].get<bool>();
+    if (j.contains("overviewGroupByCategory")) s.overviewGroupByCategory = j["overviewGroupByCategory"].get<bool>();
+    if (j.contains("overviewShowGroupAsTabs")) s.overviewShowGroupAsTabs = j["overviewShowGroupAsTabs"].get<bool>();
     if (j.contains("itemsSavePath")) s.itemsSavePath = j["itemsSavePath"].get<std::string>();
     if (j.contains("currenciesSavePath")) s.currenciesSavePath = j["currenciesSavePath"].get<std::string>();
     if (j.contains("liveLogCustomPath")) s.liveLogCustomPath = j["liveLogCustomPath"].get<std::string>();

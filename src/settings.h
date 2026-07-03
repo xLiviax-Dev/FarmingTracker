@@ -138,7 +138,7 @@ struct Settings
 
     // Drops Settings
     bool itemsEnableGridView = true;
-    bool itemsFavoritesFirst = false;
+    bool itemsFavoritesFirst = true;
     bool itemsFavoritesAsGrid = false;  // Show favorites section as grid in Items tab
     bool itemsGroupByRarity = true;
     bool itemsShowRarityAsTabs = false;
@@ -146,7 +146,7 @@ struct Settings
     bool itemsShowGroupAsTabs = false;
 
     bool currenciesEnableGridView = true;
-    bool currenciesFavoritesFirst = false;
+    bool currenciesFavoritesFirst = true;
     bool currenciesFavoritesAsGrid = false; // Show favorites section as grid in Currencies tab
     bool currenciesGroupByCategory = false;
     bool currenciesShowGroupAsTabs = false;
@@ -156,6 +156,12 @@ struct Settings
     bool overviewEnableGridView = false; // Enable grid view for overview tab
     bool overviewFavoritesAsGrid = true; // Show favorites section as grid in overview tab
     int overviewFavoritesIconSize = 45; // Icon size for favorites in overview tab
+    int overviewItemSortMode = 0; // Sort mode for items in overview tab
+    int overviewItemRarityFilterMin = 0; // Rarity filter for items in overview tab
+    bool overviewGroupByRarity = true; // Group items by rarity in overview tab
+    bool overviewShowRarityAsTabs = false; // Show rarity groups as tabs in overview tab
+    bool overviewGroupByCategory = false; // Group items by category in overview tab
+    bool overviewShowGroupAsTabs = false; // Show category groups as tabs in overview tab
 
     std::string itemsSavePath = "";
     std::string currenciesSavePath = "";

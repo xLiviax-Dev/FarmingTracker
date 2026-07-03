@@ -135,7 +135,7 @@ extern "C" __declspec(dllexport) AddonDefinition_t* GetAddonDef()
     s_AddonDef.Version.Major    = 2;
     s_AddonDef.Version.Minor    = 0;
     s_AddonDef.Version.Build    = 0;
-    s_AddonDef.Version.Revision = 6;
+    s_AddonDef.Version.Revision = 7;
     s_AddonDef.Author           = "Livia.3928";
     s_AddonDef.Description      = "Tracks farmed items and currencies in real-time via DRF (drf.rs).";
     s_AddonDef.Load             = AddonLoad;

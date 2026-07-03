@@ -49,10 +49,43 @@ static void InlineIcon(const char* key, float sz = 14.f)
     ImGui::SameLine(0, 0);
 }
 
-static bool CollapsingHeaderWithIcon(const char* label, const char* iconKey, ImGuiTreeNodeFlags flags = 0)
+// Static (non-collapsible) section header. Always renders its content underneath - clicking
+// does nothing, there is no arrow/toggle. The flags parameter is kept for call-site compatibility
+// but is no longer used.
+static bool CollapsingHeaderWithIcon(const char* label, const char* iconKey, ImVec4 headerColor, ImGuiTreeNodeFlags flags = 0)
 {
-    InlineIcon(iconKey);
-    return ImGui::CollapsingHeader(label, flags);
+    (void)flags;
+
+    ImDrawList* dl     = ImGui::GetWindowDrawList();
+    ImVec2      pos    = ImGui::GetCursorScreenPos();
+    float       w      = ImGui::GetContentRegionAvail().x;
+    float       lineH  = ImGui::GetTextLineHeight();
+    float       h      = lineH + 10.f;
+    float       iconSz = 14.f;
+
+    // Draw full-width background, tinted with the header color for a subtle colored background
+    ImU32 bgCol = ImGui::ColorConvertFloat4ToU32(ImVec4(headerColor.x*0.18f + 0.02f, headerColor.y*0.18f + 0.02f, headerColor.z*0.18f + 0.02f, 0.85f));
+    dl->AddRectFilled({pos.x + 4.f, pos.y}, {pos.x + w, pos.y + h}, bgCol, 3.f);
+    dl->AddRect({pos.x + 4.f, pos.y}, {pos.x + w, pos.y + h},
+                ImGui::ColorConvertFloat4ToU32(ImVec4(headerColor.x*0.6f, headerColor.y*0.6f, headerColor.z*0.6f, 0.8f)), 3.f, 0, 0.5f);
+    dl->AddRectFilled(pos, {pos.x + 4.f, pos.y + h},
+                      ImGui::ColorConvertFloat4ToU32(headerColor), 0.f);
+
+    void* tex = UITabIcons::GetIcon(iconKey);
+    float iconX = pos.x + 8.f;
+    float iconY = pos.y + (h - iconSz) * 0.5f;
+    if (tex)
+        dl->AddImage((ImTextureID)tex, {iconX, iconY}, {iconX + iconSz, iconY + iconSz},
+                     {0,0}, {1,1}, ImGui::ColorConvertFloat4ToU32(headerColor));
+
+    float textX = iconX + iconSz + 5.f;
+    float textY = pos.y + (h - lineH) * 0.5f;
+    dl->AddText({textX, textY}, ImGui::ColorConvertFloat4ToU32(headerColor), label);
+
+    // Advance the cursor by the header's height (no interactive widget, so nothing is clickable)
+    ImGui::Dummy(ImVec2(w, h));
+
+    return true;
 }
 
 static void DrawGridItemCount(long long count, float iconSz)
@@ -119,8 +152,8 @@ static void DrawGridItemCount(long long count, float iconSz)
 
 void RenderItemsTab()
 {
-    // Favorite Items Section (Collapsible)
-    static bool favoritesExpanded = true;
+    // Favorite Items Section (immer sichtbar, nicht mehr einklappbar)
+    const bool favoritesExpanded = true;
 
     ImVec2 cursor = ImGui::GetCursorScreenPos();
     ImVec2 regionAvail = ImGui::GetContentRegionAvail();
@@ -184,16 +217,6 @@ void RenderItemsTab()
                      ImGui::ColorConvertFloat4ToU32(ImVec4(0.82f, 0.796f, 0.757f, 1.0f)),
                      Localization::GetText("favorite_items_header"));
 
-    ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y));
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
-    if (ImGui::Button("##FavoritesHeaderButton", ImVec2(regionAvail.x, headerHeight)))
-        favoritesExpanded = !favoritesExpanded;
-    if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("%s", Localization::GetText("toggle_favorites_tooltip"));
-    ImGui::PopStyleColor(3);
-
     ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y + headerHeight + 8.0f));
 
     // FIX Bug 2: Pending-State für Favorites-Grid Rechtsklick (static, außerhalb des if-Blocks)
@@ -218,7 +241,8 @@ void RenderItemsTab()
             float cellSize = static_cast<float>(g_Settings.gridIconSize) + 10.0f;
             float spacing = ImGui::GetStyle().ItemSpacing.x;
             float scrollbarWidth = 20.0f;
-            int columns = std::max(1, static_cast<int>((ImGui::GetContentRegionAvail().x - scrollbarWidth + spacing) / (cellSize + spacing)));
+            int columns = std::max(1, static_cast<int>((ImGui::GetContentRegionAvail().x - 40.0f - scrollbarWidth + spacing) / (cellSize + spacing)));
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f);
 
             int count = 0;
             for (auto& [id, st] : favoriteItems)
@@ -286,7 +310,8 @@ void RenderItemsTab()
         else
         {
             // List View for Favorite Items
-            if (ImGui::BeginTable("##FavoriteItemsTable", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f);
+            if (ImGui::BeginTable("##FavoriteItemsTable", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings, ImVec2(ImGui::GetContentRegionAvail().x - 40.0f, 0.0f)))
             {
                 ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 70.f);
                 ImGui::TableSetupColumn(Localization::GetText("item"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 350.f);
@@ -538,25 +563,36 @@ void RenderItemsTab()
                     ImGui::EndChild();
                 };
 
+                std::map<std::string,ImVec4> rcGrid;
+                rcGrid[Localization::GetText("rarity_name_legendary")]=ImVec4(1.f,0.5f,0.8f,1.f);
+                rcGrid[Localization::GetText("rarity_name_ascended")]=ImVec4(0.9f,0.3f,0.9f,1.f);
+                rcGrid[Localization::GetText("rarity_name_exotic")]=ImVec4(1.f,0.6f,0.f,1.f);
+                rcGrid[Localization::GetText("rarity_name_rare")]=ImVec4(1.f,0.9f,0.f,1.f);
+                rcGrid[Localization::GetText("rarity_name_masterwork")]=ImVec4(0.2f,0.8f,0.2f,1.f);
+                rcGrid[Localization::GetText("rarity_name_fine")]=ImVec4(0.f,0.5f,1.f,1.f);
+                rcGrid[Localization::GetText("rarity_name_basic")]=ImVec4(1.f,1.f,1.f,1.f);
+                rcGrid[Localization::GetText("rarity_name_junk")]=ImVec4(0.7f,0.7f,0.7f,1.f);
+                rcGrid[Localization::GetText("rarity_name_unknown")]=ImVec4(0.5f,0.5f,0.5f,1.f);
+
                 if (g_Settings.itemsShowRarityAsTabs)
                 {
                     static int selRarTab = 0;
                     if (ImGui::BeginTabBar("##RarityTabs"))
                     {
-                        int ti = 0;
                         for (const auto& rn : rarityOrder)
                         {
                             auto it = rarityGroups.find(rn);
                             if (it == rarityGroups.end() || it->second.empty()) continue;
-                            bool isSel = (selRarTab == ti);
-                            if (ImGui::BeginTabItem(rn.c_str(), &isSel))
+                            ImVec4 tabColor = rcGrid.count(rn) ? rcGrid[rn] : ImVec4(1.f,1.f,1.f,1.f);
+                            ImGui::PushStyleColor(ImGuiCol_Text, tabColor);
+                            bool tabOpen = ImGui::BeginTabItem(rn.c_str());
+                            ImGui::PopStyleColor();
+                            if (tabOpen)
                             {
-                                selRarTab = ti;
                                 int cols = getColumns(ImGui::GetContentRegionAvail().x), col = 0;
                                 for (auto& [id, st] : it->second) { if (col > 0) ImGui::SameLine(); ImGui::PushID(id); renderCell(id, st); ImGui::PopID(); col++; if (col >= cols) col = 0; }
                                 ImGui::EndTabItem();
                             }
-                            ti++;
                         }
                         ImGui::EndTabBar();
                     }
@@ -567,16 +603,13 @@ void RenderItemsTab()
                     {
                         auto it = rarityGroups.find(rn);
                         if (it == rarityGroups.end() || it->second.empty()) continue;
+                        ImVec4 hcGrid = rcGrid.count(rn) ? rcGrid[rn] : ImVec4(1.f,1.f,1.f,1.f);
                         ImGui::Spacing();
-                        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f,0.1f,0.1f,0.5f));
-                        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.2f,0.2f,0.2f,0.5f));
-                        if (CollapsingHeaderWithIcon(rn.c_str(), "items", ImGuiTreeNodeFlags_DefaultOpen))
+                        if (CollapsingHeaderWithIcon(rn.c_str(), "items", hcGrid, ImGuiTreeNodeFlags_DefaultOpen))
                         {
-                            ImGui::PopStyleColor(2);
                             int cols = getColumns(ImGui::GetContentRegionAvail().x), col = 0;
                             for (auto& [id, st] : it->second) { if (col > 0) ImGui::SameLine(); ImGui::PushID(id); renderCell(id, st); ImGui::PopID(); col++; if (col >= cols) col = 0; }
                         }
-                        else ImGui::PopStyleColor(2);
                     }
                 }
             }
@@ -635,21 +668,17 @@ void RenderItemsTab()
                     static int selTypeTab = 0;
                     if (ImGui::BeginTabBar("##TypeTabs"))
                     {
-                        int ti = 0;
                         for (auto type : typeOrder)
                         {
                             auto it = typeGroups.find(type);
                             if (it == typeGroups.end() || it->second.empty()) continue;
                             std::string tn = getTypeName(type);
-                            bool isSel = (selTypeTab == ti);
-                            if (ImGui::BeginTabItem(tn.c_str(), &isSel))
+                            if (ImGui::BeginTabItem(tn.c_str()))
                             {
-                                selTypeTab = ti;
                                 int cols = getColumns(ImGui::GetContentRegionAvail().x), col = 0;
                                 for (auto& [id, st] : it->second) { if (col > 0) ImGui::SameLine(); ImGui::PushID(id); renderCell(id, st); ImGui::PopID(); col++; if (col >= cols) col = 0; }
                                 ImGui::EndTabItem();
                             }
-                            ti++;
                         }
                         ImGui::EndTabBar();
                     }
@@ -661,17 +690,13 @@ void RenderItemsTab()
                         auto it = typeGroups.find(type);
                         if (it == typeGroups.end() || it->second.empty()) continue;
                         ImGui::Spacing();
-                        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f,0.1f,0.1f,0.5f));
-                        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.2f,0.2f,0.2f,0.5f));
                         const char* iconKey = "items";
                         if (type == ItemType::Weapon) iconKey = "sword";
-                        if (CollapsingHeaderWithIcon(getTypeName(type).c_str(), iconKey, ImGuiTreeNodeFlags_DefaultOpen))
+                        if (CollapsingHeaderWithIcon(getTypeName(type).c_str(), iconKey, ImVec4(0.85f,0.70f,0.40f,1.f), ImGuiTreeNodeFlags_DefaultOpen))
                         {
-                            ImGui::PopStyleColor(2);
                             int cols = getColumns(ImGui::GetContentRegionAvail().x), col = 0;
                             for (auto& [id, st] : it->second) { if (col > 0) ImGui::SameLine(); ImGui::PushID(id); renderCell(id, st); ImGui::PopID(); col++; if (col >= cols) col = 0; }
                         }
-                        else ImGui::PopStyleColor(2);
                     }
                 }
             }
@@ -835,19 +860,14 @@ void RenderItemsTab()
                 for (const auto& r : rarityOrder) {
                     if (rarityGroups.find(r)==rarityGroups.end()||rarityGroups[r].empty()) continue;
                     char hl[256]; snprintf(hl,sizeof(hl),"%s (%zu)",r.c_str(),rarityGroups[r].size());
-                    ImVec4 hc = rc.count(r)?rc[r]:ImVec4(1.f,1.f,1.f,1.f);
-                    ImGui::PushStyleColor(ImGuiCol_Text,hc);
-                    ImGui::PushStyleColor(ImGuiCol_Header,ImVec4(0.1f,0.1f,0.1f,0.8f));
-                    ImGui::PushStyleColor(ImGuiCol_HeaderHovered,ImVec4(0.15f,0.15f,0.15f,0.8f));
-                    ImGui::PushStyleColor(ImGuiCol_HeaderActive,ImVec4(0.2f,0.2f,0.2f,0.8f));
-                    if (CollapsingHeaderWithIcon(hl, "items", ImGuiTreeNodeFlags_DefaultOpen)) {
-                        ImGui::PopStyleColor(4);
+                    ImVec4 hc = rc.count(r) ? rc[r] : ImVec4(1.f,1.f,1.f,1.f);
+                    if (CollapsingHeaderWithIcon(hl, "items", hc, ImGuiTreeNodeFlags_DefaultOpen)) {
                         if (setupTable(("##RarityTable_v3_"+r).c_str(), itemTableColumnCount)) {
                             for (auto& [id,st]:rarityGroups[r]) renderItemRow(id,st,itemTableColumnCount);
                             UIContextMenu::RenderItemContextMenu("ItemContextMenu",UIContextMenu::ContextMenuType::General);
                             ImGui::EndTable();
                         }
-                    } else ImGui::PopStyleColor(4);
+                    }
                 }
             }
             else
@@ -911,28 +931,24 @@ void RenderItemsTab()
             std::map<ItemType, std::vector<std::pair<int,Stat>>> typeGroups;
             for (auto& [id,st]:sortedItems) typeGroups[st.details.itemType].push_back({id,st});
 
-            if (!g_Settings.showTypeAsTabs)
+            if (!g_Settings.itemsShowGroupAsTabs)
             {
                 for (auto type : typeOrder) {
                     auto it=typeGroups.find(type); if(it==typeGroups.end()||it->second.empty()) continue;
                     ImGui::Spacing();
-                    ImGui::PushStyleColor(ImGuiCol_Header,ImVec4(0.1f,0.1f,0.1f,0.8f));
-                    ImGui::PushStyleColor(ImGuiCol_HeaderHovered,ImVec4(0.15f,0.15f,0.15f,0.8f));
-                    ImGui::PushStyleColor(ImGuiCol_HeaderActive,ImVec4(0.2f,0.2f,0.2f,0.8f));
                     char hl[256]; snprintf(hl,sizeof(hl),"%s (%zu)",getTypeName(type).c_str(),it->second.size());
                     const char* iconKey = "items";
                     if (type == ItemType::Weapon) iconKey = "sword";
-                    if (CollapsingHeaderWithIcon(hl, iconKey, ImGuiTreeNodeFlags_DefaultOpen)) {
-                        ImGui::PopStyleColor(3);
+                    if (CollapsingHeaderWithIcon(hl, iconKey, ImVec4(0.85f,0.70f,0.40f,1.f), ImGuiTreeNodeFlags_DefaultOpen)) {
                         if (setupTable(("##TypeTable_"+std::to_string((int)type)).c_str(), itemTableColumnCount)) {
                             for (auto& [id,st]:it->second) renderItemRow(id,st,itemTableColumnCount);
                             UIContextMenu::RenderItemContextMenu("ItemContextMenu",UIContextMenu::ContextMenuType::General);
                             ImGui::EndTable();
                         }
-                    } else ImGui::PopStyleColor(3);
+                    }
                 }
             }
-            else
+            else // itemsShowGroupAsTabs
             {
                 if (ImGui::BeginTabBar("##TypeTabs")) {
                     for (auto type : typeOrder) {
@@ -950,7 +966,7 @@ void RenderItemsTab()
                     ImGui::EndTabBar();
                 }
             }
-        }
+        } // end else if itemsGroupByCategory
     }
 
     UIContextMenu::RenderItemContextMenu("ItemContextMenu", UIContextMenu::ContextMenuType::CopyOnly);

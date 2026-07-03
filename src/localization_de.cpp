@@ -1626,7 +1626,8 @@ namespace Localization
             {"notification_font_size", "Notification Font Size"},
             {"notification_font_size_tooltip", "Font size scale for notifications (0.5 = smaller, 1.0 = default, 2.0 = larger)"},
             {"tab_overview", "Übersicht"},
-            {"select_log_folder", "Log-Ordner auswählen"}
+            {"select_log_folder", "Log-Ordner auswählen"},
+            {"favorites_first", "Favoriten zuerst"}
         };
         return translations;
     }

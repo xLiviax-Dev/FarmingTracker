@@ -51,10 +51,52 @@ static void InlineIcon(const char* key, float sz = 14.f)
     ImGui::SameLine(0, 0);
 }
 
-static bool CollapsingHeaderWithIcon(const char* label, const char* iconKey, ImGuiTreeNodeFlags flags = 0)
+static bool CollapsingHeaderWithIcon(const char* label, const char* iconKey, ImVec4 headerColor, ImGuiTreeNodeFlags flags = 0)
 {
-    InlineIcon(iconKey);
-    return ImGui::CollapsingHeader(label, flags);
+    ImDrawList* dl  = ImGui::GetWindowDrawList();
+    ImVec2      pos = ImGui::GetCursorScreenPos();
+    float       w   = ImGui::GetContentRegionAvail().x;
+    float       lineH  = ImGui::GetTextLineHeight();
+    float       h      = lineH + 10.f;
+    float       iconSz = 14.f;
+    ImU32 bgCol = ImGui::ColorConvertFloat4ToU32(ImVec4(0.08f,0.08f,0.08f,0.85f));
+
+    dl->AddRectFilled({pos.x + 4.f, pos.y}, {pos.x + w, pos.y + h}, bgCol, 3.f);
+    dl->AddRect({pos.x + 4.f, pos.y}, {pos.x + w, pos.y + h},
+                ImGui::ColorConvertFloat4ToU32(ImVec4(headerColor.x*0.6f, headerColor.y*0.6f, headerColor.z*0.6f, 0.8f)), 3.f, 0, 0.5f);
+    dl->AddRectFilled(pos, {pos.x + 4.f, pos.y + h},
+                      ImGui::ColorConvertFloat4ToU32(headerColor), 0.f);
+
+    void* tex = UITabIcons::GetIcon(iconKey);
+    float iconX = pos.x + 8.f;
+    float iconY = pos.y + (h - iconSz) * 0.5f;
+    if (tex)
+        dl->AddImage((ImTextureID)tex, {iconX, iconY}, {iconX + iconSz, iconY + iconSz},
+                     {0,0}, {1,1}, ImGui::ColorConvertFloat4ToU32(headerColor));
+
+    float textX = iconX + iconSz + 5.f;
+    float textY = pos.y + (h - lineH) * 0.5f;
+    dl->AddText({textX, textY}, ImGui::ColorConvertFloat4ToU32(headerColor), label);
+
+    ImGui::SetCursorScreenPos(pos);
+    ImGui::PushStyleColor(ImGuiCol_Header,        ImVec4(0,0,0,0));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(1,1,1,0.05f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive,  ImVec4(1,1,1,0.10f));
+    ImGui::PushStyleColor(ImGuiCol_Text,          ImVec4(0,0,0,0));
+    bool open = ImGui::CollapsingHeader((std::string("##ch_")+label).c_str(), flags);
+    ImGui::PopStyleColor(4);
+
+    dl->AddRectFilled({pos.x + 4.f, pos.y}, {pos.x + w, pos.y + h}, bgCol, 3.f);
+    dl->AddRect({pos.x + 4.f, pos.y}, {pos.x + w, pos.y + h},
+                ImGui::ColorConvertFloat4ToU32(ImVec4(headerColor.x*0.6f, headerColor.y*0.6f, headerColor.z*0.6f, 0.8f)), 3.f, 0, 0.5f);
+    dl->AddRectFilled(pos, {pos.x + 4.f, pos.y + h},
+                      ImGui::ColorConvertFloat4ToU32(headerColor), 0.f);
+    if (tex)
+        dl->AddImage((ImTextureID)tex, {iconX, iconY}, {iconX + iconSz, iconY + iconSz},
+                     {0,0}, {1,1}, ImGui::ColorConvertFloat4ToU32(headerColor));
+    dl->AddText({textX, textY}, ImGui::ColorConvertFloat4ToU32(headerColor), label);
+
+    return open;
 }
 
 static void RenderCurrencyTooltip(int id, long long count, const Stat& st)
@@ -141,8 +183,8 @@ void RenderCurrenciesTab()
     int pendingContextId = 0;
     std::string pendingContextName;
 
-    // Favorite Currencies Section (Collapsible)
-    static bool favoritesExpanded = true;
+    // Favorite Currencies Section (immer sichtbar, nicht mehr einklappbar)
+    const bool favoritesExpanded = true;
     
     ImVec2 cursor = ImGui::GetCursorScreenPos();
     ImVec2 regionAvail = ImGui::GetContentRegionAvail();
@@ -218,39 +260,25 @@ void RenderCurrenciesTab()
                      ImGui::ColorConvertFloat4ToU32(ImVec4(0.82f, 0.796f, 0.757f, 1.0f)),
                      "Favorite Currencies");
     
-    // Invisible button for click detection
-    ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y));
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
-    
-    if (ImGui::Button("##FavoritesHeaderButton", ImVec2(regionAvail.x, headerHeight)))
-    {
-        favoritesExpanded = !favoritesExpanded;
-    }
-    if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("%s", Localization::GetText("toggle_favorites_tooltip"));
-
-    ImGui::PopStyleColor(3);
-    
     ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y + headerHeight + 8.0f));
     
     if (favoritesExpanded)
     {
         ImGui::Spacing();
 
-        auto currencies = ItemTracker::GetFilteredCurrencies();
+        auto currencies = ItemTracker::GetFavoriteCurrencies(); // Get ALL favorite currencies, even with count 0
         std::vector<std::pair<int, Stat>> favoriteCurrencies;
         for (auto& [id, st] : currencies)
         {
-            if (st.isFavorite && !st.isIgnored && st.IsCurrency())
+            if (!st.isIgnored && st.IsCurrency())
                 favoriteCurrencies.push_back({id, st});
         }
 
         if (g_Settings.currenciesFavoritesAsGrid)
         {
             // Grid View for Favorite Currencies
-            float cellSize = static_cast<float>(g_Settings.gridIconSizeCurrencies) + 65.0f;
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f);
+            float cellSize = static_cast<float>(g_Settings.gridIconSizeCurrencies) + 20.0f; // Same as regular currencies grid
             float spacing = ImGui::GetStyle().ItemSpacing.x;
             float scrollbarWidth = 20.0f;
             int columns = std::max(1, static_cast<int>((ImGui::GetContentRegionAvail().x - scrollbarWidth + spacing) / (cellSize + spacing)));
@@ -261,7 +289,6 @@ void RenderCurrenciesTab()
             int count = 0;
             for (auto& [id, st] : favoriteCurrencies)
             {
-                if (st.count <= 0) continue;
 
                 bool isCoin = id == 1;
 
@@ -270,13 +297,18 @@ void RenderCurrenciesTab()
                     if (count % columns == 0)
                         ImGui::NewLine();
                     else
-                        ImGui::SameLine();
+                    {
+                        if (!isCoin)
+                        ImGui::SameLine(0, ImGui::GetStyle().ItemSpacing.x + 15.0f);
+                        else
+                            ImGui::SameLine();
+                    }
                 }
                 else
                 {
                     // Erste Zeile
                     if (isCoin)
-                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f); // +20px mehr
+                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 55.0f); // Same as regular currencies
                 }
 
                 ImGui::PushID(id);
@@ -285,7 +317,7 @@ void RenderCurrenciesTab()
                 // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
                 if (isCoin && count > 0)
                 {
-                    ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
+                    ImGui::Dummy(ImVec2(55.0f, 0.0f)); // Same as regular currencies
                     ImGui::SameLine(0, 0.0f);
                 }
 
@@ -323,7 +355,7 @@ void RenderCurrenciesTab()
                 if (isCoin)
                 {
                     ImGui::SameLine(0, 0.0f);
-                    ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
+                    ImGui::Dummy(ImVec2(55.0f, 0.0f)); // +20px mehr + 15px extra
                 }
 
                 ImGui::EndGroup();
@@ -341,7 +373,8 @@ void RenderCurrenciesTab()
         else
         {
             // List View for Favorite Currencies
-            if (ImGui::BeginTable("##FavoriteCurrenciesTable", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f);
+            if (ImGui::BeginTable("##FavoriteCurrenciesTable", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings, ImVec2(ImGui::GetContentRegionAvail().x - 40.0f, 0.0f)))
             {
                 ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 70.f);
                 ImGui::TableSetupColumn(Localization::GetText("item"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 350.f);
@@ -352,7 +385,6 @@ void RenderCurrenciesTab()
 
                 for (auto& [id, st] : favoriteCurrencies)
                 {
-                    if (st.count <= 0) continue;
 
                     long long profit = ItemTracker::GetStatProfit(st);
 
@@ -412,6 +444,7 @@ void RenderCurrenciesTab()
         ImGui::Separator();
     }
 
+    ImGui::Spacing();
     ImGui::Spacing();
 
     // Search bar
@@ -493,10 +526,24 @@ void RenderCurrenciesTab()
     auto sortedCurrencies = ItemTracker::GetSortedCurrencies(static_cast<ItemTracker::SortMode>(g_Settings.itemSortMode));
     // Filter out ignored currencies
     std::vector<std::pair<int, Stat>> filteredSortedCurrencies;
+    std::optional<std::pair<int, Stat>> coin;
     for (auto& [id, st] : sortedCurrencies)
     {
         if (!st.isIgnored && st.count != 0 && st.IsCurrency())
-            filteredSortedCurrencies.push_back({id, st});
+        {
+            if (id == 1)
+            {
+                coin = {id, st};
+            }
+            else
+            {
+                filteredSortedCurrencies.push_back({id, st});
+            }
+        }
+    }
+    if (coin.has_value())
+    {
+        filteredSortedCurrencies.insert(filteredSortedCurrencies.begin(), coin.value());
     }
     sortedCurrencies.swap(filteredSortedCurrencies);
 
@@ -507,13 +554,14 @@ void RenderCurrenciesTab()
         float spacing = ImGui::GetStyle().ItemSpacing.x;
         float scrollbarWidth = 20.0f; // Safer buffer for scrollbar
         
-        auto getColumns = [&](float width) {
-            return std::max(1, static_cast<int>((width - scrollbarWidth + spacing) / (cellSize + spacing)));
+        auto getColumns = [&](float width, float extraSpacing = 0.0f) {
+            return std::max(1, static_cast<int>((width - scrollbarWidth + spacing) / (cellSize + spacing + extraSpacing)));
         };
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         if (ImGui::BeginChild("##CurrenciesGrid", ImVec2(0, 0), false))
             {
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f);
                 if (g_Settings.currenciesGroupByCategory)
             {
                 // Group by Category logic
@@ -548,7 +596,7 @@ void RenderCurrenciesTab()
 
                             if (ImGui::BeginTabItem(cat.c_str()))
                             {
-                                int columns = getColumns(ImGui::GetContentRegionAvail().x);
+                                int columns = getColumns(ImGui::GetContentRegionAvail().x, 20.0f);
                                 int col = 0;
                                 for (auto& [id, st] : sortedCurrencies)
                                 {
@@ -562,13 +610,18 @@ void RenderCurrenciesTab()
                                         if (col % columns == 0)
                                             ImGui::NewLine();
                                         else
-                                            ImGui::SameLine();
+                                        {
+                                            if (!isCoin)
+                            ImGui::SameLine(0, ImGui::GetStyle().ItemSpacing.x + 35.0f);
+                                            else
+                                                ImGui::SameLine();
+                                        }
                                     }
                                     else
                                     {
                                         // Erste Zeile
                                         if (isCoin)
-                                            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f); // +20px mehr
+                                            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 55.0f); // +20px mehr +15px extra
                                     }
 
                                     ImGui::PushID(id);
@@ -577,7 +630,7 @@ void RenderCurrenciesTab()
                                     // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
                                     if (isCoin && col > 0)
                                     {
-                                        ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
+                                        ImGui::Dummy(ImVec2(55.0f, 0.0f)); // +20px mehr +15px extra
                                         ImGui::SameLine(0, 0.0f);
                                     }
 
@@ -622,9 +675,9 @@ void RenderCurrenciesTab()
                         for (const auto& [id, st] : sortedCurrencies) { if (ItemTracker::GetCurrencyCategory(id) == cat && st.count > 0) { hasItems = true; break; } }
                         if (!hasItems) continue;
 
-                        if (CollapsingHeaderWithIcon(cat.c_str(), "currencies", ImGuiTreeNodeFlags_DefaultOpen))
+                        if (CollapsingHeaderWithIcon(cat.c_str(), "currencies", ImVec4(0.40f,0.75f,0.90f,1.f), ImGuiTreeNodeFlags_DefaultOpen))
                         {
-                            int columns = getColumns(ImGui::GetContentRegionAvail().x);
+                            int columns = getColumns(ImGui::GetContentRegionAvail().x, 10.0f);
                             int col = 0;
                             for (auto& [id, st] : sortedCurrencies)
                             {
@@ -638,13 +691,18 @@ void RenderCurrenciesTab()
                                     if (col % columns == 0)
                                         ImGui::NewLine();
                                     else
-                                        ImGui::SameLine();
+                                    {
+                                        if (!isCoin)
+                                            ImGui::SameLine(0, ImGui::GetStyle().ItemSpacing.x + 25.0f);
+                                        else
+                                            ImGui::SameLine();
+                                    }
                                 }
                                 else
                                 {
                                     // Erste Zeile
                                     if (isCoin)
-                                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f); // +20px mehr
+                                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 55.0f); // +20px mehr +15px extra
                                 }
 
                                 ImGui::PushID(id);
@@ -653,7 +711,7 @@ void RenderCurrenciesTab()
                                 // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
                                 if (isCoin && col > 0)
                                 {
-                                    ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
+                                    ImGui::Dummy(ImVec2(55.0f, 0.0f)); // +20px mehr +15px extra
                                     ImGui::SameLine(0, 0.0f);
                                 }
 
@@ -690,7 +748,7 @@ void RenderCurrenciesTab()
             else
             {
                 // No grouping
-                int columns = getColumns(ImGui::GetContentRegionAvail().x);
+                int columns = getColumns(ImGui::GetContentRegionAvail().x, 10.0f);
                 int col = 0;
                 for (auto& [id, st] : sortedCurrencies)
                 {
@@ -703,13 +761,18 @@ void RenderCurrenciesTab()
                         if (col % columns == 0)
                             ImGui::NewLine();
                         else
-                            ImGui::SameLine();
+                        {
+                            if (!isCoin)
+                                ImGui::SameLine(0, ImGui::GetStyle().ItemSpacing.x + 25.0f);
+                            else
+                                ImGui::SameLine();
+                        }
                     }
                     else
                     {
                         // Erste Zeile
                         if (isCoin)
-                            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f); // +20px mehr
+                            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 55.0f); // +20px mehr +15px extra
                     }
 
                     ImGui::PushID(id);
@@ -718,7 +781,7 @@ void RenderCurrenciesTab()
                     // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
                     if (isCoin && col > 0)
                     {
-                        ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
+                        ImGui::Dummy(ImVec2(55.0f, 0.0f)); // +20px mehr +15px extra
                         ImGui::SameLine(0, 0.0f);
                     }
 
@@ -765,6 +828,7 @@ void RenderCurrenciesTab()
     else
     {
         // Table View for Currencies
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f);
         auto renderCurrencyRow = [&](int id, const Stat& st) {
             float rowH = UICommon::CalcTableRowHeight(static_cast<float>(g_Settings.itemsIconSize));
             ImGui::TableNextRow(0, rowH);
@@ -845,7 +909,7 @@ void RenderCurrenciesTab()
                     {
                         if (ImGui::BeginTabItem(cat.c_str()))
                         {
-                            if (ImGui::BeginTable("##CurrenciesTable_v3_Tabs", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+                            if (ImGui::BeginTable("##CurrenciesTable_v3_Tabs", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings, ImVec2(ImGui::GetContentRegionAvail().x - 40.0f, 0.0f)))
                             {
                                 float iconColumnWidth = (static_cast<float>(g_Settings.itemsIconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.itemsIconSize) + 10.0f) : 70.0f;
                                 ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);
@@ -878,9 +942,9 @@ void RenderCurrenciesTab()
                     for (const auto& [id, st] : sortedCurrencies) { if (ItemTracker::GetCurrencyCategory(id) == cat) { hasItems = true; break; } }
                     if (!hasItems) continue;
 
-                    if (CollapsingHeaderWithIcon(cat.c_str(), "currencies", ImGuiTreeNodeFlags_DefaultOpen))
+                    if (CollapsingHeaderWithIcon(cat.c_str(), "currencies", ImVec4(0.40f,0.75f,0.90f,1.f), ImGuiTreeNodeFlags_DefaultOpen))
                     {
-                        if (ImGui::BeginTable(("##CurrenciesTable_v3_" + cat).c_str(), 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+                        if (ImGui::BeginTable(("##CurrenciesTable_v3_" + cat).c_str(), 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings, ImVec2(ImGui::GetContentRegionAvail().x - 40.0f, 0.0f)))
                         {
                             float iconColumnWidth = (static_cast<float>(g_Settings.itemsIconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.itemsIconSize) + 10.0f) : 70.0f;
                             ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);
@@ -907,7 +971,7 @@ void RenderCurrenciesTab()
         {
             // Table View for Currencies
             int currencyTableColumnCount = 4;
-            if (ImGui::BeginTable("##CurrenciesTable_v3", currencyTableColumnCount, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+            if (ImGui::BeginTable("##CurrenciesTable_v3", currencyTableColumnCount, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings, ImVec2(ImGui::GetContentRegionAvail().x - 40.0f, 0.0f)))
             {
                 float iconColumnWidth = (static_cast<float>(g_Settings.itemsIconSize) + 10.0f > 70.0f) ? (static_cast<float>(g_Settings.itemsIconSize) + 10.0f) : 70.0f;
                 ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, iconColumnWidth);

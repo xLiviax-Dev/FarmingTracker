@@ -1122,27 +1122,27 @@ static void RenderPage_Notifications()
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_value_filter_tooltip"));
             ImGui::SameLine();
             bool disVal = !g_Settings.notificationEnableMinValue;
-            if (disVal) { ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true); ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); }
+            if (disVal) { ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); }
             if (ImGui::InputFloat(Localization::GetText("notification_min_value"), &g_Settings.notificationMinValueGold, 0.1f, 1.0f, "%.2f g"))
             { if (g_Settings.notificationMinValueGold < 0) g_Settings.notificationMinValueGold = 0; SettingsManager::Save(); }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_min_value_tooltip"));
-            if (disVal) { ImGui::PopStyleVar(); ImGui::PopItemFlag(); }
+            if (disVal) { ImGui::PopStyleVar(); }
 
             ImGui::Checkbox("##EnableRarity", &g_Settings.notificationEnableMinRarity);
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_rarity_filter_tooltip"));
             ImGui::SameLine();
             bool disRar = !g_Settings.notificationEnableMinRarity;
-            if (disRar) { ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true); ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); }
+            if (disRar) { ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); }
             const char* rarityLabels[] = { Localization::GetText("rarity_all"), Localization::GetText("rarity_basic"), Localization::GetText("rarity_fine"), Localization::GetText("rarity_masterwork"), Localization::GetText("rarity_rare"), Localization::GetText("rarity_exotic"), Localization::GetText("rarity_ascended"), Localization::GetText("rarity_legendary") };
             if (ImGui::Combo(Localization::GetText("notification_min_rarity"), &g_Settings.notificationMinRarity, rarityLabels, 8)) SettingsManager::Save();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_min_rarity_tooltip"));
-            if (disRar) { ImGui::PopStyleVar(); ImGui::PopItemFlag(); }
+            if (disRar) { ImGui::PopStyleVar(); }
 
             bool disCom = !g_Settings.notificationEnableMinValue || !g_Settings.notificationEnableMinRarity;
-            if (disCom) { ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true); ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); }
+            if (disCom) { ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); }
             if (ImGui::Checkbox(Localization::GetText("notification_combine_logic"), &g_Settings.notificationCombineValueAndRarity)) SettingsManager::Save();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_combine_logic_tooltip"));
-            if (disCom) { ImGui::PopStyleVar(); ImGui::PopItemFlag(); }
+            if (disCom) { ImGui::PopStyleVar(); }
 
             if (ImGui::Checkbox(Localization::GetText("notification_include_non_profit"), &g_Settings.notificationIncludeNonProfit)) SettingsManager::Save();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_include_non_profit_tooltip"));

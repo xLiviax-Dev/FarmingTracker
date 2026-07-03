@@ -46,11 +46,61 @@ namespace UIOverview
         ImGui::SameLine(0, 0);
     }
 
-    static bool CollapsingHeaderWithIcon(const char* label, const char* iconKey, ImGuiTreeNodeFlags flags = 0)
+    // Static (non-collapsible) section header. Always renders its content underneath - clicking
+    // does nothing, there is no arrow/toggle. The flags parameter is kept for call-site compatibility
+    // but is no longer used.
+    static bool CollapsingHeaderWithIcon(const char* label, const char* iconKey, ImVec4 headerColor, ImGuiTreeNodeFlags flags = 0)
     {
-        InlineIcon(iconKey);
-        return ImGui::CollapsingHeader(label, flags);
+        (void)flags;
+
+        ImDrawList* dl     = ImGui::GetWindowDrawList();
+        ImVec2      pos    = ImGui::GetCursorScreenPos();
+        float       w      = ImGui::GetContentRegionAvail().x;
+        float       lineH  = ImGui::GetTextLineHeight();
+        float       h      = lineH + 10.f;
+        float       iconSz = 14.f;
+
+        // Draw full-width background, tinted with the header color for a subtle colored background
+        ImU32 bgCol = ImGui::ColorConvertFloat4ToU32(ImVec4(headerColor.x*0.18f + 0.02f, headerColor.y*0.18f + 0.02f, headerColor.z*0.18f + 0.02f, 0.85f));
+        dl->AddRectFilled({pos.x + 4.f, pos.y}, {pos.x + w, pos.y + h}, bgCol, 3.f);
+        dl->AddRect({pos.x + 4.f, pos.y}, {pos.x + w, pos.y + h},
+                    ImGui::ColorConvertFloat4ToU32(ImVec4(headerColor.x*0.6f, headerColor.y*0.6f, headerColor.z*0.6f, 0.8f)), 3.f, 0, 0.5f);
+        dl->AddRectFilled(pos, {pos.x + 4.f, pos.y + h},
+                          ImGui::ColorConvertFloat4ToU32(headerColor), 0.f);
+
+        void* tex = UITabIcons::GetIcon(iconKey);
+        float iconX = pos.x + 8.f;
+        float iconY = pos.y + (h - iconSz) * 0.5f;
+        if (tex)
+            dl->AddImage((ImTextureID)tex, {iconX, iconY}, {iconX + iconSz, iconY + iconSz},
+                         {0,0}, {1,1}, ImGui::ColorConvertFloat4ToU32(headerColor));
+
+        float textX = iconX + iconSz + 5.f;
+        float textY = pos.y + (h - lineH) * 0.5f;
+        dl->AddText({textX, textY}, ImGui::ColorConvertFloat4ToU32(headerColor), label);
+
+        // Advance the cursor by the header's height (no interactive widget, so nothing is clickable)
+        ImGui::Dummy(ImVec2(w, h));
+
+        return true;
     }
+
+    static std::map<std::string, ImVec4> GetRarityHeaderColors()
+    {
+        std::map<std::string, ImVec4> rc;
+        rc[Localization::GetText("rarity_name_legendary")]  = ImVec4(1.f,0.5f,0.8f,1.f);
+        rc[Localization::GetText("rarity_name_ascended")]   = ImVec4(0.9f,0.3f,0.9f,1.f);
+        rc[Localization::GetText("rarity_name_exotic")]     = ImVec4(1.f,0.6f,0.f,1.f);
+        rc[Localization::GetText("rarity_name_rare")]       = ImVec4(1.f,0.9f,0.f,1.f);
+        rc[Localization::GetText("rarity_name_masterwork")] = ImVec4(0.2f,0.8f,0.2f,1.f);
+        rc[Localization::GetText("rarity_name_fine")]       = ImVec4(0.f,0.5f,1.f,1.f);
+        rc[Localization::GetText("rarity_name_basic")]      = ImVec4(1.f,1.f,1.f,1.f);
+        rc[Localization::GetText("rarity_name_junk")]       = ImVec4(0.7f,0.7f,0.7f,1.f);
+        rc[Localization::GetText("rarity_name_unknown")]    = ImVec4(0.5f,0.5f,0.5f,1.f);
+        return rc;
+    }
+
+    static const ImVec4 kCategoryHeaderColor = ImVec4(0.85f,0.70f,0.40f,1.f);
 
     // Card header with white icon and accent-colored background (matching active main tab design)
     static void CardHeader(const char* iconKey, const char* label)
@@ -204,8 +254,9 @@ namespace UIOverview
         if (g_Settings.overviewFavoritesAsGrid)
         {
             // Grid view for this subsection
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f);
             float iconSize = isCurrency ? static_cast<float>(g_Settings.overviewFavoritesIconSize) : static_cast<float>(g_Settings.gridIconSize);
-            float cellSize = isCurrency ? (iconSize + 65.0f) : (iconSize + 10.0f);
+            float cellSize = isCurrency ? (iconSize + 20.0f) : (iconSize + 10.0f); // Same cell size as regular currencies
             float spacing = ImGui::GetStyle().ItemSpacing.x;
             float scrollbarWidth = 20.0f;
 
@@ -224,7 +275,9 @@ namespace UIOverview
                 else
                     st = ItemTracker::GetItemStat(id);
                 
-                if (st.isIgnored || st.count == 0) continue;
+                if (st.isIgnored) continue;
+                // For items: only show if count > 0; for currencies: show even with count 0
+                if (!isCurrency && st.count == 0) continue;
 
                 bool isCoin = isCurrency && id == 1;
 
@@ -236,14 +289,19 @@ namespace UIOverview
                     }
                     else
                     {
-                        ImGui::SameLine();
+                        if (!isCoin)
+                            ImGui::SameLine(0, ImGui::GetStyle().ItemSpacing.x + 15.0f);
+                        else
+                            ImGui::SameLine();
                     }
                 }
                 else
                 {
                     // Erste Zeile
-                    if (isCoin)
-                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f); // +20px mehr
+                    if (isCurrency && isCoin)
+                    {
+                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 55.0f); // Same as regular currencies
+                    }
                 }
 
                 ImGui::PushID(id);
@@ -256,7 +314,7 @@ namespace UIOverview
                     // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
                     if (isCoin && count > 0)
                     {
-                        ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
+                        ImGui::Dummy(ImVec2(55.0f, 0.0f)); // Same as regular currencies
                         ImGui::SameLine(0, 0.0f);
                     }
 
@@ -308,7 +366,7 @@ namespace UIOverview
                     if (isCoin)
                     {
                         ImGui::SameLine(0, 0.0f);
-                        ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
+                        ImGui::Dummy(ImVec2(55.0f, 0.0f)); // +20px mehr + 15px extra
                     }
 
                     ImGui::EndGroup();
@@ -373,8 +431,9 @@ namespace UIOverview
         else
         {
             // Table view for this subsection
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f);
             std::string tableId = isCurrency ? "##OverviewFavCurrenciesTable" : "##OverviewFavItemsTable";
-            if (ImGui::BeginTable(tableId.c_str(), 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+            if (ImGui::BeginTable(tableId.c_str(), 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings, ImVec2(ImGui::GetContentRegionAvail().x - 40.0f, 0.0f)))
             {
                 ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 70.0f);
                 ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 300.0f);
@@ -390,7 +449,9 @@ namespace UIOverview
                     else
                         st = ItemTracker::GetItemStat(id);
 
-                    if (st.isIgnored || st.count == 0) continue;
+                    if (st.isIgnored) continue;
+                // For items: only show if count > 0; for currencies: show even with count 0
+                if (!isCurrency && st.count == 0) continue;
 
                     float rowH = UICommon::CalcTableRowHeight(32.0f);
                     ImGui::TableNextRow(0, rowH);
@@ -436,9 +497,73 @@ namespace UIOverview
 
                     ImGui::TableSetColumnIndex(1);
                     ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : Localization::GetText("loading"));
+                    if (ImGui::IsItemHovered())
+                    {
+                        if (isCurrency)
+                        {
+                            UITooltips::CurrencyTooltipOptions opt;
+                            opt.showCount = true;
+                            opt.count = st.count;
+                            opt.showProfit = true;
+                            opt.profit = (id == 1) ? st.count : CustomProfitManager::GetCustomProfit(id) * st.count;
+                            opt.showRarity = false;
+                            opt.showId = true;
+                            if (st.details.loaded)
+                                UITooltips::RenderCurrencyTooltip(st.details, id, opt);
+                            else
+                                UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
+                        }
+                        else
+                        {
+                            UITooltips::ItemTooltipOptions opt;
+                            opt.showCount = true; opt.count = st.count;
+                            opt.showProfit = true; opt.profit = ItemTracker::GetStatProfit(st);
+                            opt.showTrading = true; opt.showAccountFlags = true; opt.showId = true;
+                            if (st.details.loaded) UITooltips::RenderItemTooltip(st.details, id, opt);
+                            else UITooltips::RenderItemTooltipFallback(Localization::GetText("loading"), "", id, opt);
+                        }
+                    }
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    {
+                        pendingId = id;
+                        pendingName = st.details.loaded ? st.details.name : "";
+                        pendingIsCurrency = isCurrency;
+                    }
 
                     ImGui::TableSetColumnIndex(2);
                     ImGui::Text("%lld", st.count);
+                    if (ImGui::IsItemHovered())
+                    {
+                        if (isCurrency)
+                        {
+                            UITooltips::CurrencyTooltipOptions opt;
+                            opt.showCount = true;
+                            opt.count = st.count;
+                            opt.showProfit = true;
+                            opt.profit = (id == 1) ? st.count : CustomProfitManager::GetCustomProfit(id) * st.count;
+                            opt.showRarity = false;
+                            opt.showId = true;
+                            if (st.details.loaded)
+                                UITooltips::RenderCurrencyTooltip(st.details, id, opt);
+                            else
+                                UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
+                        }
+                        else
+                        {
+                            UITooltips::ItemTooltipOptions opt;
+                            opt.showCount = true; opt.count = st.count;
+                            opt.showProfit = true; opt.profit = ItemTracker::GetStatProfit(st);
+                            opt.showTrading = true; opt.showAccountFlags = true; opt.showId = true;
+                            if (st.details.loaded) UITooltips::RenderItemTooltip(st.details, id, opt);
+                            else UITooltips::RenderItemTooltipFallback(Localization::GetText("loading"), "", id, opt);
+                        }
+                    }
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    {
+                        pendingId = id;
+                        pendingName = st.details.loaded ? st.details.name : "";
+                        pendingIsCurrency = isCurrency;
+                    }
 
                     ImGui::TableSetColumnIndex(3);
                     if (isCurrency)
@@ -469,6 +594,38 @@ namespace UIOverview
                                   : profit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f)
                                   : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
                         ImGui::TextColored(pc, "%s", UICommon::FormatCoin(profit).c_str());
+                    }
+                    if (ImGui::IsItemHovered())
+                    {
+                        if (isCurrency)
+                        {
+                            UITooltips::CurrencyTooltipOptions opt;
+                            opt.showCount = true;
+                            opt.count = st.count;
+                            opt.showProfit = true;
+                            opt.profit = (id == 1) ? st.count : CustomProfitManager::GetCustomProfit(id) * st.count;
+                            opt.showRarity = false;
+                            opt.showId = true;
+                            if (st.details.loaded)
+                                UITooltips::RenderCurrencyTooltip(st.details, id, opt);
+                            else
+                                UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
+                        }
+                        else
+                        {
+                            UITooltips::ItemTooltipOptions opt;
+                            opt.showCount = true; opt.count = st.count;
+                            opt.showProfit = true; opt.profit = ItemTracker::GetStatProfit(st);
+                            opt.showTrading = true; opt.showAccountFlags = true; opt.showId = true;
+                            if (st.details.loaded) UITooltips::RenderItemTooltip(st.details, id, opt);
+                            else UITooltips::RenderItemTooltipFallback(Localization::GetText("loading"), "", id, opt);
+                        }
+                    }
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    {
+                        pendingId = id;
+                        pendingName = st.details.loaded ? st.details.name : "";
+                        pendingIsCurrency = isCurrency;
                     }
                 }
 
@@ -519,17 +676,17 @@ namespace UIOverview
         static std::string s_ItemTablePendingName;
         static bool s_ItemTablePendingIsCurrency = false;
 
-        // Render subsections in order (Currencies first, then Items)
-        RenderFavoritesSubsection(favoriteCurrencies, true, Localization::GetText("favorite_currencies"), "favorites",
-                                  s_CurGridPendingId, s_CurGridPendingName, s_CurGridPendingIsCurrency,
-                                  "OvFavCurGridMenu", "OvFavCurTableMenu");
-
-        ImGui::Spacing();
-        ImGui::Spacing();
-
+        // Render subsections in fixed order
         RenderFavoritesSubsection(favoriteItems, false, Localization::GetText("favorite_items"), "favorites",
                                   s_ItemGridPendingId, s_ItemGridPendingName, s_ItemGridPendingIsCurrency,
                                   "OvFavItemGridMenu", "OvFavItemTableMenu");
+
+        ImGui::Spacing();
+        ImGui::Spacing();
+
+        RenderFavoritesSubsection(favoriteCurrencies, true, Localization::GetText("favorite_currencies"), "favorites",
+                                  s_CurGridPendingId, s_CurGridPendingName, s_CurGridPendingIsCurrency,
+                                  "OvFavCurGridMenu", "OvFavCurTableMenu");
     }
 
     static void RenderCurrenciesSection()
@@ -543,101 +700,144 @@ namespace UIOverview
             return;
         }
 
+        // Split currencies into two groups: favorites and non-favorites
+        std::vector<std::pair<int, Stat>> favoriteCurrencies;
+        std::vector<std::pair<int, Stat>> otherCurrencies;
+        for (auto& [id, st] : currencies)
+        {
+            if (st.isIgnored || st.count == 0) continue;
+            if (st.isFavorite)
+                favoriteCurrencies.emplace_back(id, st);
+            else
+                otherCurrencies.emplace_back(id, st);
+        }
+
         if (g_Settings.overviewEnableGridView)
         {
             // Grid view for Currencies
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f); // Same as favorite currencies
             float iconSize = static_cast<float>(g_Settings.gridIconSizeCurrencies);
             float cellSize = iconSize + 20.0f; // Same padding as in Currencies tab
             float gridSpacing = ImGui::GetStyle().ItemSpacing.x;
             float scrollbarWidth = 20.0f;
 
-            auto getColumns = [&](float width) {
-                return std::max(1, static_cast<int>((width - scrollbarWidth + gridSpacing) / (cellSize + gridSpacing)));
+            auto getColumns = [&](float width, float extraSpacing = 0.0f) {
+                return std::max(1, static_cast<int>((width - scrollbarWidth + gridSpacing) / (cellSize + gridSpacing + extraSpacing)));
             };
 
-            int columns = getColumns(ImGui::GetContentRegionAvail().x);
+            int columns = getColumns(ImGui::GetContentRegionAvail().x, -1.0f);
             int count = 0;
 
             // FIX Bug 1 (Currencies-Teil): Pending-System
             static int s_CurGridPendingId = -1;
             static std::string s_CurGridPendingName;
 
-            for (auto& [id, st] : currencies)
-            {
-                if (st.isIgnored || st.count == 0) continue;
-
-                bool isCoin = id == 1;
-
-                if (count > 0)
+            // Helper function to render a list of currencies in grid view
+            auto renderCurrencyGridGroup = [&](const std::vector<std::pair<int, Stat>>& group) {
+                for (auto& [id, st] : group)
                 {
-                    if (count % columns == 0)
+                    bool isCoin = id == 1;
+
+                    if (count > 0)
                     {
-                        ImGui::NewLine();
+                        if (count % columns == 0)
+                        {
+                            ImGui::NewLine();
+                        }
+                        else
+                        {
+                            if (!isCoin)
+                                ImGui::SameLine(0, ImGui::GetStyle().ItemSpacing.x + 15.0f);
+                            else
+                                ImGui::SameLine();
+                        }
                     }
                     else
                     {
-                        ImGui::SameLine();
+                        // Erste Zeile
+                        if (isCoin)
+                            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 55.0f); // +20px mehr +15px extra
                     }
-                }
-                else
-                {
-                    // Erste Zeile
+
+                    ImGui::PushID(id);
+                    ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
+
+                    // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
+                    if (isCoin && count > 0)
+                    {
+                        ImGui::Dummy(ImVec2(55.0f, 0.0f)); // +20px mehr +15px extra
+                        ImGui::SameLine(0, 0.0f);
+                    }
+
+                    // Eigentliche Icon-Gruppe
+                    ImGui::BeginGroup();
+                    std::string iconUrl = st.details.iconUrl;
+                    if (id == 1 && iconUrl.empty()) iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
+                    UICommon::DrawItemIconCell(id, iconUrl, iconSize, st.details.loaded ? st.details.rarity : "");
+
+                    if (ImGui::IsItemHovered())
+                    {
+                        UITooltips::CurrencyTooltipOptions opt;
+                        opt.showCount  = true;
+                        opt.count      = st.count;
+                        opt.showProfit = true;
+                        opt.profit     = (id == 1) ? st.count : CustomProfitManager::GetCustomProfit(id) * st.count;
+                        opt.showRarity = false;
+                        opt.showId     = true;
+                        if (st.details.loaded)
+                            UITooltips::RenderCurrencyTooltip(st.details, id, opt);
+                        else
+                            UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
+                    }
+
+                    // Right-click: nur pending setzen
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                    {
+                        s_CurGridPendingId   = id;
+                        s_CurGridPendingName = st.details.loaded ? st.details.name : "";
+                    }
+
+                    DrawGridCount(st.count, iconSize, true, id);
+                    ImGui::EndGroup();
+
+                    // Abstand nach Coin rechts
                     if (isCoin)
-                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f); // +20px mehr
+                    {
+                        ImGui::SameLine(0, 0.0f);
+                        ImGui::Dummy(ImVec2(55.0f, 0.0f)); // +20px mehr + 15px extra
+                    }
+
+                    ImGui::EndGroup();
+                    ImGui::PopID();
+
+                    count++;
                 }
+            };
 
-                ImGui::PushID(id);
-                ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
-
-                // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
-                if (isCoin && count > 0)
+            // Render groups in correct order
+            if (g_Settings.overviewCurrenciesFirst)
+            {
+                if (!favoriteCurrencies.empty())
                 {
-                    ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
-                    ImGui::SameLine(0, 0.0f);
+                    renderCurrencyGridGroup(favoriteCurrencies);
                 }
-
-                // Eigentliche Icon-Gruppe
-                ImGui::BeginGroup();
-                std::string iconUrl = st.details.iconUrl;
-                if (id == 1 && iconUrl.empty()) iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
-                UICommon::DrawItemIconCell(id, iconUrl, iconSize, st.details.loaded ? st.details.rarity : "");
-
-                if (ImGui::IsItemHovered())
+                if (!otherCurrencies.empty())
                 {
-                    UITooltips::CurrencyTooltipOptions opt;
-                    opt.showCount  = true;
-                    opt.count      = st.count;
-                    opt.showProfit = true;
-                    opt.profit     = (id == 1) ? st.count : CustomProfitManager::GetCustomProfit(id) * st.count;
-                    opt.showRarity = false;
-                    opt.showId     = true;
-                    if (st.details.loaded)
-                        UITooltips::RenderCurrencyTooltip(st.details, id, opt);
-                    else
-                        UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
+                    // Nur eine sichtbare Lücke einfügen, wenn die Favoriten-Zeile(n) exakt voll waren -
+                    // sonst würde ein Umbruch erzwungen, obwohl in der aktuellen Zeile noch Platz ist.
+                    if (!favoriteCurrencies.empty() && count % columns == 0)
+                        ImGui::Spacing();
+                    renderCurrencyGridGroup(otherCurrencies);
                 }
-
-                // Right-click: nur pending setzen
-                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
-                {
-                    s_CurGridPendingId   = id;
-                    s_CurGridPendingName = st.details.loaded ? st.details.name : "";
-                }
-
-                DrawGridCount(st.count, iconSize, true, id);
-                ImGui::EndGroup();
-
-                // Abstand nach Coin rechts
-                if (isCoin)
-                {
-                    ImGui::SameLine(0, 0.0f);
-                    ImGui::Dummy(ImVec2(40.0f, 0.0f)); // +20px mehr
-                }
-
-                ImGui::EndGroup();
-                ImGui::PopID();
-
-                count++;
+            }
+            else
+            {
+                // Original order, just render all together
+                std::vector<std::pair<int, Stat>> allCurrencies;
+                allCurrencies.reserve(favoriteCurrencies.size() + otherCurrencies.size());
+                allCurrencies.insert(allCurrencies.end(), favoriteCurrencies.begin(), favoriteCurrencies.end());
+                allCurrencies.insert(allCurrencies.end(), otherCurrencies.begin(), otherCurrencies.end());
+                renderCurrencyGridGroup(allCurrencies);
             }
 
 
@@ -652,10 +852,11 @@ namespace UIOverview
         else
         {
             // Table view for currencies
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f); // Same as favorite currencies
             static int s_CurTblPendingId = -1;
             static std::string s_CurTblPendingName;
 
-            if (ImGui::BeginTable("##OverviewCurrenciesTable", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+            if (ImGui::BeginTable("##OverviewCurrenciesTable", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings, ImVec2(ImGui::GetContentRegionAvail().x - 40.0f, 0.0f)))
             {
                 ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 70.0f);
                 ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 300.0f);
@@ -663,67 +864,145 @@ namespace UIOverview
                 ImGui::TableSetupColumn(Localization::GetText("column_profit"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
                 ImGui::TableHeadersRow();
 
-                for (auto& [id, st] : currencies)
-                {
-                    if (st.isIgnored || st.count == 0) continue;
-
-                    float rowH = UICommon::CalcTableRowHeight(32.0f);
-                    ImGui::TableNextRow(0, rowH);
-
-                    ImGui::TableSetColumnIndex(0);
-                    UICommon::AlignTableCellIcon(rowH, 32.0f);
-                    std::string iconUrl = st.details.iconUrl;
-                    if (id == 1 && iconUrl.empty()) iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
-                    UICommon::DrawItemIconCell(id, iconUrl, 32.0f, st.details.loaded ? st.details.rarity : "");
-
-                    if (ImGui::IsItemHovered())
+                // Helper function to render a list of currencies in table view
+                auto renderCurrencyTableGroup = [&](const std::vector<std::pair<int, Stat>>& group) {
+                    for (auto& [id, st] : group)
                     {
-                        UITooltips::CurrencyTooltipOptions opt;
-                        opt.showCount = true;
-                        opt.count = st.count;
-                        opt.showProfit = true;
-                        opt.profit = (id == 1) ? st.count : CustomProfitManager::GetCustomProfit(id) * st.count;
-                        opt.showRarity = false;
-                        opt.showId = true;
-                        if (st.details.loaded)
-                            UITooltips::RenderCurrencyTooltip(st.details, id, opt);
-                        else
-                            UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
-                    }
-                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
-                    {
-                        s_CurTblPendingId = id;
-                        s_CurTblPendingName = st.details.loaded ? st.details.name : "";
-                    }
+                        float rowH = UICommon::CalcTableRowHeight(32.0f);
+                        ImGui::TableNextRow(0, rowH);
 
-                    ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : Localization::GetText("loading"));
+                        ImGui::TableSetColumnIndex(0);
+                        UICommon::AlignTableCellIcon(rowH, 32.0f);
+                        std::string iconUrl = st.details.iconUrl;
+                        if (id == 1 && iconUrl.empty()) iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
+                        UICommon::DrawItemIconCell(id, iconUrl, 32.0f, st.details.loaded ? st.details.rarity : "");
 
-                    ImGui::TableSetColumnIndex(2);
-                    ImGui::Text("%lld", st.count);
-
-                    ImGui::TableSetColumnIndex(3);
-                    if (id == 1)
-                    {
-                        ImGui::Text("%s", UICommon::FormatCoin(st.count).c_str());
-                    }
-                    else
-                    {
-                        long long customProfit = CustomProfitManager::GetCustomProfit(id);
-                        if (customProfit != 0)
+                        if (ImGui::IsItemHovered())
                         {
-                            long long totalProfit = customProfit * st.count;
-                            ImVec4 pc = totalProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f)
-                                      : totalProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f)
-                                      : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
-                            ImGui::TextColored(pc, "%s", UICommon::FormatCoin(totalProfit).c_str());
+                            UITooltips::CurrencyTooltipOptions opt;
+                            opt.showCount = true;
+                            opt.count = st.count;
+                            opt.showProfit = true;
+                            opt.profit = (id == 1) ? st.count : CustomProfitManager::GetCustomProfit(id) * st.count;
+                            opt.showRarity = false;
+                            opt.showId = true;
+                            if (st.details.loaded)
+                                UITooltips::RenderCurrencyTooltip(st.details, id, opt);
+                            else
+                                UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
+                        }
+                        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                        {
+                            s_CurTblPendingId = id;
+                            s_CurTblPendingName = st.details.loaded ? st.details.name : "";
+                        }
+
+                        ImGui::TableSetColumnIndex(1);
+                        ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : Localization::GetText("loading"));
+                        if (ImGui::IsItemHovered())
+                        {
+                            UITooltips::CurrencyTooltipOptions opt;
+                            opt.showCount = true;
+                            opt.count = st.count;
+                            opt.showProfit = true;
+                            opt.profit = (id == 1) ? st.count : CustomProfitManager::GetCustomProfit(id) * st.count;
+                            opt.showRarity = false;
+                            opt.showId = true;
+                            if (st.details.loaded)
+                                UITooltips::RenderCurrencyTooltip(st.details, id, opt);
+                            else
+                                UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
+                        }
+                        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                        {
+                            s_CurTblPendingId = id;
+                            s_CurTblPendingName = st.details.loaded ? st.details.name : "";
+                        }
+
+                        ImGui::TableSetColumnIndex(2);
+                        ImGui::Text("%lld", st.count);
+                        if (ImGui::IsItemHovered())
+                        {
+                            UITooltips::CurrencyTooltipOptions opt;
+                            opt.showCount = true;
+                            opt.count = st.count;
+                            opt.showProfit = true;
+                            opt.profit = (id == 1) ? st.count : CustomProfitManager::GetCustomProfit(id) * st.count;
+                            opt.showRarity = false;
+                            opt.showId = true;
+                            if (st.details.loaded)
+                                UITooltips::RenderCurrencyTooltip(st.details, id, opt);
+                            else
+                                UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
+                        }
+                        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                        {
+                            s_CurTblPendingId = id;
+                            s_CurTblPendingName = st.details.loaded ? st.details.name : "";
+                        }
+
+                        ImGui::TableSetColumnIndex(3);
+                        if (id == 1)
+                        {
+                            ImGui::Text("%s", UICommon::FormatCoin(st.count).c_str());
                         }
                         else
-                            ImGui::Text("-");
+                        {
+                            long long customProfit = CustomProfitManager::GetCustomProfit(id);
+                            if (customProfit != 0)
+                            {
+                                long long totalProfit = customProfit * st.count;
+                                ImVec4 pc = totalProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f)
+                                          : totalProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f)
+                                          : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+                                ImGui::TextColored(pc, "%s", UICommon::FormatCoin(totalProfit).c_str());
+                            }
+                            else
+                                ImGui::Text("-");
+                        }
+                        if (ImGui::IsItemHovered())
+                        {
+                            UITooltips::CurrencyTooltipOptions opt;
+                            opt.showCount = true;
+                            opt.count = st.count;
+                            opt.showProfit = true;
+                            opt.profit = (id == 1) ? st.count : CustomProfitManager::GetCustomProfit(id) * st.count;
+                            opt.showRarity = false;
+                            opt.showId = true;
+                            if (st.details.loaded)
+                                UITooltips::RenderCurrencyTooltip(st.details, id, opt);
+                            else
+                                UITooltips::RenderCurrencyTooltipFallback(id == 1 ? Localization::GetText("coin") : Localization::GetText("loading"), "", id, opt);
+                        }
+                        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                        {
+                            s_CurTblPendingId = id;
+                            s_CurTblPendingName = st.details.loaded ? st.details.name : "";
+                        }
+                    }
+                };
+
+                // Render groups in correct order
+                if (g_Settings.overviewCurrenciesFirst)
+                {
+                    if (!favoriteCurrencies.empty())
+                    {
+                        renderCurrencyTableGroup(favoriteCurrencies);
+                    }
+                    if (!otherCurrencies.empty())
+                    {
+                        renderCurrencyTableGroup(otherCurrencies);
                     }
                 }
-
-                ImGui::EndTable();
+                else
+                {
+                    // Original order, just render all together
+                    std::vector<std::pair<int, Stat>> allCurrencies;
+                    allCurrencies.reserve(favoriteCurrencies.size() + otherCurrencies.size());
+                    allCurrencies.insert(allCurrencies.end(), favoriteCurrencies.begin(), favoriteCurrencies.end());
+                    allCurrencies.insert(allCurrencies.end(), otherCurrencies.begin(), otherCurrencies.end());
+                    renderCurrencyTableGroup(allCurrencies);
+                }
 
                 if (s_CurTblPendingId != -1)
                 {
@@ -737,9 +1016,106 @@ namespace UIOverview
 
     static void RenderItemsSection()
     {
-        auto items = ItemTracker::GetItemsCopy();
+        const char* sortLabels[] = {
+            Localization::GetText("sort_price_down"),
+            Localization::GetText("sort_price_up"),
+            Localization::GetText("sort_count_high"),
+            Localization::GetText("sort_count_low"),
+            Localization::GetText("sort_name_az"),
+            Localization::GetText("sort_name_za"),
+            Localization::GetText("sort_profit_high"),
+            Localization::GetText("sort_profit_low"),
+            Localization::GetText("sort_rarity_high"),
+            Localization::GetText("sort_rarity_low")
+        };
+        if (ImGui::Combo("##OvSortItems", &g_Settings.overviewItemSortMode, sortLabels, 10))
+            SettingsManager::Save();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("%s", Localization::GetText("sort_tooltip"));
 
-        if (items.empty())
+        ImGui::SameLine();
+
+        const char* rarityLabels[] = {
+            Localization::GetText("rarity_all"),
+            Localization::GetText("rarity_basic"),
+            Localization::GetText("rarity_fine"),
+            Localization::GetText("rarity_masterwork"),
+            Localization::GetText("rarity_rare"),
+            Localization::GetText("rarity_exotic"),
+            Localization::GetText("rarity_ascended"),
+            Localization::GetText("rarity_legendary")
+        };
+        int rarityCombo = std::clamp(g_Settings.overviewItemRarityFilterMin, 0, 7);
+        if (ImGui::Combo("##OvRarityF", &rarityCombo, rarityLabels, 8))
+        {
+            g_Settings.overviewItemRarityFilterMin = rarityCombo;
+            SettingsManager::Save();
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("%s", Localization::GetText("rarity_tooltip"));
+
+        ImGui::Spacing();
+
+        if (ImGui::Button(Localization::GetText("mass_actions_label"), ImVec2(130, 0)))
+            ImGui::OpenPopup("OvMassActionsPopup");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("%s", Localization::GetText("mass_actions_tooltip"));
+
+        if (ImGui::BeginPopup("OvMassActionsPopup"))
+        {
+            auto items = ItemTracker::GetItemsCopy();
+            auto renderMenuItem = [&](const char* labelKey, const std::string& rarityName) {
+                if (ImGui::MenuItem(Localization::GetText(labelKey)))
+                {
+                    for (const auto& [id, st] : items)
+                        if (st.details.rarity == rarityName)
+                            IgnoredItemsManager::IgnoreItem(id);
+                    SettingsManager::Save();
+                }
+            };
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.f)); renderMenuItem("mass_actions_ignore_junk", "Junk"); ImGui::PopStyleColor();
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f)); renderMenuItem("mass_actions_ignore_basic", "Basic"); ImGui::PopStyleColor();
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.8f, 1.f, 1.f)); renderMenuItem("mass_actions_ignore_fine", "Fine"); ImGui::PopStyleColor();
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.2f, 0.8f, 0.2f, 1.f)); renderMenuItem("mass_actions_ignore_masterwork", "Masterwork"); ImGui::PopStyleColor();
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.9f, 0.2f, 1.f)); renderMenuItem("mass_actions_ignore_rare", "Rare"); ImGui::PopStyleColor();
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.6f, 0.2f, 1.f)); renderMenuItem("mass_actions_ignore_exotic", "Exotic"); ImGui::PopStyleColor();
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.85f, 0.20f, 0.50f, 1.f)); renderMenuItem("mass_actions_ignore_ascended", "Ascended"); ImGui::PopStyleColor();
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.20f, 0.90f, 1.f)); renderMenuItem("mass_actions_ignore_legendary", "Legendary"); ImGui::PopStyleColor();
+            ImGui::Separator();
+            if (ImGui::MenuItem(Localization::GetText("mass_actions_clear_ignore"))) { IgnoredItemsManager::ClearAll(); SettingsManager::Save(); }
+            ImGui::EndPopup();
+        }
+
+        ImGui::Spacing();
+
+        auto sortedItems = ItemTracker::GetSortedItems(static_cast<ItemTracker::SortMode>(g_Settings.overviewItemSortMode));
+        // Filter out ignored items and apply rarity filter
+        std::vector<std::pair<int, Stat>> filteredSortedItems;
+        for (auto& [id, st] : sortedItems)
+        {
+            if (!st.isIgnored && st.count != 0 && !st.IsCurrency())
+            {
+                if (g_Settings.overviewItemRarityFilterMin > 0)
+                {
+                    // Check rarity
+                    std::string rarity = st.details.loaded ? st.details.rarity : "";
+                    int rarityRank = 0;
+                    if (rarity == "Junk") rarityRank = 1;
+                    else if (rarity == "Basic") rarityRank = 2;
+                    else if (rarity == "Fine") rarityRank = 3;
+                    else if (rarity == "Masterwork") rarityRank = 4;
+                    else if (rarity == "Rare") rarityRank = 5;
+                    else if (rarity == "Exotic") rarityRank = 6;
+                    else if (rarity == "Ascended") rarityRank = 7;
+                    else if (rarity == "Legendary") rarityRank = 8;
+                    if (rarityRank < g_Settings.overviewItemRarityFilterMin) continue;
+                }
+                filteredSortedItems.push_back({id, st});
+            }
+        }
+        sortedItems.swap(filteredSortedItems);
+
+        if (sortedItems.empty())
         {
             ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.f), "%s", "No items");
             ImGui::Spacing();
@@ -759,18 +1135,9 @@ namespace UIOverview
             static int s_ItemGridPendingId = -1;
             static std::string s_ItemGridPendingName;
 
-            if (ImGui::BeginChild("##OverviewItemsGrid", ImVec2(0, 300), true))
+            if (ImGui::BeginChild("##OverviewItemsGrid", ImVec2(0, 0), true))
             {
-                int columns = getColumns(ImGui::GetContentRegionAvail().x);
-                int col = 0;
-
-                for (auto& [id, st] : items)
-                {
-                    if (st.isIgnored || st.count == 0) continue;
-
-                    if (col > 0) ImGui::SameLine();
-
-                    ImGui::PushID(id);
+                auto renderCell = [&](int id, const Stat& st) {
                     if (ImGui::BeginChild("##ItemCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar))
                     {
                         UICommon::DrawItemIconCell(id, st.details.iconUrl, static_cast<float>(g_Settings.gridIconSize), st.details.loaded ? st.details.rarity : "");
@@ -794,10 +1161,156 @@ namespace UIOverview
                         DrawGridItemCount(st.count, static_cast<float>(g_Settings.gridIconSize));
                     }
                     ImGui::EndChild();
-                    ImGui::PopID();
+                };
 
-                    col++;
-                    if (col >= columns) col = 0;
+                if (g_Settings.overviewGroupByRarity)
+                {
+                    std::vector<std::string> rarityOrder = {
+                        Localization::GetText("rarity_name_legendary"), Localization::GetText("rarity_name_ascended"),
+                        Localization::GetText("rarity_name_exotic"), Localization::GetText("rarity_name_rare"),
+                        Localization::GetText("rarity_name_masterwork"), Localization::GetText("rarity_name_fine"),
+                        Localization::GetText("rarity_name_basic"), Localization::GetText("rarity_name_junk"),
+                        Localization::GetText("rarity_name_unknown")
+                    };
+                    std::map<std::string, std::vector<std::pair<int, Stat>>> rarityGroups;
+                    for (auto& [id, st] : sortedItems)
+                    {
+                        std::string ar = st.details.loaded ? st.details.rarity : "Unknown";
+                        std::string lr;
+                        if (ar == "Legendary") lr = Localization::GetText("rarity_name_legendary");
+                        else if (ar == "Ascended") lr = Localization::GetText("rarity_name_ascended");
+                        else if (ar == "Exotic") lr = Localization::GetText("rarity_name_exotic");
+                        else if (ar == "Rare") lr = Localization::GetText("rarity_name_rare");
+                        else if (ar == "Masterwork") lr = Localization::GetText("rarity_name_masterwork");
+                        else if (ar == "Fine") lr = Localization::GetText("rarity_name_fine");
+                        else if (ar == "Basic") lr = Localization::GetText("rarity_name_basic");
+                        else if (ar == "Junk") lr = Localization::GetText("rarity_name_junk");
+                        else lr = Localization::GetText("rarity_name_unknown");
+                        rarityGroups[lr].push_back({id, st});
+                    }
+
+                    static const auto s_rarityHeaderColorsGrid = GetRarityHeaderColors();
+
+                    if (g_Settings.overviewShowRarityAsTabs)
+                    {
+                        if (ImGui::BeginTabBar("##OvRarityTabs"))
+                        {
+                            for (const auto& rn : rarityOrder)
+                            {
+                                auto it = rarityGroups.find(rn);
+                                if (it == rarityGroups.end() || it->second.empty()) continue;
+                                char tl[256]; snprintf(tl, sizeof(tl), "%s (%zu)", rn.c_str(), it->second.size());
+                                ImVec4 tabColor = s_rarityHeaderColorsGrid.count(rn) ? s_rarityHeaderColorsGrid.at(rn) : ImVec4(1.f,1.f,1.f,1.f);
+                                ImGui::PushStyleColor(ImGuiCol_Text, tabColor);
+                                bool tabOpen = ImGui::BeginTabItem(tl);
+                                ImGui::PopStyleColor();
+                                if (tabOpen)
+                                {
+                                    int cols = getColumns(ImGui::GetContentRegionAvail().x), col = 0;
+                                    for (auto& [id, st] : it->second) { if (col > 0) ImGui::SameLine(); ImGui::PushID(id); renderCell(id, st); ImGui::PopID(); col++; if (col >= cols) col = 0; }
+                                    ImGui::EndTabItem();
+                                }
+                            }
+                            ImGui::EndTabBar();
+                        }
+                    }
+                    else
+                    {
+                        for (const auto& rn : rarityOrder)
+                        {
+                            auto it = rarityGroups.find(rn);
+                            if (it == rarityGroups.end() || it->second.empty()) continue;
+                            char hl[256]; snprintf(hl, sizeof(hl), "%s (%zu)", rn.c_str(), it->second.size());
+                            ImGui::Spacing();
+                            ImVec4 headerColor = s_rarityHeaderColorsGrid.count(rn) ? s_rarityHeaderColorsGrid.at(rn) : ImVec4(1.f,1.f,1.f,1.f);
+                            if (CollapsingHeaderWithIcon(hl, "items", headerColor, ImGuiTreeNodeFlags_DefaultOpen))
+                            {
+                                int cols = getColumns(ImGui::GetContentRegionAvail().x), col = 0;
+                                for (auto& [id, st] : it->second) { if (col > 0) ImGui::SameLine(); ImGui::PushID(id); renderCell(id, st); ImGui::PopID(); col++; if (col >= cols) col = 0; }
+                            }
+                        }
+                    }
+                }
+                else if (g_Settings.overviewGroupByCategory)
+                {
+                    std::vector<ItemType> typeOrder = {
+                        ItemType::Weapon, ItemType::Armor, ItemType::Trinket, ItemType::Backpack,
+                        ItemType::CraftingMaterial, ItemType::Consumable, ItemType::Container, ItemType::Bag,
+                        ItemType::UpgradeComponent, ItemType::Trophy, ItemType::Gizmo, ItemType::Tool,
+                        ItemType::GatheringTool, ItemType::MiniPet, ItemType::Unlock, ItemType::Unknown
+                    };
+                    auto getTypeName = [](ItemType type) -> std::string {
+                        switch (type) {
+                            case ItemType::Armor: return Localization::GetText("type_armor");
+                            case ItemType::Weapon: return Localization::GetText("type_weapon");
+                            case ItemType::Trinket: return Localization::GetText("type_trinket");
+                            case ItemType::Gizmo: return Localization::GetText("type_gizmo");
+                            case ItemType::CraftingMaterial: return Localization::GetText("type_crafting_material");
+                            case ItemType::Consumable: return Localization::GetText("type_consumable");
+                            case ItemType::GatheringTool: return Localization::GetText("type_gathering_tool");
+                            case ItemType::Bag: return Localization::GetText("type_bag");
+                            case ItemType::Container: return Localization::GetText("type_container");
+                            case ItemType::MiniPet: return Localization::GetText("type_mini_pet");
+                            case ItemType::GizmoContainer: return Localization::GetText("type_gizmo_container");
+                            case ItemType::Backpack: return Localization::GetText("type_backpack");
+                            case ItemType::UpgradeComponent: return Localization::GetText("type_upgrade_component");
+                            case ItemType::Tool: return Localization::GetText("type_tool");
+                            case ItemType::Trophy: return Localization::GetText("type_trophy");
+                            case ItemType::Unlock: return Localization::GetText("type_unlock");
+                            default: return Localization::GetText("rarity_name_unknown");
+                        }
+                    };
+                    std::map<ItemType, std::vector<std::pair<int, Stat>>> typeGroups;
+                    for (auto& [id, st] : sortedItems) typeGroups[st.details.itemType].push_back({id, st});
+
+                    if (g_Settings.overviewShowGroupAsTabs)
+                    {
+                        if (ImGui::BeginTabBar("##OvTypeTabs"))
+                        {
+                            for (auto type : typeOrder)
+                            {
+                                auto it = typeGroups.find(type);
+                                if (it == typeGroups.end() || it->second.empty()) continue;
+                                char tl[256]; snprintf(tl, sizeof(tl), "%s (%zu)", getTypeName(type).c_str(), it->second.size());
+                                if (ImGui::BeginTabItem(tl))
+                                {
+                                    int cols = getColumns(ImGui::GetContentRegionAvail().x), col = 0;
+                                    for (auto& [id, st] : it->second) { if (col > 0) ImGui::SameLine(); ImGui::PushID(id); renderCell(id, st); ImGui::PopID(); col++; if (col >= cols) col = 0; }
+                                    ImGui::EndTabItem();
+                                }
+                            }
+                            ImGui::EndTabBar();
+                        }
+                    }
+                    else
+                    {
+                        for (auto type : typeOrder)
+                        {
+                            auto it = typeGroups.find(type);
+                            if (it == typeGroups.end() || it->second.empty()) continue;
+                            char hl[256]; snprintf(hl, sizeof(hl), "%s (%zu)", getTypeName(type).c_str(), it->second.size());
+                            ImGui::Spacing();
+                            const char* iconKey = "items";
+                            if (type == ItemType::Weapon) iconKey = "sword";
+                            if (CollapsingHeaderWithIcon(hl, iconKey, kCategoryHeaderColor, ImGuiTreeNodeFlags_DefaultOpen))
+                            {
+                                int cols = getColumns(ImGui::GetContentRegionAvail().x), col = 0;
+                                for (auto& [id, st] : it->second) { if (col > 0) ImGui::SameLine(); ImGui::PushID(id); renderCell(id, st); ImGui::PopID(); col++; if (col >= cols) col = 0; }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    int columns = getColumns(ImGui::GetContentRegionAvail().x), col = 0;
+                    for (auto& [id, st] : sortedItems)
+                    {
+                        if (col > 0) ImGui::SameLine();
+                        ImGui::PushID(id);
+                        renderCell(id, st);
+                        ImGui::PopID();
+                        col++; if (col >= columns) col = 0;
+                    }
                 }
             }
             ImGui::EndChild();
@@ -815,70 +1328,292 @@ namespace UIOverview
             static int s_ItemTblPendingId = -1;
             static std::string s_ItemTblPendingName;
 
-            if (ImGui::BeginTable("##OverviewItemsTable", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+            auto renderRow = [&](int id, const Stat& st) {
+                float rowH = UICommon::CalcTableRowHeight(32.0f);
+                ImGui::TableNextRow(0, rowH);
+
+                ImGui::TableSetColumnIndex(0);
+                UICommon::AlignTableCellIcon(rowH, 32.0f);
+                UICommon::DrawItemIconCell(id, st.details.iconUrl, 32.0f, st.details.loaded ? st.details.rarity : "");
+
+                if (ImGui::IsItemHovered())
+                {
+                    UITooltips::ItemTooltipOptions opt;
+                    opt.showCount = true; opt.count = st.count;
+                    opt.showProfit = true; opt.profit = ItemTracker::GetStatProfit(st);
+                    opt.showTrading = true; opt.showAccountFlags = true; opt.showId = true;
+                    if (st.details.loaded) UITooltips::RenderItemTooltip(st.details, id, opt);
+                    else UITooltips::RenderItemTooltipFallback(Localization::GetText("loading"), "", id, opt);
+                }
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                {
+                    s_ItemTblPendingId   = id;
+                    s_ItemTblPendingName = st.details.loaded ? st.details.name : "";
+                }
+
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : Localization::GetText("loading"));
+                if (ImGui::IsItemHovered())
+                {
+                    UITooltips::ItemTooltipOptions opt;
+                    opt.showCount = true; opt.count = st.count;
+                    opt.showProfit = true; opt.profit = ItemTracker::GetStatProfit(st);
+                    opt.showTrading = true; opt.showAccountFlags = true; opt.showId = true;
+                    if (st.details.loaded) UITooltips::RenderItemTooltip(st.details, id, opt);
+                    else UITooltips::RenderItemTooltipFallback(Localization::GetText("loading"), "", id, opt);
+                }
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                {
+                    s_ItemTblPendingId   = id;
+                    s_ItemTblPendingName = st.details.loaded ? st.details.name : "";
+                }
+
+                ImGui::TableSetColumnIndex(2);
+                ImGui::Text("%lld", st.count);
+                if (ImGui::IsItemHovered())
+                {
+                    UITooltips::ItemTooltipOptions opt;
+                    opt.showCount = true; opt.count = st.count;
+                    opt.showProfit = true; opt.profit = ItemTracker::GetStatProfit(st);
+                    opt.showTrading = true; opt.showAccountFlags = true; opt.showId = true;
+                    if (st.details.loaded) UITooltips::RenderItemTooltip(st.details, id, opt);
+                    else UITooltips::RenderItemTooltipFallback(Localization::GetText("loading"), "", id, opt);
+                }
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                {
+                    s_ItemTblPendingId   = id;
+                    s_ItemTblPendingName = st.details.loaded ? st.details.name : "";
+                }
+
+                ImGui::TableSetColumnIndex(3);
+                long long profit = ItemTracker::GetStatProfit(st);
+                ImVec4 pc = profit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f)
+                          : profit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f)
+                          : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+                ImGui::TextColored(pc, "%s", UICommon::FormatCoin(profit).c_str());
+                if (ImGui::IsItemHovered())
+                {
+                    UITooltips::ItemTooltipOptions opt;
+                    opt.showCount = true; opt.count = st.count;
+                    opt.showProfit = true; opt.profit = ItemTracker::GetStatProfit(st);
+                    opt.showTrading = true; opt.showAccountFlags = true; opt.showId = true;
+                    if (st.details.loaded) UITooltips::RenderItemTooltip(st.details, id, opt);
+                    else UITooltips::RenderItemTooltipFallback(Localization::GetText("loading"), "", id, opt);
+                }
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
+                {
+                    s_ItemTblPendingId   = id;
+                    s_ItemTblPendingName = st.details.loaded ? st.details.name : "";
+                }
+
+                ImGui::TableSetColumnIndex(4);
+                if (st.lastMagicFind >= 0)
+                    ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "%d%%", st.lastMagicFind);
+                else
+                    ImGui::TextDisabled("N/A");
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("%s", Localization::GetText("magic_find_tooltip"));
+            };
+
+            if (g_Settings.overviewGroupByRarity)
             {
-                ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 70.0f);
-                ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 300.0f);
-                ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
-                ImGui::TableSetupColumn(Localization::GetText("column_profit"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
-                ImGui::TableSetupColumn(Localization::GetText("column_magic_find"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 100.0f);
-                ImGui::TableHeadersRow();
-
-                for (auto& [id, st] : items)
+                std::vector<std::string> rarityOrder = {
+                    Localization::GetText("rarity_name_legendary"), Localization::GetText("rarity_name_ascended"),
+                    Localization::GetText("rarity_name_exotic"), Localization::GetText("rarity_name_rare"),
+                    Localization::GetText("rarity_name_masterwork"), Localization::GetText("rarity_name_fine"),
+                    Localization::GetText("rarity_name_basic"), Localization::GetText("rarity_name_junk"),
+                    Localization::GetText("rarity_name_unknown")
+                };
+                std::map<std::string, std::vector<std::pair<int, Stat>>> rarityGroups;
+                for (auto& [id, st] : sortedItems)
                 {
-                    if (st.isIgnored || st.count == 0) continue;
-
-                    float rowH = UICommon::CalcTableRowHeight(32.0f);
-                    ImGui::TableNextRow(0, rowH);
-
-                    ImGui::TableSetColumnIndex(0);
-                    UICommon::AlignTableCellIcon(rowH, 32.0f);
-                    UICommon::DrawItemIconCell(id, st.details.iconUrl, 32.0f, st.details.loaded ? st.details.rarity : "");
-
-                    if (ImGui::IsItemHovered())
-                    {
-                        UITooltips::ItemTooltipOptions opt;
-                        opt.showCount = true; opt.count = st.count;
-                        opt.showProfit = true; opt.profit = ItemTracker::GetStatProfit(st);
-                        opt.showTrading = true; opt.showAccountFlags = true; opt.showId = true;
-                        if (st.details.loaded) UITooltips::RenderItemTooltip(st.details, id, opt);
-                        else UITooltips::RenderItemTooltipFallback(Localization::GetText("loading"), "", id, opt);
-                    }
-                    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
-                    {
-                        s_ItemTblPendingId   = id;
-                        s_ItemTblPendingName = st.details.loaded ? st.details.name : "";
-                    }
-
-                    ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : Localization::GetText("loading"));
-
-                    ImGui::TableSetColumnIndex(2);
-                    ImGui::Text("%lld", st.count);
-
-                    ImGui::TableSetColumnIndex(3);
-                    long long profit = ItemTracker::GetStatProfit(st);
-                    ImVec4 pc = profit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f)
-                              : profit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f)
-                              : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
-                    ImGui::TextColored(pc, "%s", UICommon::FormatCoin(profit).c_str());
-
-                    ImGui::TableSetColumnIndex(4);
-                    if (st.lastMagicFind >= 0)
-                        ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "%d%%", st.lastMagicFind);
-                    else
-                        ImGui::TextDisabled("N/A");
+                    std::string ar = st.details.loaded ? st.details.rarity : "Unknown";
+                    std::string lr;
+                    if (ar == "Legendary") lr = Localization::GetText("rarity_name_legendary");
+                    else if (ar == "Ascended") lr = Localization::GetText("rarity_name_ascended");
+                    else if (ar == "Exotic") lr = Localization::GetText("rarity_name_exotic");
+                    else if (ar == "Rare") lr = Localization::GetText("rarity_name_rare");
+                    else if (ar == "Masterwork") lr = Localization::GetText("rarity_name_masterwork");
+                    else if (ar == "Fine") lr = Localization::GetText("rarity_name_fine");
+                    else if (ar == "Basic") lr = Localization::GetText("rarity_name_basic");
+                    else if (ar == "Junk") lr = Localization::GetText("rarity_name_junk");
+                    else lr = Localization::GetText("rarity_name_unknown");
+                    rarityGroups[lr].push_back({id, st});
                 }
 
-                ImGui::EndTable();
-
-                if (s_ItemTblPendingId != -1)
+                if (g_Settings.overviewShowRarityAsTabs)
                 {
-                    UIContextMenu::OpenContextMenu("OvItemTblMenu", s_ItemTblPendingId, s_ItemTblPendingName);
-                    s_ItemTblPendingId = -1;
+                    if (ImGui::BeginTabBar("##OvRarityTabsTable"))
+                    {
+                        for (const auto& rn : rarityOrder)
+                        {
+                            auto it = rarityGroups.find(rn);
+                            if (it == rarityGroups.end() || it->second.empty()) continue;
+                            char tl[256]; snprintf(tl, sizeof(tl), "%s (%zu)", rn.c_str(), it->second.size());
+                            if (ImGui::BeginTabItem(tl))
+                            {
+                                if (ImGui::BeginTable(("##OverviewItemsTable_" + rn).c_str(), 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+                                {
+                                    ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 70.0f);
+                                    ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 300.0f);
+                                    ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
+                                    ImGui::TableSetupColumn(Localization::GetText("column_profit"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
+                                    ImGui::TableSetupColumn(Localization::GetText("column_magic_find"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 100.0f);
+                                    ImGui::TableHeadersRow();
+
+                                    for (auto& [id, st] : it->second) renderRow(id, st);
+
+                                    ImGui::EndTable();
+                                }
+                                ImGui::EndTabItem();
+                            }
+                        }
+                        ImGui::EndTabBar();
+                    }
                 }
-                UIContextMenu::RenderItemContextMenu("OvItemTblMenu", UIContextMenu::ContextMenuType::General);
+                else
+                {
+                    for (const auto& rn : rarityOrder)
+                    {
+                        auto it = rarityGroups.find(rn);
+                        if (it == rarityGroups.end() || it->second.empty()) continue;
+                        char hl[256]; snprintf(hl, sizeof(hl), "%s (%zu)", rn.c_str(), it->second.size());
+                        ImGui::Spacing();
+                        static const auto s_rarityHeaderColorsTbl = GetRarityHeaderColors();
+                        ImVec4 headerColor = s_rarityHeaderColorsTbl.count(rn) ? s_rarityHeaderColorsTbl.at(rn) : ImVec4(1.f,1.f,1.f,1.f);
+                        if (CollapsingHeaderWithIcon(hl, "items", headerColor, ImGuiTreeNodeFlags_DefaultOpen))
+                        {
+                            if (ImGui::BeginTable(("##OverviewItemsTable_" + rn).c_str(), 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+                            {
+                                ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 70.0f);
+                                ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 300.0f);
+                                ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
+                                ImGui::TableSetupColumn(Localization::GetText("column_profit"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
+                                ImGui::TableSetupColumn(Localization::GetText("column_magic_find"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 100.0f);
+                                ImGui::TableHeadersRow();
+
+                                for (auto& [id, st] : it->second) renderRow(id, st);
+
+                                ImGui::EndTable();
+                            }
+                        }
+                    }
+                }
             }
+            else if (g_Settings.overviewGroupByCategory)
+            {
+                std::vector<ItemType> typeOrder = {
+                    ItemType::Weapon, ItemType::Armor, ItemType::Trinket, ItemType::Backpack,
+                    ItemType::CraftingMaterial, ItemType::Consumable, ItemType::Container, ItemType::Bag,
+                    ItemType::UpgradeComponent, ItemType::Trophy, ItemType::Gizmo, ItemType::Tool,
+                    ItemType::GatheringTool, ItemType::MiniPet, ItemType::Unlock, ItemType::Unknown
+                };
+                auto getTypeName = [](ItemType type) -> std::string {
+                    switch (type) {
+                        case ItemType::Armor: return Localization::GetText("type_armor");
+                        case ItemType::Weapon: return Localization::GetText("type_weapon");
+                        case ItemType::Trinket: return Localization::GetText("type_trinket");
+                        case ItemType::Gizmo: return Localization::GetText("type_gizmo");
+                        case ItemType::CraftingMaterial: return Localization::GetText("type_crafting_material");
+                        case ItemType::Consumable: return Localization::GetText("type_consumable");
+                        case ItemType::GatheringTool: return Localization::GetText("type_gathering_tool");
+                        case ItemType::Bag: return Localization::GetText("type_bag");
+                        case ItemType::Container: return Localization::GetText("type_container");
+                        case ItemType::MiniPet: return Localization::GetText("type_mini_pet");
+                        case ItemType::GizmoContainer: return Localization::GetText("type_gizmo_container");
+                        case ItemType::Backpack: return Localization::GetText("type_backpack");
+                        case ItemType::UpgradeComponent: return Localization::GetText("type_upgrade_component");
+                        case ItemType::Tool: return Localization::GetText("type_tool");
+                        case ItemType::Trophy: return Localization::GetText("type_trophy");
+                        case ItemType::Unlock: return Localization::GetText("type_unlock");
+                        default: return Localization::GetText("rarity_name_unknown");
+                    }
+                };
+                std::map<ItemType, std::vector<std::pair<int, Stat>>> typeGroups;
+                for (auto& [id, st] : sortedItems) typeGroups[st.details.itemType].push_back({id, st});
+
+                if (g_Settings.overviewShowGroupAsTabs)
+                {
+                    if (ImGui::BeginTabBar("##OvTypeTabsTable"))
+                    {
+                        for (auto type : typeOrder)
+                        {
+                            auto it = typeGroups.find(type);
+                            if (it == typeGroups.end() || it->second.empty()) continue;
+                            char tl[256]; snprintf(tl, sizeof(tl), "%s (%zu)", getTypeName(type).c_str(), it->second.size());
+                            if (ImGui::BeginTabItem(tl))
+                            {
+                                if (ImGui::BeginTable(("##OverviewItemsTable_" + std::to_string((int)type)).c_str(), 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+                                {
+                                    ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 70.0f);
+                                    ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 300.0f);
+                                    ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
+                                    ImGui::TableSetupColumn(Localization::GetText("column_profit"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
+                                    ImGui::TableSetupColumn(Localization::GetText("column_magic_find"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 100.0f);
+                                    ImGui::TableHeadersRow();
+
+                                    for (auto& [id, st] : it->second) renderRow(id, st);
+
+                                    ImGui::EndTable();
+                                }
+                                ImGui::EndTabItem();
+                            }
+                        }
+                        ImGui::EndTabBar();
+                    }
+                }
+                else
+                {
+                    for (auto type : typeOrder)
+                    {
+                        auto it = typeGroups.find(type);
+                        if (it == typeGroups.end() || it->second.empty()) continue;
+                        char hl[256]; snprintf(hl, sizeof(hl), "%s (%zu)", getTypeName(type).c_str(), it->second.size());
+                        ImGui::Spacing();
+                        const char* iconKey = "items";
+                        if (type == ItemType::Weapon) iconKey = "sword";
+                        if (CollapsingHeaderWithIcon(hl, iconKey, kCategoryHeaderColor, ImGuiTreeNodeFlags_DefaultOpen))
+                        {
+                            if (ImGui::BeginTable(("##OverviewItemsTable_" + std::to_string((int)type)).c_str(), 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+                            {
+                                ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 70.0f);
+                                ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 300.0f);
+                                ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
+                                ImGui::TableSetupColumn(Localization::GetText("column_profit"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
+                                ImGui::TableSetupColumn(Localization::GetText("column_magic_find"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 100.0f);
+                                ImGui::TableHeadersRow();
+
+                                for (auto& [id, st] : it->second) renderRow(id, st);
+
+                                ImGui::EndTable();
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (ImGui::BeginTable("##OverviewItemsTable", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings))
+                {
+                    ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 70.0f);
+                    ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 300.0f);
+                    ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
+                    ImGui::TableSetupColumn(Localization::GetText("column_profit"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 150.0f);
+                    ImGui::TableSetupColumn(Localization::GetText("column_magic_find"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 100.0f);
+                    ImGui::TableHeadersRow();
+
+                    for (auto& [id, st] : sortedItems) renderRow(id, st);
+
+                    ImGui::EndTable();
+                }
+            }
+
+            if (s_ItemTblPendingId != -1)
+            {
+                UIContextMenu::OpenContextMenu("OvItemTblMenu", s_ItemTblPendingId, s_ItemTblPendingName);
+                s_ItemTblPendingId = -1;
+            }
+            UIContextMenu::RenderItemContextMenu("OvItemTblMenu", UIContextMenu::ContextMenuType::General);
         }
     }
 

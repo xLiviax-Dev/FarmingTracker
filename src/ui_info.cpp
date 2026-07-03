@@ -25,7 +25,7 @@ namespace UIInfo
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-static constexpr const char* VERSION       = "2.0.0.6";
+static constexpr const char* VERSION       = "2.0.0.7";
 static constexpr const char* AUTHOR        = "x Livia x";
 static constexpr const char* GITHUB_URL    = "https://github.com/xLiviax-Dev/FarmingTracker";
 static constexpr const char* GITHUB_ISSUES = "https://github.com/xLiviax-Dev/FarmingTracker/issues";
@@ -399,11 +399,11 @@ void Render()
     ImGui::Separator();
     ImGui::Spacing();
 
-    // v2.0.0.6
+    // v2.0.0.7
     {
         ImDrawList* dl  = ImGui::GetWindowDrawList();
         ImVec2      pos = ImGui::GetCursorScreenPos();
-        std::string vLabel = "v2.0.0.6";
+        std::string vLabel = "v2.0.0.7";
         float bw = ImGui::CalcTextSize(vLabel.c_str()).x + 10.f, bh = ImGui::GetTextLineHeight() + 4.f;
         dl->AddRectFilled(pos, { pos.x + bw, pos.y + bh }, COL_VERSION_BG, 3.f);
         dl->AddRect(pos, { pos.x + bw, pos.y + bh }, COL_VERSION_BORDER, 3.f, 0, 0.5f);
@@ -413,6 +413,36 @@ void Render()
         ImGui::Dummy({ bw, bh });
         ImGui::SameLine(0, 8.f);
         ImGui::TextColored(COL_TEXT_DIM, "latest");
+    }
+
+    static const char* notes_v2007[] =
+    {
+        "Added new sorting options for the Drops tab.",
+        "Fixed several bugs.",
+        "Updated the options in Settings -> Drops.",
+    };
+    ImGui::Spacing();
+    for (auto& n : notes_v2007)
+    {
+        ImGui::TextColored(COL_TEXT_DIM, "  \xe2\x80\xa2");
+        ImGui::SameLine(0, 5.f);
+        ImGui::TextColored(COL_TEXT_SECONDARY, "%s", n);
+    }
+
+    ImGui::Spacing();
+
+    // v2.0.0.6
+    {
+        ImDrawList* dl  = ImGui::GetWindowDrawList();
+        ImVec2      pos = ImGui::GetCursorScreenPos();
+        std::string vLabel = "v2.0.0.6";
+        float bw = ImGui::CalcTextSize(vLabel.c_str()).x + 10.f, bh = ImGui::GetTextLineHeight() + 4.f;
+        dl->AddRectFilled(pos, { pos.x + bw, pos.y + bh }, COL_STEP_NUM_BG, 3.f);
+        dl->AddRect(pos, { pos.x + bw, pos.y + bh }, COL_STEP_NUM_BORDER, 3.f, 0, 0.5f);
+        dl->AddText({ pos.x + 5.f, pos.y + 2.f },
+                    ImGui::ColorConvertFloat4ToU32(COL_ACCENT),
+                    vLabel.c_str());
+        ImGui::Dummy({ bw, bh });
     }
 
     static const char* notes_v2006[] =
@@ -455,42 +485,6 @@ void Render()
     };
     ImGui::Spacing();
     for (auto& n : notes_v2005)
-    {
-        ImGui::TextColored(COL_TEXT_DIM, "  \xe2\x80\xa2");
-        ImGui::SameLine(0, 5.f);
-        ImGui::TextColored(COL_TEXT_SECONDARY, "%s", n);
-    }
-
-    ImGui::Spacing();
-
-    // v2.0.0.4
-    {
-        ImDrawList* dl  = ImGui::GetWindowDrawList();
-        ImVec2      pos = ImGui::GetCursorScreenPos();
-        std::string vLabel = "v2.0.0.4";
-        float bw = ImGui::CalcTextSize(vLabel.c_str()).x + 10.f, bh = ImGui::GetTextLineHeight() + 4.f;
-        dl->AddRectFilled(pos, { pos.x + bw, pos.y + bh }, COL_STEP_NUM_BG, 3.f);
-        dl->AddRect(pos, { pos.x + bw, pos.y + bh }, COL_STEP_NUM_BORDER, 3.f, 0, 0.5f);
-        dl->AddText({ pos.x + 5.f, pos.y + 2.f },
-                    ImGui::ColorConvertFloat4ToU32(COL_ACCENT),
-                    vLabel.c_str());
-        ImGui::Dummy({ bw, bh });
-    }
-
-    static const char* notes_v2004[] =
-    {
-        "New Settings: historyIconSize, profitIconSize, itemsIconSize, gridIconSize, gridIconSizeCurrencies",
-        "New Settings: sparklineColor, blacklist",
-        "New Settings: mainWindowFontSize, notificationFontSize",
-        "Added buttons to get DRF Token and GW2 API Key in Account Management",
-        "Updated Getting Started guide to include DRF and GW2 API Key instructions",
-        "Settings partially reorganized",
-        "Fixed crash when ignoring items",
-        "Fixed crash when adding favorites",
-        "Fixed compilation errors with iconSize",
-    };
-    ImGui::Spacing();
-    for (auto& n : notes_v2004)
     {
         ImGui::TextColored(COL_TEXT_DIM, "  \xe2\x80\xa2");
         ImGui::SameLine(0, 5.f);

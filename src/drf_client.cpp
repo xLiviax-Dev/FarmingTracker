@@ -56,6 +56,10 @@ static std::atomic<bool>              s_ReconnectRequested{ false };
 static std::string                    s_PendingToken;
 static std::mutex                     s_TokenMutex;
 
+// Rate limiting for ALL connection attempts to prevent server spam
+static std::chrono::steady_clock::time_point s_LastConnectionAttempt{};
+static constexpr auto                  kMinConnectionInterval = std::chrono::seconds(10);
+
 // Debug logging
 static std::deque<DrfLogEntry>        s_Logs;
 static std::mutex                     s_LogMutex;
@@ -163,6 +167,8 @@ static void HandleDataMessage(const std::string& jsonText)
 
         ItemTracker::AddDrop(items, currencies);
         Gw2Fetcher::NotifyDrfActivity();
+        // Reset reconnect count only when we actually receive valid data
+        s_ReconnectCount.store(0);
 
         // Log the drop
         std::stringstream ss;
@@ -173,11 +179,38 @@ static void HandleDataMessage(const std::string& jsonText)
 }
 
 // ---------------------------------------------------------------------------
+// Ensures minimum time between connection attempts to prevent server spam
+// ---------------------------------------------------------------------------
+static void WaitForCooldown()
+{
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = now - s_LastConnectionAttempt;
+    if (elapsed < kMinConnectionInterval)
+    {
+        auto remaining = kMinConnectionInterval - elapsed;
+        // Sleep in small chunks to allow shutdown/reconnect signals
+        auto msRemaining = std::chrono::duration_cast<std::chrono::milliseconds>(remaining).count();
+        for (int i = 0; i < msRemaining / 100 && !s_Shutdown.load() && !s_ReconnectRequested.load(); ++i)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
+    s_LastConnectionAttempt = std::chrono::steady_clock::now();
+}
+
+// ---------------------------------------------------------------------------
 // One connection attempt + receive loop.
 // Returns true if we should retry, false if we should stop (auth failed/shutdown).
 // ---------------------------------------------------------------------------
 static bool RunConnection(const std::string& token)
 {
+    // Ensure we don't spam the server with rapid connection attempts
+    WaitForCooldown();
+    
+    // If shutdown or reconnect was requested during cooldown, exit early
+    if (s_Shutdown.load() || s_ReconnectRequested.load())
+        return true;
+
     // Cache APIDefs at function entry: the UI thread may set it to nullptr
     // (AddonUnload) while this worker thread is still running.
     auto* apiDefs = APIDefs;
@@ -315,7 +348,6 @@ static bool RunConnection(const std::string& token)
         apiDefs->Log(LOGL_INFO, "FarmingTracker", "DRF: Successfully connected and authenticated");
     DrfClient::Log("Connected to DRF", "info");
     SetStatus(DrfStatus::Connected);
-    s_ReconnectCount.store(0);
 
     // ---------------------------------------------------------------------------
     // Receive loop
@@ -338,7 +370,8 @@ static bool RunConnection(const std::string& token)
 
         if (recvResult != ERROR_SUCCESS)
         {
-            // Connection lost
+            // Connection lost - log the error for debugging
+            DrfClient::Log("WebSocket receive error: " + std::to_string(recvResult), "error");
             SetStatus(DrfStatus::Disconnected);
             shouldRetry = true;
             break;
@@ -455,8 +488,9 @@ static bool RunConnection(const std::string& token)
 // ---------------------------------------------------------------------------
 static void WorkerThread()
 {
-    // Reconnect delays:  0, 2, 5, 10, 20, 30, 30, 30 ...…
-    static const int kDelays[] = { 0, 2, 5, 10, 20, 30 };
+    // Reconnect delays:  10, 30, 60, 120, 180, 180, 180 ... (exponential backoff with cap, server-friendly)
+    static const int kDelays[] = { 10, 30, 60, 120, 180 };
+    static constexpr size_t kNumDelays = sizeof(kDelays) / sizeof(kDelays[0]);
 
     while (!s_Shutdown.load())
     {
@@ -490,9 +524,11 @@ static void WorkerThread()
             continue;
         }
 
-        // Back-off delay
-        int tries   = s_ReconnectCount.fetch_add(1) + 1;
-        int delayIdx = (tries < 6) ? (tries - 1) : 5;
+        // Back-off delay - with safe index handling
+        int tries = s_ReconnectCount.fetch_add(1) + 1;
+        size_t delayIdx = static_cast<size_t>(tries - 1);
+        if (delayIdx >= kNumDelays)
+            delayIdx = kNumDelays - 1;
         int delaySec = kDelays[delayIdx];
 
         SetStatus(DrfStatus::Reconnecting);
@@ -512,11 +548,16 @@ void DrfClient::Init(std::function<void(DrfStatus)> onStatusChange)
 {
     s_OnStatus = std::move(onStatusChange);
     s_Shutdown.store(false);
+    s_ReconnectCount.store(0); // Reset on init for fresh start
+    s_LastConnectionAttempt = std::chrono::steady_clock::time_point{}; // Reset cooldown timer
     s_WorkerThread = std::thread(WorkerThread);
 }
 
 void DrfClient::Connect(const std::string& token)
 {
+    // Always update the last connection attempt time to prevent spamming
+    s_LastConnectionAttempt = std::chrono::steady_clock::now();
+
     DrfClient::Log("Manual DRF reconnect requested", "info");
     
     // Force close existing connection to break the blocking receive loop
@@ -535,7 +576,7 @@ void DrfClient::Connect(const std::string& token)
         s_PendingToken = token;
     }
     s_ReconnectRequested.store(true);
-    s_ReconnectCount.store(0);
+    s_ReconnectCount.store(0); // Reset on manual connect only
 }
 
 void DrfClient::Shutdown()
