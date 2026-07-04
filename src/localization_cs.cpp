@@ -377,6 +377,7 @@ namespace Localization
             {"drf_token", "DRF Token"},
             {"drf_token_label", "Token DRF:"},
             {"drf_token_tooltip", "Váš autentizační token DRF"},
+            {"token_invalid_utf8", "(Neplatné UTF-8)"},
             {"edit_token", "Upravit Token"},
             {"save_token", "Uložit Token"},
             {"gw2_api_settings", "Nastavení GW2 API"},

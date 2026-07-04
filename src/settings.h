@@ -341,7 +341,7 @@ struct Settings
 
     // Performance Settings
     bool enableIconCache = true;
-    int iconCacheMaxIcons = 1000;
+    int iconCacheMaxIcons = 2000;
     int maxHistoryItems = 500; // 0 = unlimited
     int priceUpdateIntervalMin = 5; // 5 to 15 minutes
     bool disableComplexVisualsOnLowPerf = false;

@@ -420,6 +420,7 @@ namespace Localization
             {"drf_token", "DRF Token"},
             {"drf_token_label", "DRF Token:"},
             {"drf_token_tooltip", "Dein DRF-Authentifizierungs-Token"},
+            {"token_invalid_utf8", "(Ungültiges UTF-8)"},
             {"edit_token", "Token bearbeiten"},
             {"save_token", "Token speichern"},
 

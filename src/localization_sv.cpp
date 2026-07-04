@@ -377,6 +377,7 @@ namespace Localization
             {"drf_token", "DRF Token"},
             {"drf_token_label", "DRF Token:"},
             {"drf_token_tooltip", "Din DRF-autentiseringstoken"},
+            {"token_invalid_utf8", "(Ogiltig UTF-8)"},
             {"edit_token", "Redigera token"},
             {"save_token", "Spara token"},
             {"gw2_api_settings", "GW2 API-inställningar"},

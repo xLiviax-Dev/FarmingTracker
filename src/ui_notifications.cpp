@@ -425,7 +425,7 @@ namespace UINotifications
                     // Use custom width if specified, otherwise default to 300
                     float childWidth = n.customWidth > 0 ? n.customWidth : 300;
                     
-                    if (ImGui::BeginChild(childId, ImVec2(childWidth, 70), true, ImGuiWindowFlags_NoScrollbar))
+                    if (ImGui::BeginChild(childId, ImVec2(childWidth, 70), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
                     {
                         // Icon
                         ImVec2 cursor = ImGui::GetCursorPos();

@@ -377,6 +377,7 @@ namespace Localization
             {"drf_token", "DRF令牌"},
             {"drf_token_label", "DRF令牌:"},
             {"drf_token_tooltip", "您的DRF认证令牌"},
+            {"token_invalid_utf8", "(无效的UTF-8)"},
             {"edit_token", "编辑令牌"},
             {"save_token", "保存令牌"},
             {"gw2_api_settings", "GW2 API设置"},

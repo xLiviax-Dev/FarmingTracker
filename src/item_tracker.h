@@ -6,6 +6,7 @@
 #include <chrono>
 #include <vector>
 #include <functional>
+#include <cstdint>
 
 #include "../include/nlohmann/json.hpp"
 #include "session_history.h"
@@ -110,6 +111,9 @@ namespace ItemTracker
 
     // Timeline / Drops history
     std::vector<SessionHistory::DropEntry> GetSessionDropsCopy();
+    // Cheap change-detector for UI-side caching: bumps whenever s_SessionDrops is
+    // mutated (new drop, reset, item/currency removal, load). Lock-free atomic read.
+    uint64_t GetSessionDropsVersion();
 
     bool IsFavorite(int apiId);
     std::set<int> GetFavoriteItemIds();

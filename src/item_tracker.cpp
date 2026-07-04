@@ -49,6 +49,9 @@ static std::mutex s_SessionStartMutex;
 // Track all drops with timestamps for session history
 static std::vector<SessionHistory::DropEntry> s_SessionDrops;
 static std::mutex s_SessionDropsMutex;
+// Bumped on every mutation of s_SessionDrops (AddDrop/Reset/RemoveItem/RemoveCurrency/LoadData)
+// so UI-side caches (Timeline tab) can cheaply detect changes without diffing content.
+static std::atomic<uint64_t> s_SessionDropsVersion{ 0 };
 
 // Salvage Kit data structure
 struct SalvageKitInfo
@@ -548,6 +551,7 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
                     drop.characterName = UICommon::s_AccountNameBuf;
                 }
                 s_SessionDrops.push_back(drop);
+                s_SessionDropsVersion.fetch_add(1, std::memory_order_relaxed);
 
                 // Prepare logging info while under lock
                 if (delta > 0) {
@@ -611,6 +615,7 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
                     drop.characterName = UICommon::s_AccountNameBuf;
                 }
                 s_SessionDrops.push_back(drop);
+                s_SessionDropsVersion.fetch_add(1, std::memory_order_relaxed);
 
                 // Prepare logging info while under lock
                 if (delta > 0) {
@@ -846,6 +851,7 @@ void ItemTracker::Reset()
     s_SessionStart = std::chrono::system_clock::now();
 
     s_SessionDrops.clear();
+    s_SessionDropsVersion.fetch_add(1, std::memory_order_relaxed);
 
     // Don't clear s_Items and s_Currencies - keep API data for Loot Log display
     // Only reset the count values
@@ -1120,6 +1126,7 @@ void ItemTracker::RemoveItem(int apiId)
             }),
         s_SessionDrops.end()
     );
+    s_SessionDropsVersion.fetch_add(1, std::memory_order_relaxed);
 }
 
 void ItemTracker::ResetCurrencyCount(int apiId)
@@ -1147,6 +1154,7 @@ void ItemTracker::RemoveCurrency(int apiId)
             }),
         s_SessionDrops.end()
     );
+    s_SessionDropsVersion.fetch_add(1, std::memory_order_relaxed);
 }
 
 std::map<int, Stat> ItemTracker::GetFavoriteItems()
@@ -1299,6 +1307,11 @@ std::vector<SessionHistory::DropEntry> ItemTracker::GetSessionDropsCopy()
     }
 
     return drops;
+}
+
+uint64_t ItemTracker::GetSessionDropsVersion()
+{
+    return s_SessionDropsVersion.load(std::memory_order_relaxed);
 }
 
 std::string ItemTracker::GetCurrencyCategory(int currencyId)
@@ -2524,6 +2537,7 @@ void ItemTracker::LoadData(const char* addonDir)
                 drop.characterName = dropJson.value("characterName", "");
                 s_SessionDrops.push_back(drop);
             }
+            s_SessionDropsVersion.fetch_add(1, std::memory_order_relaxed);
         }
         
         if (APIDefs) APIDefs->Log(LOGL_INFO, "FarmingTracker", "Farming data loaded successfully.");

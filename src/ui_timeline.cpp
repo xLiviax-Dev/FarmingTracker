@@ -10,9 +10,122 @@
 #include <algorithm>
 #include <ctime>
 #include <map>
+#include <unordered_map>
+#include <cstdint>
 
 namespace UITimeline
 {
+    // === Cached / grouped drop data ===
+    // Rebuilding this (filtering ignored drops, grouping by timestamp, merging item/currency
+    // icon rows, aggregating currency counts) used to happen unconditionally every frame while
+    // the Timeline tab was open, which scaled with the ENTIRE session drop history. We now only
+    // rebuild when ItemTracker::GetSessionDropsVersion() actually changes (i.e. a new drop came
+    // in, or the session was reset/an item was removed/data was loaded).
+    struct TimelineCurrencySummary
+    {
+        int count = 0;
+        std::string name;
+        std::string iconUrl;
+        std::string rarity;
+    };
+
+    struct TimelineGroup
+    {
+        std::string timestamp;
+        std::string characterName;
+        long long   groupValue = 0;
+        int         groupMF    = -1;
+        bool        hasCurrencies = false;
+        std::map<int, TimelineCurrencySummary> currencies; // sorted by id, matches previous std::map iteration order
+        std::vector<SessionHistory::DropEntry> itemDrops;  // merged icon-row entries (items + custom-profit currencies), first-seen order
+    };
+
+    static uint64_t s_TimelineCacheVersion = UINT64_MAX; // sentinel forces rebuild on first render
+    static std::vector<TimelineGroup> s_TimelineCache;   // newest-first, like the old `timestamps` vector
+
+    // Cache of each group's actual rendered pixel height, keyed by timestamp so it survives
+    // new groups being prepended. Used to decide which groups are off-screen and can be
+    // skipped (replaced by a single Dummy()) instead of paying the full per-frame draw cost.
+    static std::unordered_map<std::string, float> s_TimelineGroupHeights;
+
+    static void RebuildTimelineCache()
+    {
+        auto allDrops = ItemTracker::GetSessionDropsCopy();
+
+        s_TimelineCache.clear();
+        std::map<std::string, size_t> tsIndex; // timestamp -> index in s_TimelineCache (first-seen order, like the old grouping pass)
+
+        for (const auto& drop : allDrops)
+        {
+            if (drop.isCurrency) { if (ItemTracker::IsCurrencyIgnored(drop.itemId)) continue; }
+            else                 { if (ItemTracker::IsItemIgnored(drop.itemId)) continue; }
+
+            size_t idx;
+            auto tsIt = tsIndex.find(drop.timestamp);
+            if (tsIt == tsIndex.end())
+            {
+                TimelineGroup g;
+                g.timestamp = drop.timestamp;
+                g.characterName = drop.characterName;
+                idx = s_TimelineCache.size();
+                tsIndex[drop.timestamp] = idx;
+                s_TimelineCache.push_back(std::move(g));
+            }
+            else
+            {
+                idx = tsIt->second;
+            }
+
+            TimelineGroup& g = s_TimelineCache[idx];
+            g.groupValue += drop.totalValue;
+            if (drop.magicFind >= 0) g.groupMF = drop.magicFind;
+
+            if (drop.isCurrency)
+            {
+                g.hasCurrencies = true;
+                auto& cs = g.currencies[drop.itemId];
+                cs.count += drop.count;
+                if (cs.name.empty())
+                {
+                    cs.name = drop.itemName;
+                    auto st = ItemTracker::GetCurrencyStat(drop.itemId);
+                    cs.iconUrl = st.details.iconUrl;
+                    cs.rarity  = st.details.rarity;
+                }
+            }
+
+            // Icon row: items always; currencies only if they have a custom profit set (unchanged from before)
+            bool isCustomProfitCurrency = drop.isCurrency && CustomProfitManager::HasCustomProfit(drop.itemId);
+            if (drop.isCurrency && !isCustomProfitCurrency) continue;
+
+            bool merged = false;
+            for (auto& existing : g.itemDrops)
+            {
+                if (existing.itemId == drop.itemId)
+                {
+                    existing.count      += drop.count;
+                    existing.totalValue += drop.totalValue;
+                    merged = true;
+                    break;
+                }
+            }
+            if (!merged)
+            {
+                SessionHistory::DropEntry copy = drop;
+                if (drop.isCurrency)
+                {
+                    auto st = ItemTracker::GetCurrencyStat(drop.itemId);
+                    copy.iconUrl   = st.details.iconUrl;
+                    copy.rarity    = st.details.rarity;
+                    copy.itemName  = st.details.name;
+                }
+                g.itemDrops.push_back(std::move(copy));
+            }
+        }
+
+        std::reverse(s_TimelineCache.begin(), s_TimelineCache.end()); // newest first, like before
+    }
+
     void RenderTimelineTab()
     {
         // 1. Header Info (Profit, G/h, etc. like in the photo)
@@ -351,37 +464,15 @@ namespace UITimeline
         ImGui::Spacing();
 
         // 2. Timeline List (Grouped by Timestamp)
-        auto allDrops = ItemTracker::GetSessionDropsCopy();
-        std::vector<SessionHistory::DropEntry> drops;
-        
-        // Filter out ignored items/currencies
-        for (const auto& drop : allDrops)
+        // Rebuild the grouped/merged cache only when the underlying drop history actually
+        // changed, instead of redoing all of this (deep-copy + filtering + grouping + merging)
+        // on every single frame while the tab is open.
+        uint64_t currentDropsVersion = ItemTracker::GetSessionDropsVersion();
+        if (currentDropsVersion != s_TimelineCacheVersion)
         {
-            if (drop.isCurrency)
-            {
-                if (ItemTracker::IsCurrencyIgnored(drop.itemId)) continue;
-            }
-            else
-            {
-                if (ItemTracker::IsItemIgnored(drop.itemId)) continue;
-            }
-            drops.push_back(drop);
+            RebuildTimelineCache();
+            s_TimelineCacheVersion = currentDropsVersion;
         }
-        
-        // Group drops by timestamp
-        std::map<std::string, std::vector<SessionHistory::DropEntry>> groupedDrops;
-        std::vector<std::string> timestamps; // Keep order
-        
-        for (const auto& drop : drops)
-        {
-            if (groupedDrops.find(drop.timestamp) == groupedDrops.end())
-            {
-                timestamps.push_back(drop.timestamp);
-            }
-            groupedDrops[drop.timestamp].push_back(drop);
-        }
-        
-        std::reverse(timestamps.begin(), timestamps.end()); // Newest first
 
         int openItemMenuId = -1;
         std::string openItemMenuName;
@@ -390,33 +481,49 @@ namespace UITimeline
 
         if (ImGui::BeginChild("TimelineDropsScroll", ImVec2(0, 0), true))
         {
-            if (timestamps.empty())
+            if (s_TimelineCache.empty())
             {
                 ImGui::TextDisabled("%s", Localization::GetText("timeline_no_drops"));
             }
             else
             {
-                for (const auto& ts : timestamps)
+                // Clipping: skip groups that are fully outside the visible scroll range, using each
+                // group's actual height from the previous frame (keyed by timestamp so it survives
+                // new groups being prepended). Off-screen groups only pay for a single Dummy() call
+                // instead of the full text/icon rendering, so cost no longer scales with the entire
+                // session history — only with what's actually on screen (plus a one-screen margin).
+                const float scrollY   = ImGui::GetScrollY();
+                const float viewH     = ImGui::GetWindowHeight();
+                const float margin    = viewH; // one extra screen above/below for smooth scrolling
+                const float visibleTop    = scrollY - margin;
+                const float visibleBottom = scrollY + viewH + margin;
+
+                for (const auto& group : s_TimelineCache)
                 {
-                    const auto& group = groupedDrops[ts];
-                    
-                    ImGui::PushID(ts.c_str());
-                    
-                    // Calculate total value and check for MF
-                    long long groupValue = 0;
-                    int groupMF = -1;
-                    for (const auto& d : group)
+                    float groupStartY = ImGui::GetCursorPosY();
+
+                    auto heightIt = s_TimelineGroupHeights.find(group.timestamp);
+                    float estHeight = (heightIt != s_TimelineGroupHeights.end()) ? heightIt->second : -1.f;
+                    bool hasEstimate = estHeight >= 0.f;
+                    bool mightBeVisible = !hasEstimate || (groupStartY + estHeight >= visibleTop && groupStartY <= visibleBottom);
+
+                    if (!mightBeVisible)
                     {
-                        groupValue += d.totalValue;
-                        if (d.magicFind >= 0) groupMF = d.magicFind;
+                        // Fully off-screen: reserve the space without doing any of the expensive drawing work.
+                        ImGui::Dummy(ImVec2(1.f, estHeight));
+                        continue;
                     }
 
+                    ImGui::PushID(group.timestamp.c_str());
+
+                    long long groupValue = group.groupValue;
+                    int groupMF = group.groupMF;
+
                     // 1. Time Header
-                    // Use character name from the first drop in this group
-                    std::string characterName = group.empty() ? "" : group[0].characterName;
+                    const std::string& characterName = group.characterName;
                     ImGui::TextColored(ImVec4(0.4f, 0.6f, 1.0f, 1.0f), characterName.empty() ? UICommon::s_AccountNameBuf : characterName.c_str());
                     ImGui::SameLine();
-                    ImGui::TextColored(ImVec4(0.5f, 0.65f, 0.8f, 1.0f), "%s", ts.c_str());
+                    ImGui::TextColored(ImVec4(0.5f, 0.65f, 0.8f, 1.0f), "%s", group.timestamp.c_str());
 
                     // 2. MF if available
                     if (groupMF >= 0)
@@ -429,65 +536,35 @@ namespace UITimeline
                     ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "%s:", Localization::GetText("timeline_liquid_coins"));
                     ImGui::SameLine();
                     ImGui::TextColored(ImVec4(1.0f, 0.84f, 0.0f, 1.0f), "%s", UICommon::FormatCoin(groupValue).c_str());
-                    
-                    // Check if there are currencies to display
-                    bool hasCurrencies = false;
-                    for (const auto& d : group) if (d.isCurrency) { hasCurrencies = true; break; }
-                    
-                    if (hasCurrencies)
+
+                    if (group.hasCurrencies)
                     {
                         ImGui::SameLine();
                         ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "%s", Localization::GetText("pipe"));
                         ImGui::SameLine();
                         ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "%s:", Localization::GetText("timeline_currencies"));
-                        
-                        // Group currencies by itemId and sum counts
-                        std::map<int, int> currencyCounts;
-                        std::map<int, std::string> currencyNames;
-                        std::map<int, std::string> currencyIcons;
-                        std::map<int, std::string> currencyRarities;
-                        
-                        for (const auto& d : group)
-                        {
-                            if (!d.isCurrency) continue;
-                            currencyCounts[d.itemId] += d.count;
-                            if (currencyNames.find(d.itemId) == currencyNames.end())
-                            {
-                                currencyNames[d.itemId] = d.itemName;
-                                auto st = ItemTracker::GetCurrencyStat(d.itemId);
-                                currencyIcons[d.itemId] = st.details.iconUrl;
-                                currencyRarities[d.itemId] = st.details.rarity;
-                            }
-                        }
-                        
+
                         // Display summed currencies with wrapping
                         float windowVisibleX2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
                         float curIconSize = static_cast<float>(g_Settings.timelineIconSizeCurrencies);
 
                         bool firstCurrency = true;
-                        for (const auto& [itemId, count] : currencyCounts)
+                        for (const auto& [itemId, cs] : group.currencies)
                         {
                             ImGui::PushID(itemId);
-                            
-                            // itemId == 1 is the coin currency → format as G/S/C, everything else plain number
-                            // But show profit if custom profit is set
-                            long long currencyProfit = ItemTracker::GetStatProfit(ItemTracker::GetCurrencyStat(itemId)) / count * count; // This is a bit redundant but ensures we use the current session's count
-                            // Actually, just use GetStatProfit with a dummy stat to get the unit profit, or just check if it has custom profit.
-                            
-                            auto st = ItemTracker::GetCurrencyStat(itemId);
-                            long long totalProfit = ItemTracker::GetStatProfit(st);
-                            // We need to be careful: the 'st' from ItemTracker might have a different count than the 'count' in this timeline group.
-                            // So we calculate profit based on the unit profit from CustomProfitManager.
+
+                            // itemId == 1 is the coin currency → format as G/S/C, everything else plain number.
+                            // Show profit instead if a custom profit is set for this currency.
                             long long unitProfit = CustomProfitManager::HasCustomProfit(itemId) ? CustomProfitManager::GetCustomProfit(itemId) : 0;
-                            long long displayProfit = unitProfit * count;
+                            long long displayProfit = unitProfit * cs.count;
 
                             std::string countStr;
                             if (itemId == 1)
-                                countStr = UICommon::FormatCoin(count);
+                                countStr = UICommon::FormatCoin(cs.count);
                             else if (displayProfit != 0)
                                 countStr = UICommon::FormatCoin(displayProfit);
                             else
-                                countStr = UICommon::FormatCompact(count);
+                                countStr = UICommon::FormatCompact(cs.count);
 
                             float itemWidth = ImGui::CalcTextSize(countStr.c_str()).x + curIconSize + ImGui::GetStyle().ItemSpacing.x * 2.0f;
                             
@@ -505,22 +582,22 @@ namespace UITimeline
                                     ImGui::SameLine();
                             }
 
-                            UICommon::DrawItemIconCell(itemId, currencyIcons[itemId], curIconSize, currencyRarities[itemId]);
+                            UICommon::DrawItemIconCell(itemId, cs.iconUrl, curIconSize, cs.rarity);
                             if (ImGui::IsItemHovered())
                             {
                                 UITooltips::CurrencyTooltipOptions opt;
                                 opt.showCount = true;
-                                opt.count = count;
+                                opt.count = cs.count;
                                 opt.showProfit = (displayProfit != 0);
                                 opt.profit = displayProfit;
                                 opt.showRarity = true;
                                 opt.showId = true;
-                                UITooltips::RenderCurrencyTooltipFallback(currencyNames[itemId], currencyRarities[itemId], itemId, opt);
+                                UITooltips::RenderCurrencyTooltipFallback(cs.name, cs.rarity, itemId, opt);
                             }
                             if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
                             {
                                 openCurrencyMenuId = itemId;
-                                openCurrencyMenuName = currencyNames[itemId];
+                                openCurrencyMenuName = cs.name;
                             }
                             ImGui::SameLine();
                             
@@ -531,7 +608,7 @@ namespace UITimeline
                             {
                                 UITooltips::CurrencyTooltipOptions opt;
                                 opt.showCount = true;
-                                opt.count = count;
+                                opt.count = cs.count;
                                 opt.showProfit = (displayProfit != 0);
                                 opt.profit = displayProfit;
                                 opt.showRarity = false;
@@ -540,12 +617,12 @@ namespace UITimeline
                                 if (st.details.loaded)
                                     UITooltips::RenderCurrencyTooltip(st.details, itemId, opt);
                                 else
-                                    UITooltips::RenderCurrencyTooltipFallback(currencyNames[itemId], "", itemId, opt);
+                                    UITooltips::RenderCurrencyTooltipFallback(cs.name, "", itemId, opt);
                             }
                             if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
                             {
                                 openCurrencyMenuId = itemId;
-                                openCurrencyMenuName = currencyNames[itemId];
+                                openCurrencyMenuName = cs.name;
                             }
                             
                             ImGui::PopID();
@@ -558,38 +635,7 @@ namespace UITimeline
                     ImGui::Spacing();
                     float iconSize = static_cast<float>(g_Settings.timelineIconSizeItems);
 
-                    // Group item drops by itemId and sum counts within the same timestamp
-                    // Include items AND currencies that have a custom profit
-                    std::map<int, SessionHistory::DropEntry> mergedItemMap;
-                    std::vector<int> mergedItemOrder;
-                    for (const auto& d : group)
-                    {
-                        bool isCustomProfitCurrency = d.isCurrency && CustomProfitManager::HasCustomProfit(d.itemId);
-                        if (d.isCurrency && !isCustomProfitCurrency) continue;
-
-                        if (mergedItemMap.find(d.itemId) == mergedItemMap.end())
-                        {
-                            mergedItemMap[d.itemId] = d;
-                            // If it's a currency, ensure we have details for the icon row display
-                            if (d.isCurrency)
-                            {
-                                auto st = ItemTracker::GetCurrencyStat(d.itemId);
-                                mergedItemMap[d.itemId].iconUrl = st.details.iconUrl;
-                                mergedItemMap[d.itemId].rarity = st.details.rarity;
-                                mergedItemMap[d.itemId].itemName = st.details.name;
-                            }
-                            mergedItemOrder.push_back(d.itemId);
-                        }
-                        else
-                        {
-                            mergedItemMap[d.itemId].count      += d.count;
-                            mergedItemMap[d.itemId].totalValue += d.totalValue;
-                        }
-                    }
-                    std::vector<const SessionHistory::DropEntry*> itemDrops;
-                    itemDrops.reserve(mergedItemOrder.size());
-                    for (int id : mergedItemOrder)
-                        itemDrops.push_back(&mergedItemMap[id]);
+                    const auto& itemDrops = group.itemDrops;
 
                     float spacingX = ImGui::GetStyle().ItemSpacing.x;
                     float availW = ImGui::GetContentRegionAvail().x;
@@ -597,7 +643,7 @@ namespace UITimeline
 
                     for (int itemIndex = 0; itemIndex < static_cast<int>(itemDrops.size()); itemIndex++)
                     {
-                        const auto& d = *itemDrops[itemIndex];
+                        const auto& d = itemDrops[itemIndex];
 
                         ImGui::PushID(itemIndex);
                         
@@ -740,6 +786,9 @@ namespace UITimeline
                     ImGui::Spacing();
                     ImGui::Separator();
                     ImGui::Spacing();
+
+                    // Record this group's actual rendered height for next frame's clipping decision.
+                    s_TimelineGroupHeights[group.timestamp] = ImGui::GetCursorPosY() - groupStartY;
                 }
             }
 

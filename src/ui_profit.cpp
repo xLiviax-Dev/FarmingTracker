@@ -391,7 +391,7 @@ void RenderProfitTab()
             {
                 { ImVec2 p = ImGui::GetCursorScreenPos(); DrawDarkGradientBox(p, { p.x + dropCardW, p.y + dropCardH }); }
                 PushCard();
-                ImGui::BeginChild("##best_single", ImVec2(dropCardW, dropCardH), false, ImGuiWindowFlags_NoScrollbar);
+                ImGui::BeginChild("##best_single", ImVec2(dropCardW, dropCardH), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
                 std::string bn = bestSt.details.loaded ? bestSt.details.name : Localization::GetText("loading");
                 long long unitProfit = 0;
@@ -440,7 +440,7 @@ void RenderProfitTab()
             {
                 { ImVec2 p = ImGui::GetCursorScreenPos(); DrawDarkGradientBox(p, { p.x + dropCardW, p.y + dropCardH }); }
                 PushCard();
-                ImGui::BeginChild("##best_total", ImVec2(dropCardW, dropCardH), false, ImGuiWindowFlags_NoScrollbar);
+                ImGui::BeginChild("##best_total", ImVec2(dropCardW, dropCardH), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
                 std::string bn = bestTotalSt.details.loaded ? bestTotalSt.details.name : Localization::GetText("loading");
                 long long totalProfit = ItemTracker::GetStatProfit(bestTotalSt);
@@ -487,7 +487,7 @@ void RenderProfitTab()
     // Sparkline
     { ImVec2 p=ImGui::GetCursorScreenPos(); DrawDarkGradientBox(p,{p.x+mainW,p.y+165.f}); }
     PushCard();
-    ImGui::BeginChild("##sparkcard", ImVec2(mainW, 165.f), false, ImGuiWindowFlags_NoScrollbar);
+    ImGui::BeginChild("##sparkcard", ImVec2(mainW, 165.f), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::Indent(4.f);
     SecLabel(Localization::GetText("profit_per_hour_label_simple"));
     RenderSparkline(mainW - 20.f, 127.f);
@@ -687,7 +687,7 @@ void RenderProfitTab()
 
     { ImVec2 p = ImGui::GetCursorScreenPos(); DrawDarkGradientBox(p, { p.x + mainW, p.y + 28.f + 5 * (iconSz + 8.f) + 16.f }); }
     PushCard();
-    ImGui::BeginChild("##topI", ImVec2(mainW, 28.f + 5 * (iconSz + 8.f) + 16.f), false, ImGuiWindowFlags_NoScrollbar);
+    ImGui::BeginChild("##topI", ImVec2(mainW, 28.f + 5 * (iconSz + 8.f) + 16.f), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::Indent(4.f);
     SecLabel(Localization::GetText("top_items_profit_header"));
     if (ImGui::BeginTable("##ti", 6, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_SizingFixedFit))
@@ -766,7 +766,7 @@ void RenderProfitTab()
 
     { ImVec2 p=ImGui::GetCursorScreenPos(); DrawDarkGradientBox(p,{p.x+mainW,p.y+28.f+5*(iconSz+8.f)+16.f}); }
     PushCard();
-    ImGui::BeginChild("##topC", ImVec2(mainW, 28.f+5*(iconSz+8.f)+16.f), false, ImGuiWindowFlags_NoScrollbar);
+    ImGui::BeginChild("##topC", ImVec2(mainW, 28.f+5*(iconSz+8.f)+16.f), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::Indent(4.f);
     SecLabel(Localization::GetText("top_currencies_count_header"));
     if (ImGui::BeginTable("##tc", 6, ImGuiTableFlags_NoSavedSettings|ImGuiTableFlags_SizingFixedFit))
@@ -886,7 +886,7 @@ void RenderProfitTab()
         }
         { ImVec2 p=ImGui::GetCursorScreenPos(); DrawDarkGradientBox(p,{p.x+sideW,p.y+148.f}); }
         PushCard();
-        ImGui::BeginChild("##rar", ImVec2(sideW, 148.f), false, ImGuiWindowFlags_NoScrollbar);
+        ImGui::BeginChild("##rar", ImVec2(sideW, 148.f), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         SecLabel(Localization::GetText("total_items_label_simple"));
         for (auto& r:rc)
         {
@@ -905,7 +905,7 @@ void RenderProfitTab()
     // Session info
     { ImVec2 p=ImGui::GetCursorScreenPos(); DrawDarkGradientBox(p,{p.x+sideW,p.y+102.f}); }
     PushCard();
-    ImGui::BeginChild("##sess", ImVec2(sideW, 102.f), false, ImGuiWindowFlags_NoScrollbar);
+    ImGui::BeginChild("##sess", ImVec2(sideW, 102.f), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     SecLabel(Localization::GetText("session_duration_label_simple"));
     ImGui::TextColored(ImVec4(1.f, 1.f, 1.f, 1.f),"%s",Localization::GetText("session_duration_label_simple")); ImGui::SameLine();
     ImGui::Text("%s", UICommon::FormatDuration(duration.count()).c_str());

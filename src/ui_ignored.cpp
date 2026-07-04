@@ -110,7 +110,7 @@ static void RenderStatsBar(const std::map<std::string, int>& counts, int total)
     dl->AddRectFilled({hMin.x, hMin.y}, {hMin.x + 3.f, hMax.y},
         ImGui::ColorConvertFloat4ToU32(ImVec4(acR, acG, acB, 1.f)), 2.f);
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0,0,0,0));
-    ImGui::BeginChild("##ignored_stats", {avail, kH}, false, ImGuiWindowFlags_NoScrollbar);
+    ImGui::BeginChild("##ignored_stats", {avail, kH}, false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + std::max(0.f,(kH-ImGui::GetTextLineHeight())*.5f));
     ImGui::SetCursorPosX(10.f);
     ImGui::TextColored(ImVec4(0.2f,0.8f,0.2f,1.f), "%d", total);
@@ -818,7 +818,7 @@ static void RenderCurrenciesSubTab()
         dl->AddRect(hMin,hMax,border,4.f,0,0.5f);
         dl->AddRectFilled({hMin.x,hMin.y},{hMin.x+3.f,hMax.y},ImGui::ColorConvertFloat4ToU32(ImVec4(acR,acG,acB,1.f)),2.f);
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0,0,0,0));
-        ImGui::BeginChild("##ign_cur_stats",{avail,kH},false,ImGuiWindowFlags_NoScrollbar);
+        ImGui::BeginChild("##ign_cur_stats",{avail,kH},false,ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::SetCursorPosY(ImGui::GetCursorPosY()+std::max(0.f,(kH-ImGui::GetTextLineHeight())*.5f));
         ImGui::SetCursorPosX(10.f);
         ImGui::TextColored(ImVec4(0.2f,0.8f,0.2f,1.f),"%d",(int)ignored.size());

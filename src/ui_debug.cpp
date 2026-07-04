@@ -107,7 +107,7 @@ static void MetricCard(const char* childId, const char* label, const char* value
     ImVec2 pos = ImGui::GetCursorScreenPos();
     DrawGradientBox(pos, {pos.x+width, pos.y+54.f});
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0,0,0,0));
-    if (ImGui::BeginChild(childId, ImVec2(width, 54.f), false, ImGuiWindowFlags_NoScrollbar))
+    if (ImGui::BeginChild(childId, ImVec2(width, 54.f), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
     {
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 4.f);
         float labelWidth = ImGui::CalcTextSize(label).x;
@@ -137,7 +137,7 @@ static void ProfitCard(const char* childId, const char* label,
     ImVec2 pos = ImGui::GetCursorScreenPos();
     DrawGradientBox(pos, {pos.x+width, pos.y+110.f});
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0,0,0,0));
-    if (ImGui::BeginChild(childId, ImVec2(width, 110.f), false, ImGuiWindowFlags_NoScrollbar))
+    if (ImGui::BeginChild(childId, ImVec2(width, 110.f), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
     {
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 4.f);
         float labelWidth = ImGui::CalcTextSize(label).x;

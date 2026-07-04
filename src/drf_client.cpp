@@ -85,6 +85,69 @@ static std::string JsonObjectKeys(const json& j)
 }
 
 // ---------------------------------------------------------------------------
+// UTF-8 validation to prevent encoding errors
+// ---------------------------------------------------------------------------
+static bool IsValidUtf8(const std::string& str)
+{
+    const unsigned char* bytes = reinterpret_cast<const unsigned char*>(str.c_str());
+    size_t len = str.length();
+    
+    for (size_t i = 0; i < len; )
+    {
+        unsigned char c = bytes[i];
+        
+        // ASCII (0-127) is always valid
+        if (c <= 0x7F)
+        {
+            i++;
+            continue;
+        }
+        
+        // Multi-byte sequences
+        size_t expectedBytes = 0;
+        if ((c & 0xE0) == 0xC0) expectedBytes = 2;      // 110xxxxx
+        else if ((c & 0xF0) == 0xE0) expectedBytes = 3; // 1110xxxx
+        else if ((c & 0xF8) == 0xF0) expectedBytes = 4; // 11110xxx
+        else return false; // Invalid UTF-8 start byte
+        
+        // Check we have enough bytes
+        if (i + expectedBytes > len)
+            return false;
+        
+        // Check continuation bytes (10xxxxxx)
+        for (size_t j = 1; j < expectedBytes; j++)
+        {
+            if ((bytes[i + j] & 0xC0) != 0x80)
+                return false;
+        }
+        
+        // Check for overlong encodings and invalid code points
+        unsigned int codePoint = 0;
+        if (expectedBytes == 2)
+        {
+            codePoint = ((bytes[i] & 0x1F) << 6) | (bytes[i+1] & 0x3F);
+            if (codePoint < 0x80) return false; // Overlong
+        }
+        else if (expectedBytes == 3)
+        {
+            codePoint = ((bytes[i] & 0x0F) << 12) | ((bytes[i+1] & 0x3F) << 6) | (bytes[i+2] & 0x3F);
+            if (codePoint < 0x800) return false; // Overlong
+            if (codePoint >= 0xD800 && codePoint <= 0xDFFF) return false; // Surrogate pairs
+        }
+        else if (expectedBytes == 4)
+        {
+            codePoint = ((bytes[i] & 0x07) << 18) | ((bytes[i+1] & 0x3F) << 12) | ((bytes[i+2] & 0x3F) << 6) | (bytes[i+3] & 0x3F);
+            if (codePoint < 0x10000) return false; // Overlong
+            if (codePoint > 0x10FFFF) return false; // Beyond Unicode max
+        }
+        
+        i += expectedBytes;
+    }
+    
+    return true;
+}
+
+// ---------------------------------------------------------------------------
 static void SetStatus(DrfStatus status)
 {
     s_Status.store(status);
@@ -322,6 +385,20 @@ static bool RunConnection(const std::string& token)
     }
 
     // Send authentication: "Bearer <token>"
+    // Validate token is valid UTF-8 to prevent encoding errors
+    if (!IsValidUtf8(token))
+    {
+        if (apiDefs)
+            apiDefs->Log(LOGL_CRITICAL, "FarmingTracker", "DRF: Token contains invalid UTF-8 characters");
+        DrfClient::Log("Token contains invalid UTF-8 characters", "error");
+        WinHttpWebSocketClose(hWebSocket, WINHTTP_WEB_SOCKET_SUCCESS_CLOSE_STATUS, nullptr, 0);
+        WinHttpCloseHandle(hWebSocket);
+        WinHttpCloseHandle(hConnect);
+        WinHttpCloseHandle(hSession);
+        SetStatus(DrfStatus::AuthFailed);
+        return false; // don't retry - user must fix the token
+    }
+    
     std::string authMsg = "Bearer " + token;
     if (apiDefs)
         apiDefs->Log(LOGL_INFO, "FarmingTracker", "DRF: Sending authentication token");

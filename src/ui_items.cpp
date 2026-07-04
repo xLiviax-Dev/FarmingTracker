@@ -258,7 +258,7 @@ void RenderItemsTab()
                 }
 
                 ImGui::PushID(id);
-                if (ImGui::BeginChild("##FavItemCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar))
+                if (ImGui::BeginChild("##FavItemCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
                 {
                     ImVec2 cur = ImGui::GetCursorScreenPos();
                     
@@ -310,14 +310,18 @@ void RenderItemsTab()
         else
         {
             // List View for Favorite Items
-            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 40.0f);
-            if (ImGui::BeginTable("##FavoriteItemsTable", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings, ImVec2(ImGui::GetContentRegionAvail().x - 40.0f, 0.0f)))
-            {
-                ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 70.f);
-                ImGui::TableSetupColumn(Localization::GetText("item"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 350.f);
-                ImGui::TableSetupColumn(Localization::GetText("count"), ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_NoHide, 100.f);
-                ImGui::TableSetupColumn(Localization::GetText("value"), ImGuiTableColumnFlags_WidthStretch);
+            auto setupTable = [&](const char* id, int cols) -> bool {
+                float icw = std::max(32.0f + 10.f, 70.f);
+                if (!ImGui::BeginTable(id, cols, ImGuiTableFlags_Borders|ImGuiTableFlags_RowBg|ImGuiTableFlags_Resizable|ImGuiTableFlags_NoSavedSettings)) return false;
+                ImGui::TableSetupColumn(Localization::GetText("column_icon"), ImGuiTableColumnFlags_WidthFixed|ImGuiTableColumnFlags_NoHide, icw);
+                ImGui::TableSetupColumn(Localization::GetText("column_name"), ImGuiTableColumnFlags_WidthFixed|ImGuiTableColumnFlags_NoHide, 430.f);
+                ImGui::TableSetupColumn(Localization::GetText("column_count"), ImGuiTableColumnFlags_WidthFixed|ImGuiTableColumnFlags_NoHide, 150.f);
+                ImGui::TableSetupColumn(Localization::GetText("column_profit"), ImGuiTableColumnFlags_WidthStretch);
                 ImGui::TableHeadersRow();
+                return true;
+            };
+            if (setupTable("##FavoriteItemsTable", 4))
+            {
 
                 for (auto& [id, st] : favoriteItems)
                 {
@@ -546,7 +550,7 @@ void RenderItemsTab()
                 }
 
                 auto renderCell = [&](int id, const Stat& st) {
-                    if (ImGui::BeginChild("##ItemCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar))
+                    if (ImGui::BeginChild("##ItemCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
                     {
                         ImVec2 cur = ImGui::GetCursorPos();
                         char btnId[64]; snprintf(btnId, sizeof(btnId), "##IB_%d", id);
@@ -646,7 +650,7 @@ void RenderItemsTab()
                 for (auto& [id, st] : sortedItems) typeGroups[st.details.itemType].push_back({id, st});
 
                 auto renderCell = [&](int id, const Stat& st) {
-                    if (ImGui::BeginChild("##ItemCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar))
+                    if (ImGui::BeginChild("##ItemCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
                     {
                         ImVec2 cur = ImGui::GetCursorPos();
                         char btnId[64]; snprintf(btnId, sizeof(btnId), "##IB_%d", id);
@@ -707,7 +711,7 @@ void RenderItemsTab()
                 {
                     if (col > 0) ImGui::SameLine();
                     ImGui::PushID(id);
-                    if (ImGui::BeginChild("##ItemCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar))
+                    if (ImGui::BeginChild("##ItemCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
                     {
                         ImVec2 cur = ImGui::GetCursorPos();
                         char btnId[64]; snprintf(btnId, sizeof(btnId), "##IB_%d", id);
@@ -880,14 +884,7 @@ void RenderItemsTab()
                         ImGui::PushStyleColor(ImGuiCol_Text,tc);
                         if (ImGui::BeginTabItem(tl)) {
                             ImGui::PopStyleColor();
-                            if (ImGui::BeginTable(("##RarityTable_"+r).c_str(),itemTableColumnCount,ImGuiTableFlags_Borders|ImGuiTableFlags_RowBg|ImGuiTableFlags_Resizable)) {
-                                float icw=(float)g_Settings.itemsIconSize+10.f;
-                                ImGui::TableSetupColumn(Localization::GetText("column_icon"),ImGuiTableColumnFlags_WidthFixed|ImGuiTableColumnFlags_NoHide,icw);
-                                ImGui::TableSetupColumn(Localization::GetText("column_name"),ImGuiTableColumnFlags_WidthStretch|ImGuiTableColumnFlags_NoHide,110.f);
-                                ImGui::TableSetupColumn(Localization::GetText("column_count"),ImGuiTableColumnFlags_WidthFixed|ImGuiTableColumnFlags_NoHide,150.f);
-                                ImGui::TableSetupColumn(Localization::GetText("column_profit"),ImGuiTableColumnFlags_WidthFixed|ImGuiTableColumnFlags_NoHide,120.f);
-                                ImGui::TableSetupColumn(Localization::GetText("magic_find"),ImGuiTableColumnFlags_WidthStretch);
-                                ImGui::TableHeadersRow();
+                            if (setupTable(("##RarityTable_"+r).c_str(),itemTableColumnCount)) {
                                 for (auto& [id,st]:rarityGroups[r]) renderItemRow(id,st,itemTableColumnCount);
                                 UIContextMenu::RenderItemContextMenu("ItemContextMenu",UIContextMenu::ContextMenuType::CopyOnly);
                                 ImGui::EndTable();

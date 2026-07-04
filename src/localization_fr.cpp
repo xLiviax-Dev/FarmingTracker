@@ -377,6 +377,7 @@ namespace Localization
             {"drf_token", "Jeton DRF"},
             {"drf_token_label", "Jeton DRF :"},
             {"drf_token_tooltip", "Votre jeton d'authentification DRF"},
+            {"token_invalid_utf8", "(UTF-8 invalide)"},
             {"edit_token", "Modifier le Jeton"},
             {"save_token", "Sauvegarder le Jeton"},
             {"gw2_api_settings", "Paramètres API GW2"},

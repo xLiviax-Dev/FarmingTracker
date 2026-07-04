@@ -377,6 +377,7 @@ namespace Localization
             {"drf_token", "DRF Token"},
             {"drf_token_label", "DRF Token:"},
             {"drf_token_tooltip", "Az Ön DRF hitelesítési tokenje"},
+            {"token_invalid_utf8", "(Érvénytelen UTF-8)"},
             {"edit_token", "Token szerkesztése"},
             {"save_token", "Token mentése"},
             {"gw2_api_settings", "GW2 API beállítások"},

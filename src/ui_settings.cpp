@@ -27,6 +27,67 @@
 
 namespace UISettings
 {
+    // UTF-8 validation helper
+    static bool IsValidUtf8(const std::string& str)
+    {
+        const unsigned char* bytes = reinterpret_cast<const unsigned char*>(str.c_str());
+        size_t len = str.length();
+        
+        for (size_t i = 0; i < len; )
+        {
+            unsigned char c = bytes[i];
+            
+            // ASCII (0-127) is always valid
+            if (c <= 0x7F)
+            {
+                i++;
+                continue;
+            }
+            
+            // Multi-byte sequences
+            size_t expectedBytes = 0;
+            if ((c & 0xE0) == 0xC0) expectedBytes = 2;      // 110xxxxx
+            else if ((c & 0xF0) == 0xE0) expectedBytes = 3; // 1110xxxx
+            else if ((c & 0xF8) == 0xF0) expectedBytes = 4; // 11110xxx
+            else return false; // Invalid UTF-8 start byte
+            
+            // Check we have enough bytes
+            if (i + expectedBytes > len)
+                return false;
+            
+            // Check continuation bytes (10xxxxxx)
+            for (size_t j = 1; j < expectedBytes; j++)
+            {
+                if ((bytes[i + j] & 0xC0) != 0x80)
+                    return false;
+            }
+            
+            // Check for overlong encodings and invalid code points
+            unsigned int codePoint = 0;
+            if (expectedBytes == 2)
+            {
+                codePoint = ((bytes[i] & 0x1F) << 6) | (bytes[i+1] & 0x3F);
+                if (codePoint < 0x80) return false; // Overlong
+            }
+            else if (expectedBytes == 3)
+            {
+                codePoint = ((bytes[i] & 0x0F) << 12) | ((bytes[i+1] & 0x3F) << 6) | (bytes[i+2] & 0x3F);
+                if (codePoint < 0x800) return false; // Overlong
+                if (codePoint >= 0xD800 && codePoint <= 0xDFFF) return false; // Surrogate pairs
+            }
+            else if (expectedBytes == 4)
+            {
+                codePoint = ((bytes[i] & 0x07) << 18) | ((bytes[i+1] & 0x3F) << 12) | ((bytes[i+2] & 0x3F) << 6) | (bytes[i+3] & 0x3F);
+                if (codePoint < 0x10000) return false; // Overlong
+                if (codePoint > 0x10FFFF) return false; // Beyond Unicode max
+            }
+            
+            i += expectedBytes;
+        }
+        
+        return true;
+    }
+
     void RenderShortcut()
     {
         ImGui::Checkbox(Localization::GetText("show_main_window"), &g_Settings.showMainWindow);
@@ -592,6 +653,8 @@ static void RenderPage_Account()
                 g_Settings.accounts[g_Settings.currentAccountIndex].name = UICommon::s_AccountNameBuf;
 
             LabelText(Localization::GetText("drf_token_label"));
+            if (!IsValidUtf8(UICommon::s_AccountDrfBuf) && UICommon::s_AccountDrfBuf[0] != '\0')
+            { ImGui::SameLine(); ImGui::TextColored(ImVec4(1.0f,0.3f,0.3f,1.0f), Localization::GetText("token_invalid_utf8")); }
             ImGui::SetNextItemWidth(-1.0f);
             if (ImGui::InputText("##AccountDrfToken", UICommon::s_AccountDrfBuf, sizeof(UICommon::s_AccountDrfBuf)))
                 g_Settings.accounts[g_Settings.currentAccountIndex].drfToken = UICommon::s_AccountDrfBuf;
@@ -609,22 +672,40 @@ static void RenderPage_Account()
             ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.08f, 0.40f, 0.12f, 1.00f));
             if (ImGui::Button(Localization::GetText("save_account")))
             {
-                { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
-                  g_Settings.accounts[g_Settings.currentAccountIndex].name     = UICommon::s_AccountNameBuf;
-                  g_Settings.accounts[g_Settings.currentAccountIndex].drfToken = UICommon::s_AccountDrfBuf;
-                  g_Settings.accounts[g_Settings.currentAccountIndex].gw2ApiKey= UICommon::s_AccountGw2Buf;
-                  g_Settings.drfToken  = UICommon::s_AccountDrfBuf;
-                  g_Settings.gw2ApiKey = UICommon::s_AccountGw2Buf; }
-                if (!g_Settings.drfToken.empty() && SettingsManager::IsTokenValid(g_Settings.drfToken))
-                    DrfClient::Connect(g_Settings.drfToken);
-                Gw2Fetcher::UpdateApiKey();
-                SettingsManager::Save();
+                // Validate DRF token UTF-8 before saving
+                if (!IsValidUtf8(UICommon::s_AccountDrfBuf) && UICommon::s_AccountDrfBuf[0] != '\0')
+                {
+                    DrfClient::Log("Cannot save account: DRF token contains invalid UTF-8 characters", "error");
+                }
+                else
+                {
+                    { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+                      g_Settings.accounts[g_Settings.currentAccountIndex].name     = UICommon::s_AccountNameBuf;
+                      g_Settings.accounts[g_Settings.currentAccountIndex].drfToken = UICommon::s_AccountDrfBuf;
+                      g_Settings.accounts[g_Settings.currentAccountIndex].gw2ApiKey= UICommon::s_AccountGw2Buf;
+                      g_Settings.drfToken  = UICommon::s_AccountDrfBuf;
+                      g_Settings.gw2ApiKey = UICommon::s_AccountGw2Buf; }
+                    if (!g_Settings.drfToken.empty() && SettingsManager::IsTokenValid(g_Settings.drfToken))
+                        DrfClient::Connect(g_Settings.drfToken);
+                    Gw2Fetcher::UpdateApiKey();
+                    SettingsManager::Save();
+                }
             }
             ImGui::PopStyleColor(3);
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("save_account_tooltip"));
             ImGui::SameLine();
             if (ImGui::Button(Localization::GetText("reload_drf_token")))
-                DrfClient::Connect(g_Settings.drfToken);
+            {
+                // Validate before reconnecting
+                if (!IsValidUtf8(g_Settings.drfToken) && !g_Settings.drfToken.empty())
+                {
+                    DrfClient::Log("Cannot reconnect: DRF token contains invalid UTF-8 characters", "error");
+                }
+                else
+                {
+                    DrfClient::Connect(g_Settings.drfToken);
+                }
+            }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("reconnect_drf_token"));
             ImGui::SameLine();
             if (ImGui::Button(Localization::GetText("reload_gw2_api_key")))
@@ -1290,7 +1371,7 @@ static void RenderPage_Performance()
         if (g_Settings.enableIconCache) {
             ImGui::Indent();
             if (ImGui::InputInt(Localization::GetText("icon_cache_max_icons"), &g_Settings.iconCacheMaxIcons, 10, 50))
-            { g_Settings.iconCacheMaxIcons = std::clamp(g_Settings.iconCacheMaxIcons, 10, 2000); SettingsManager::Save(); }
+            { g_Settings.iconCacheMaxIcons = std::clamp(g_Settings.iconCacheMaxIcons, 10, 5000); SettingsManager::Save(); }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("icon_cache_max_icons_tooltip"));
             ImGui::Unindent();
         }
