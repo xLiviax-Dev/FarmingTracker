@@ -562,6 +562,13 @@ static void RenderMainWindow()
 {
     if (!g_Settings.showMainWindow) return;
 
+    bool shouldShow = true;
+    if (g_Settings.mainWindowVisibilityMode == MainWindowVisibilityMode::OutOfCombat)
+    {
+        shouldShow = !IsInCombat();
+    }
+    if (!shouldShow) return;
+
     // Render the standalone info window (independent of main window)
     RenderInfoWindow();
 

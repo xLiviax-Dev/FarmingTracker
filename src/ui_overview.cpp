@@ -297,10 +297,10 @@ namespace UIOverview
                 }
                 else
                 {
-                    // Erste Zeile
+                    // Erste Zeile (Coin ist hier immer das erste Element)
                     if (isCurrency && isCoin)
                     {
-                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 55.0f); // Same as regular currencies
+                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 20.0f); // 20px
                     }
                 }
 
@@ -310,13 +310,6 @@ namespace UIOverview
                 {
                     // Keep the old group approach for currencies
                     ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
-
-                    // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
-                    if (isCoin && count > 0)
-                    {
-                        ImGui::Dummy(ImVec2(55.0f, 0.0f)); // Same as regular currencies
-                        ImGui::SameLine(0, 0.0f);
-                    }
 
                     // Eigentliche Icon-Gruppe
                     ImGui::BeginGroup();
@@ -705,15 +698,33 @@ namespace UIOverview
         }
 
         // Split currencies into two groups: favorites and non-favorites
+        // Coin (id 1) wird separat behandelt und immer an den Anfang der zuerst
+        // gerenderten Gruppe gesetzt, damit es unabhängig vom Favoriten-Status
+        // immer als erstes Element angezeigt wird.
         std::vector<std::pair<int, Stat>> favoriteCurrencies;
         std::vector<std::pair<int, Stat>> otherCurrencies;
+        bool hasCoin = false;
+        std::pair<int, Stat> coin;
         for (auto& [id, st] : currencies)
         {
             if (st.isIgnored || st.count == 0) continue;
+            if (id == 1)
+            {
+                hasCoin = true;
+                coin = {id, st};
+                continue;
+            }
             if (st.isFavorite)
                 favoriteCurrencies.emplace_back(id, st);
             else
                 otherCurrencies.emplace_back(id, st);
+        }
+        if (hasCoin)
+        {
+            if (!favoriteCurrencies.empty() || otherCurrencies.empty())
+                favoriteCurrencies.insert(favoriteCurrencies.begin(), coin);
+            else
+                otherCurrencies.insert(otherCurrencies.begin(), coin);
         }
 
         if (g_Settings.overviewEnableGridView)
@@ -758,20 +769,13 @@ namespace UIOverview
                     }
                     else
                     {
-                        // Erste Zeile
+                        // Erste Zeile (Coin ist hier immer das erste Element)
                         if (isCoin)
-                            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 55.0f); // +20px mehr +15px extra
+                            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 20.0f); // 20px
                     }
 
                     ImGui::PushID(id);
                     ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
-
-                    // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
-                    if (isCoin && count > 0)
-                    {
-                        ImGui::Dummy(ImVec2(55.0f, 0.0f)); // +20px mehr +15px extra
-                        ImGui::SameLine(0, 0.0f);
-                    }
 
                     // Eigentliche Icon-Gruppe
                     ImGui::BeginGroup();

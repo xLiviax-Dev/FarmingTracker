@@ -16,3 +16,4 @@ extern AddonAPI_t* APIDefs;
 #include <windows.h>
 HMODULE GetModule();
 int GetCurrentMapId();
+bool IsInCombat();

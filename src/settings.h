@@ -21,6 +21,20 @@ struct Account
     std::string gw2ApiKey;
 };
 
+// Mini window visibility modes
+enum class MiniWindowVisibilityMode : int
+{
+    Always = 0,
+    OutOfCombat = 1
+};
+
+// Main window visibility modes
+enum class MainWindowVisibilityMode : int
+{
+    Always = 0,
+    OutOfCombat = 1
+};
+
 struct Settings
 {
     // Language (stored as string for JSON serialization)
@@ -89,6 +103,7 @@ struct Settings
 
     // Mini Window (Overlay Widget) Settings
     bool showMiniWindow = false;
+    MiniWindowVisibilityMode miniWindowVisibilityMode = MiniWindowVisibilityMode::Always;
     bool miniWindowShowProfit = true;
     bool miniWindowShowProfitPerHour = true;
     bool miniWindowShowTradingProfitSell = false;
@@ -115,6 +130,7 @@ struct Settings
 
     // Main Window Settings
     bool showMainWindow = true;
+    MainWindowVisibilityMode mainWindowVisibilityMode = MainWindowVisibilityMode::Always;
     bool mainWindowClickThrough = false;
     bool mainWindowHideTitleBar = false;
     float mainWindowPosX = 100.0f;

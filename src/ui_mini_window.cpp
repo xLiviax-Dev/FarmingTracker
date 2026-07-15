@@ -2,6 +2,7 @@
 #include "ui.h"
 #include "ui_common.h"
 #include "settings.h"
+#include "shared.h"
 #include "item_tracker.h"
 #include "localization.h"
 
@@ -10,6 +11,26 @@ namespace UIMiniWindow
 void RenderMiniWindow()
 {
     if (!g_Settings.showMiniWindow) return;
+
+    bool inCombat = IsInCombat();
+    bool shouldShow = false;
+    
+    // Convert old InCombat mode to OutOfCombat (for backward compatibility)
+    auto mode = g_Settings.miniWindowVisibilityMode;
+    if (static_cast<int>(mode) > 1) {
+        mode = MiniWindowVisibilityMode::OutOfCombat;
+    }
+    
+    switch (mode)
+    {
+        case MiniWindowVisibilityMode::Always:
+            shouldShow = true;
+            break;
+        case MiniWindowVisibilityMode::OutOfCombat:
+            shouldShow = !inCombat;
+            break;
+    }
+    if (!shouldShow) return;
 
     ImGui::SetNextWindowPos(ImVec2(g_Settings.miniWindowPosX, g_Settings.miniWindowPosY), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(g_Settings.miniWindowWidth, g_Settings.miniWindowHeight), ImGuiCond_FirstUseEver);

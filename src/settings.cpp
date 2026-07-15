@@ -175,6 +175,7 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     j["miniWindowBestDropIconSize"] = s.miniWindowBestDropIconSize;
     j["showShortIcon"] = s.showShortIcon;
     j["showMiniWindow"] = s.showMiniWindow;
+    j["miniWindowVisibilityMode"] = static_cast<int>(s.miniWindowVisibilityMode);
     j["miniWindowShowProfit"] = s.miniWindowShowProfit;
     j["miniWindowShowProfitPerHour"] = s.miniWindowShowProfitPerHour;
     j["miniWindowShowTradingProfitSell"] = s.miniWindowShowTradingProfitSell;
@@ -197,6 +198,7 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     j["miniWindowFontSize"] = s.miniWindowFontSize;
     j["miniWindowElementOrder"] = s.miniWindowElementOrder;
     j["showMainWindow"] = s.showMainWindow;
+    j["mainWindowVisibilityMode"] = static_cast<int>(s.mainWindowVisibilityMode);
     j["mainWindowClickThrough"] = s.mainWindowClickThrough;
     j["mainWindowHideTitleBar"] = s.mainWindowHideTitleBar;
     j["mainWindowPosX"] = s.mainWindowPosX;
@@ -519,6 +521,11 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     if (j.contains("miniWindowBestDropIconSize")) s.miniWindowBestDropIconSize = j["miniWindowBestDropIconSize"].get<int>();
     if (j.contains("showShortIcon")) s.showShortIcon = j["showShortIcon"].get<bool>();
     if (j.contains("showMiniWindow")) s.showMiniWindow = j["showMiniWindow"].get<bool>();
+    if (j.contains("miniWindowVisibilityMode")) {
+        int val = j["miniWindowVisibilityMode"].get<int>();
+        if (val > 1) val = 1; // Convert old InCombat (1) and OutOfCombat (2) to new OutOfCombat (1)
+        s.miniWindowVisibilityMode = static_cast<MiniWindowVisibilityMode>(val);
+    }
     if (j.contains("miniWindowShowProfit")) s.miniWindowShowProfit = j["miniWindowShowProfit"].get<bool>();
     if (j.contains("miniWindowShowProfitPerHour")) s.miniWindowShowProfitPerHour = j["miniWindowShowProfitPerHour"].get<bool>();
     if (j.contains("miniWindowShowTradingProfitSell")) s.miniWindowShowTradingProfitSell = j["miniWindowShowTradingProfitSell"].get<bool>();
@@ -541,6 +548,7 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     if (j.contains("miniWindowFontSize")) s.miniWindowFontSize = j["miniWindowFontSize"].get<float>();
     if (j.contains("miniWindowElementOrder")) s.miniWindowElementOrder = j["miniWindowElementOrder"].get<std::vector<std::string>>();
     if (j.contains("showMainWindow")) s.showMainWindow = j["showMainWindow"].get<bool>();
+    if (j.contains("mainWindowVisibilityMode")) s.mainWindowVisibilityMode = static_cast<MainWindowVisibilityMode>(j["mainWindowVisibilityMode"].get<int>());
     if (j.contains("mainWindowClickThrough")) s.mainWindowClickThrough = j["mainWindowClickThrough"].get<bool>();
     if (j.contains("mainWindowHideTitleBar")) s.mainWindowHideTitleBar = j["mainWindowHideTitleBar"].get<bool>();
     if (j.contains("mainWindowPosX")) s.mainWindowPosX = j["mainWindowPosX"].get<float>();

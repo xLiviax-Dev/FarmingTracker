@@ -306,20 +306,13 @@ void RenderCurrenciesTab()
                 }
                 else
                 {
-                    // Erste Zeile
+                    // Erste Zeile (Coin ist hier immer das erste Element)
                     if (isCoin)
-                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 55.0f); // Same as regular currencies
+                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 20.0f); // 20px
                 }
 
                 ImGui::PushID(id);
                 ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
-
-                // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
-                if (isCoin && count > 0)
-                {
-                    ImGui::Dummy(ImVec2(55.0f, 0.0f)); // Same as regular currencies
-                    ImGui::SameLine(0, 0.0f);
-                }
 
                 // Eigentliche Icon-Gruppe
                 ImGui::BeginGroup();
@@ -623,20 +616,13 @@ void RenderCurrenciesTab()
                                     }
                                     else
                                     {
-                                        // Erste Zeile
+                                        // Erste Zeile (Coin ist hier immer das erste Element)
                                         if (isCoin)
-                                            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 55.0f); // +20px mehr +15px extra
+                                            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 20.0f); // 20px
                                     }
 
                                     ImGui::PushID(id);
                                     ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
-
-                                    // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
-                                    if (isCoin && col > 0)
-                                    {
-                                        ImGui::Dummy(ImVec2(55.0f, 0.0f)); // +20px mehr +15px extra
-                                        ImGui::SameLine(0, 0.0f);
-                                    }
 
                                     // Eigentliche Icon-Gruppe
                                     ImGui::BeginGroup();
@@ -704,20 +690,13 @@ void RenderCurrenciesTab()
                                 }
                                 else
                                 {
-                                    // Erste Zeile
+                                    // Erste Zeile (Coin ist hier immer das erste Element)
                                     if (isCoin)
-                                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 55.0f); // +20px mehr +15px extra
+                                        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 20.0f); // 20px
                                 }
 
                                 ImGui::PushID(id);
                                 ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
-
-                                // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
-                                if (isCoin && col > 0)
-                                {
-                                    ImGui::Dummy(ImVec2(55.0f, 0.0f)); // +20px mehr +15px extra
-                                    ImGui::SameLine(0, 0.0f);
-                                }
 
                                 // Eigentliche Icon-Gruppe
                                 ImGui::BeginGroup();
@@ -774,20 +753,13 @@ void RenderCurrenciesTab()
                     }
                     else
                     {
-                        // Erste Zeile
+                        // Erste Zeile (Coin ist hier immer das erste Element)
                         if (isCoin)
-                            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 55.0f); // +20px mehr +15px extra
+                            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 20.0f); // 20px
                     }
 
                     ImGui::PushID(id);
                     ImGui::BeginGroup(); // Gesamte Zelle (inkl. Abstände) in eine Gruppe
-
-                    // Abstand vor Coin links (nur wenn es NICHT das erste Element ist)
-                    if (isCoin && col > 0)
-                    {
-                        ImGui::Dummy(ImVec2(55.0f, 0.0f)); // +20px mehr +15px extra
-                        ImGui::SameLine(0, 0.0f);
-                    }
 
                     // Eigentliche Icon-Gruppe
                     ImGui::BeginGroup();

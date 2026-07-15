@@ -873,6 +873,17 @@ static void RenderPage_Windows()
         if (ImGui::Checkbox(Localization::GetText("main_window_hide_title_bar"), &g_Settings.mainWindowHideTitleBar)) SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("main_window_hide_title_bar_tooltip"));
         ImGui::Spacing();
+        
+        LabelText("Main Window Visibility");
+        const char* mainVisibilityItems[] = {"Always", "Out of Combat"};
+        int mainVisibilityMode = static_cast<int>(g_Settings.mainWindowVisibilityMode);
+        ImGui::SetNextItemWidth(200.0f);
+        if (ImGui::Combo("##MainWindowVisibility", &mainVisibilityMode, mainVisibilityItems, 2))
+        {
+            g_Settings.mainWindowVisibilityMode = static_cast<MainWindowVisibilityMode>(mainVisibilityMode);
+            SettingsManager::Save();
+        }
+        
         LabelText(Localization::GetText("main_window_font_size"));
         if (ImGui::SliderFloat("##MainFontSize", &g_Settings.mainWindowFontSize, 0.5f, 2.0f, "%.2f"))
         { SettingsManager::Save(); }
@@ -891,6 +902,18 @@ static void RenderPage_Windows()
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_click_through_tooltip"));
         if (ImGui::Checkbox(Localization::GetText("mini_window_locked"),          &g_Settings.miniWindowLocked))        SettingsManager::Save();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_locked_tooltip"));
+
+        LabelText("Mini Window Visibility");
+        const char* visibilityItems[] = {"Always", "Out of Combat"};
+        int visibilityMode = static_cast<int>(g_Settings.miniWindowVisibilityMode);
+        // Convert old InCombat mode to OutOfCombat
+        if (visibilityMode > 1) visibilityMode = 1;
+        ImGui::SetNextItemWidth(200.0f);
+        if (ImGui::Combo("##MiniWindowVisibility", &visibilityMode, visibilityItems, 2))
+        {
+            g_Settings.miniWindowVisibilityMode = static_cast<MiniWindowVisibilityMode>(visibilityMode);
+            SettingsManager::Save();
+        }
 
         SubHeader(Localization::GetText("mini_window_widget"));
         if (ImGui::Checkbox(Localization::GetText("mini_window_show_profit"),             &g_Settings.miniWindowShowProfit))              SettingsManager::Save();
