@@ -128,6 +128,7 @@
     <ClCompile Include="src\gw2_fetcher.cpp" />
     <ClCompile Include="src\custom_profit.cpp" />
     <ClCompile Include="src\ignored_items.cpp" />
+    <ClCompile Include="src\pinned_items.cpp" />
     <ClCompile Include="src\skip_once_manager.cpp" />
     <ClCompile Include="src\session_ignore_manager.cpp" />
     <ClCompile Include="src\search_manager.cpp" />
@@ -192,6 +193,7 @@
     <ClInclude Include="src\gw2_fetcher.h" />
     <ClInclude Include="src\custom_profit.h" />
     <ClInclude Include="src\ignored_items.h" />
+    <ClInclude Include="src\pinned_items.h" />
     <ClInclude Include="src\skip_once_manager.h" />
     <ClInclude Include="src\session_ignore_manager.h" />
     <ClInclude Include="src\search_manager.h" />
@@ -199,6 +201,7 @@
     <ClInclude Include="src\magnetite_tracker.h" />
     <ClInclude Include="src\loot_logger.h" />
     <ClInclude Include="src\ui_loot_log.h" />
+    <ClInclude Include="src\ui_context_menu.h" />
     <ClInclude Include="include\nexus\Nexus.h" />
   </ItemGroup>
   <ItemGroup>

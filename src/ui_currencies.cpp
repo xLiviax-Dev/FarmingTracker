@@ -266,11 +266,11 @@ void RenderCurrenciesTab()
     {
         ImGui::Spacing();
 
-        auto currencies = ItemTracker::GetFavoriteCurrencies(); // Get ALL favorite currencies, even with count 0
+        auto currencies = ItemTracker::GetFavoriteCurrencies();
         std::vector<std::pair<int, Stat>> favoriteCurrencies;
         for (auto& [id, st] : currencies)
         {
-            if (!st.isIgnored && st.IsCurrency())
+            if (!st.isIgnored && st.IsCurrency() && st.count > 0)
                 favoriteCurrencies.push_back({id, st});
         }
 

@@ -111,6 +111,8 @@ struct Settings
     bool miniWindowShowTotalItems = false;
     bool miniWindowShowSessionDuration = false;
     bool miniWindowClickThrough = false;
+    bool miniWindowAllowRightClickUnpin = true; // Allow unpin via right-click in Mini Window
+    float miniWindowPinnedIconSize = 32.0f; // Icon size for pinned items in Mini Window
 
     // Font Size Settings
     float mainWindowFontSize = 1.0f; // 1.0 = default, 0.8 = smaller, 1.2 = larger

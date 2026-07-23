@@ -3,6 +3,7 @@
 #include "magnetite_tracker.h"
 #include "custom_profit.h"
 #include "ignored_items.h"
+#include "pinned_items.h"
 #include "skip_once_manager.h"
 #include "session_ignore_manager.h"
 #include "search_manager.h"
@@ -2343,6 +2344,9 @@ void ItemTracker::SaveData(const char* addonDir)
     }
     data["customProfits"] = customProfitsJson;
 
+    // Save pinned items
+    data["pinnedItems"] = PinnedItemsManager::ExportToJson();
+
     // Write to file
     std::ofstream file(dataPath);
     if (file.is_open())
@@ -2387,6 +2391,7 @@ void ItemTracker::LoadData(const char* addonDir)
         }
         IgnoredItemsManager::ClearAll();
         CustomProfitManager::ClearAll();
+        PinnedItemsManager::ClearAll();
 
         // Load session start if available
         if (data.contains("sessionStart"))
@@ -2447,6 +2452,12 @@ void ItemTracker::LoadData(const char* addonDir)
                     CustomProfitManager::SetCustomProfit(id, profit, StatType::Item);
                 }
             }
+        }
+
+        // Load pinned items
+        if (data.contains("pinnedItems"))
+        {
+            PinnedItemsManager::ImportFromJson(data["pinnedItems"]);
         }
 
         // Load items

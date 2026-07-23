@@ -183,6 +183,8 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     j["miniWindowShowTotalItems"] = s.miniWindowShowTotalItems;
     j["miniWindowShowSessionDuration"] = s.miniWindowShowSessionDuration;
     j["miniWindowClickThrough"] = s.miniWindowClickThrough;
+    j["miniWindowAllowRightClickUnpin"] = s.miniWindowAllowRightClickUnpin;
+    j["miniWindowPinnedIconSize"] = s.miniWindowPinnedIconSize;
     j["mainWindowFontSize"] = s.mainWindowFontSize;
     j["tabContentFontSize"] = s.tabContentFontSize;
     j["notificationFontSize"] = s.notificationFontSize;
@@ -533,6 +535,8 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     if (j.contains("miniWindowShowTotalItems")) s.miniWindowShowTotalItems = j["miniWindowShowTotalItems"].get<bool>();
     if (j.contains("miniWindowShowSessionDuration")) s.miniWindowShowSessionDuration = j["miniWindowShowSessionDuration"].get<bool>();
     if (j.contains("miniWindowClickThrough")) s.miniWindowClickThrough = j["miniWindowClickThrough"].get<bool>();
+    if (j.contains("miniWindowAllowRightClickUnpin")) s.miniWindowAllowRightClickUnpin = j["miniWindowAllowRightClickUnpin"].get<bool>();
+    if (j.contains("miniWindowPinnedIconSize")) s.miniWindowPinnedIconSize = j["miniWindowPinnedIconSize"].get<float>();
     if (j.contains("mainWindowFontSize")) s.mainWindowFontSize = j["mainWindowFontSize"].get<float>();
     if (j.contains("tabContentFontSize")) s.tabContentFontSize = j["tabContentFontSize"].get<float>();
     if (j.contains("notificationFontSize")) s.notificationFontSize = j["notificationFontSize"].get<float>();

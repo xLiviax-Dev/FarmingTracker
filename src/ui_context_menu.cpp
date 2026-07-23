@@ -1,6 +1,7 @@
 #include "ui_context_menu.h"
 #include "item_tracker.h"
 #include "ignored_items.h"
+#include "pinned_items.h"
 #include "skip_once_manager.h"
 #include "session_ignore_manager.h"
 #include "localization.h"
@@ -32,6 +33,7 @@ namespace UIContextMenu
             
             bool isFavorite = ItemTracker::IsFavorite(contextItemId);
             bool isIgnored = IgnoredItemsManager::IsItemIgnored(contextItemId);
+            bool isPinned = PinnedItemsManager::IsItemPinned(contextItemId);
 
             // Favorites options
             if (type != ContextMenuType::CopyOnly)
@@ -58,6 +60,35 @@ namespace UIContextMenu
                     if (ImGui::IsItemHovered())
                     {
                         ImGui::SetTooltip("%s", Localization::GetText("context_menu_remove_favorites_tooltip"));
+                    }
+                }
+            }
+
+            ImGui::Separator();
+
+            // Pin to Mini Window options
+            if (type == ContextMenuType::General || type == ContextMenuType::CustomProfit || type == ContextMenuType::Favorites || type == ContextMenuType::Ignored)
+            {
+                if (!isPinned)
+                {
+                    if (ImGui::MenuItem(Localization::GetText("context_menu_pin_mini_window")))
+                    {
+                        PinnedItemsManager::PinItem(contextItemId);
+                    }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("%s", Localization::GetText("context_menu_pin_mini_window_tooltip"));
+                    }
+                }
+                else
+                {
+                    if (ImGui::MenuItem(Localization::GetText("context_menu_unpin_mini_window")))
+                    {
+                        PinnedItemsManager::Unpin(contextItemId, StatType::Item);
+                    }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("%s", Localization::GetText("context_menu_unpin_mini_window_tooltip"));
                     }
                 }
             }
@@ -158,6 +189,7 @@ namespace UIContextMenu
             
             bool isFavorite = ItemTracker::IsFavorite(contextItemId);
             bool isIgnored = IgnoredItemsManager::IsCurrencyIgnored(contextItemId);
+            bool isPinned = PinnedItemsManager::IsCurrencyPinned(contextItemId);
 
             // Favorites options
             if (type != ContextMenuType::CopyOnly)
@@ -184,6 +216,35 @@ namespace UIContextMenu
                     if (ImGui::IsItemHovered())
                     {
                         ImGui::SetTooltip("%s", Localization::GetText("context_menu_remove_favorites_tooltip"));
+                    }
+                }
+            }
+
+            ImGui::Separator();
+
+            // Pin to Mini Window options
+            if (type == ContextMenuType::General || type == ContextMenuType::CustomProfit || type == ContextMenuType::Favorites || type == ContextMenuType::Ignored)
+            {
+                if (!isPinned)
+                {
+                    if (ImGui::MenuItem(Localization::GetText("context_menu_pin_mini_window")))
+                    {
+                        PinnedItemsManager::PinCurrency(contextItemId);
+                    }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("%s", Localization::GetText("context_menu_pin_mini_window_tooltip"));
+                    }
+                }
+                else
+                {
+                    if (ImGui::MenuItem(Localization::GetText("context_menu_unpin_mini_window")))
+                    {
+                        PinnedItemsManager::Unpin(contextItemId, StatType::Currency);
+                    }
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("%s", Localization::GetText("context_menu_unpin_mini_window_tooltip"));
                     }
                 }
             }

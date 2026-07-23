@@ -4,6 +4,7 @@
 #include "settings.h"
 #include "shared.h"
 #include "item_tracker.h"
+#include "pinned_items.h"
 #include "localization.h"
 
 namespace UIMiniWindow
@@ -599,6 +600,109 @@ void RenderMiniWindow()
                 ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", totalProfitStr.c_str());
                 ImGui::SetCursorPos(valueCursor);
                 ImGui::TextColored(bestTotalColor, "%s", totalProfitStr.c_str());
+            }
+        }
+
+        // Display pinned items at the bottom
+        auto pinnedItems = PinnedItemsManager::GetPinnedItems();
+        if (!pinnedItems.empty())
+        {
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            // Iterate in normal order so newest pins appear at the bottom
+            for (size_t i = 0; i < pinnedItems.size(); ++i)
+            {
+                const auto& pinnedEntry = pinnedItems[i];
+                Stat stat;
+                if (pinnedEntry.type == StatType::Item)
+                {
+                    stat = ItemTracker::GetItemStat(pinnedEntry.apiId);
+                }
+                else
+                {
+                    stat = ItemTracker::GetCurrencyStat(pinnedEntry.apiId);
+                }
+
+                // Skip if item/currency doesn't exist or has no data
+                if (stat.apiId == 0 && stat.count == 0)
+                    continue;
+
+                // Render icon + name + count
+                ImGui::PushID(pinnedEntry.apiId);
+
+                // Start of row - save cursor position
+                ImVec2 rowStart = ImGui::GetCursorPos();
+
+                float iconSize = g_Settings.miniWindowPinnedIconSize;
+                float textLineHeight = ImGui::GetTextLineHeight();
+                float rowHeight = std::max(iconSize, textLineHeight);
+                float iconTopOffset = (rowHeight - iconSize) / 2.0f;
+                float textTopOffset = (rowHeight - textLineHeight) / 2.0f;
+
+                // Draw icon
+                if (g_Settings.showItemIcons && stat.details.loaded)
+                {
+                    if (iconTopOffset > 0.0f)
+                    {
+                        ImGui::Dummy(ImVec2(0.0f, iconTopOffset));
+                    }
+                    UICommon::DrawItemIconCell(stat.apiId, stat.details.iconUrl, iconSize, stat.details.rarity, true);
+                    ImGui::SameLine(0.0f, 4.0f);
+                }
+
+                // Align text vertically in row
+                ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPos().x, rowStart.y + textTopOffset));
+
+                // Name with outline
+                ImVec2 cursor = ImGui::GetCursorPos();
+                std::string displayName = stat.details.loaded ? stat.details.name : (stat.IsCurrency() ? "Currency" : "Item");
+                
+                ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", displayName.c_str());
+                ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", displayName.c_str());
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", displayName.c_str());
+                ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", displayName.c_str());
+                ImGui::SetCursorPos(cursor);
+                ImGui::TextColored(textColor, "%s", displayName.c_str());
+                ImGui::SameLine();
+
+                // Count with outline
+                std::string countStr = std::to_string(stat.count);
+                ImVec2 countCursor = ImGui::GetCursorPos();
+                ImGui::SetCursorPos(ImVec2(countCursor.x - 1, countCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", countStr.c_str());
+                ImGui::SetCursorPos(ImVec2(countCursor.x + 1, countCursor.y));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", countStr.c_str());
+                ImGui::SetCursorPos(ImVec2(countCursor.x, countCursor.y - 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", countStr.c_str());
+                ImGui::SetCursorPos(ImVec2(countCursor.x, countCursor.y + 1));
+                ImGui::TextColored(ImVec4(0, 0, 0, 1.0f), "%s", countStr.c_str());
+                ImGui::SetCursorPos(countCursor);
+                ImVec4 countColor = stat.count > 0 ? ImVec4(1.f, 0.9f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f);
+                ImGui::TextColored(countColor, "%s", countStr.c_str());
+
+                // Set cursor to next row
+                ImGui::SetCursorPosY(rowStart.y + rowHeight + 4.0f); // Add 4px spacing between rows
+
+                // Invisible button over entire row for right-click detection
+                ImGui::SetCursorPos(rowStart);
+                ImGui::InvisibleButton("##pinned_item_row", ImVec2(g_Settings.miniWindowWidth - 20.0f, rowHeight));
+                
+                // Right-click to unpin (if enabled and not click-through)
+                if (g_Settings.miniWindowAllowRightClickUnpin && !g_Settings.miniWindowClickThrough)
+                {
+                    if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+                    {
+                        PinnedItemsManager::Unpin(pinnedEntry.apiId, pinnedEntry.type);
+                    }
+                }
+
+                ImGui::PopID();
             }
         }
     }

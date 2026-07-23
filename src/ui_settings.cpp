@@ -3,6 +3,7 @@
 #include "ui_notifications.h"
 #include "settings.h"
 #include "item_tracker.h"
+#include "pinned_items.h"
 #include "drf_client.h"
 #include "gw2_fetcher.h"
 #include "auto_reset.h"
@@ -926,6 +927,96 @@ static void RenderPage_Windows()
         if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_total"),   &g_Settings.miniWindowShowBestDropTotalValue))   SettingsManager::Save();
         if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_icons"), &g_Settings.miniWindowShowBestDropIcons)) SettingsManager::Save();
         if (ImGui::SliderInt(Localization::GetText("mini_window_best_drop_icon_size"), &g_Settings.miniWindowBestDropIconSize, 16, 96)) SettingsManager::Save();
+
+        SubHeader("Pinned Items/Currencies");
+        if (ImGui::SliderFloat(Localization::GetText("pinned_icon_size"), &g_Settings.miniWindowPinnedIconSize, 16.0f, 64.0f, "%.0f")) SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("pinned_icon_size_tooltip"));
+        if (ImGui::Checkbox(Localization::GetText("allow_unpin_right_click"), &g_Settings.miniWindowAllowRightClickUnpin)) SettingsManager::Save();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("allow_unpin_right_click_tooltip"));
+
+        ImGui::Spacing();
+        
+        // Pinned items list
+        auto pinnedItems = PinnedItemsManager::GetPinnedItems();
+        if (!pinnedItems.empty())
+        {
+            if (ImGui::BeginTable("PinnedItemsTable", 4, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
+            {
+                ImGui::TableSetupColumn("Icon", ImGuiTableColumnFlags_WidthFixed, 30.0f);
+                ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 200.0f);
+                ImGui::TableSetupColumn("Order", ImGuiTableColumnFlags_WidthFixed, 70.0f);
+                ImGui::TableSetupColumn("Actions", ImGuiTableColumnFlags_WidthFixed, 60.0f);
+                ImGui::TableHeadersRow();
+
+                for (size_t i = 0; i < pinnedItems.size(); ++i)
+                {
+                    const auto& pinnedEntry = pinnedItems[i];
+                    ImGui::PushID(pinnedEntry.apiId);
+                    ImGui::TableNextRow();
+
+                    Stat stat;
+                    if (pinnedEntry.type == StatType::Item)
+                    {
+                        stat = ItemTracker::GetItemStat(pinnedEntry.apiId);
+                    }
+                    else
+                    {
+                        stat = ItemTracker::GetCurrencyStat(pinnedEntry.apiId);
+                    }
+
+                    // Icon
+                    ImGui::TableSetColumnIndex(0);
+                    if (g_Settings.showItemIcons && stat.details.loaded)
+                    {
+                        UICommon::DrawItemIconCell(stat.apiId, stat.details.iconUrl, 24.0f, stat.details.rarity, true);
+                    }
+
+                    // Name
+                    ImGui::TableSetColumnIndex(1);
+                    std::string displayName = stat.details.loaded ? stat.details.name : (stat.IsCurrency() ? "Currency" : "Item");
+                    ImGui::Text("%s", displayName.c_str());
+
+                    // Order buttons
+                    ImGui::TableSetColumnIndex(2);
+                    if (i > 0)
+                    {
+                        if (ImGui::Button("^"))
+                        {
+                            PinnedItemsManager::MoveUp(pinnedEntry.apiId, pinnedEntry.type);
+                            SettingsManager::Save();
+                        }
+                        ImGui::SameLine();
+                    }
+                    if (i < pinnedItems.size() - 1)
+                    {
+                        if (ImGui::Button("v"))
+                        {
+                            PinnedItemsManager::MoveDown(pinnedEntry.apiId, pinnedEntry.type);
+                            SettingsManager::Save();
+                        }
+                    }
+
+                    // Remove button
+                    ImGui::TableSetColumnIndex(3);
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.3f, 0.3f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.9f, 0.3f, 0.3f, 0.08f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.3f, 0.3f, 0.18f));
+                    if (ImGui::SmallButton("X"))
+                    {
+                        PinnedItemsManager::Unpin(pinnedEntry.apiId, pinnedEntry.type);
+                        SettingsManager::Save();
+                    }
+                    ImGui::PopStyleColor(3);
+
+                    ImGui::PopID();
+                }
+                ImGui::EndTable();
+            }
+        }
+        else
+        {
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No pinned items. Right-click items in the main window to pin them.");
+        }
         
         SubHeader("");
         if (ImGui::Checkbox(Localization::GetText("mini_window_hide_title_bar"), &g_Settings.miniWindowHideTitleBar)) 
@@ -966,7 +1057,7 @@ static void RenderPage_Windows()
         if (ImGui::BeginTable("ElementOrderTable", 2, ImGuiTableFlags_SizingFixedFit))
         {
             ImGui::TableSetupColumn("Element", ImGuiTableColumnFlags_WidthFixed, 150.0f);
-            ImGui::TableSetupColumn("Actions", ImGuiTableColumnFlags_WidthFixed, 60.0f);
+            ImGui::TableSetupColumn("Actions", ImGuiTableColumnFlags_WidthFixed, 80.0f);
             ImGui::TableHeadersRow();
             
             for (int i = 0; i < static_cast<int>(g_Settings.miniWindowElementOrder.size()); ++i)

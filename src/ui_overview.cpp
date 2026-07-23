@@ -276,8 +276,8 @@ namespace UIOverview
                     st = ItemTracker::GetItemStat(id);
                 
                 if (st.isIgnored) continue;
-                // For items: only show if count > 0; for currencies: show even with count 0
-                if (!isCurrency && st.count == 0) continue;
+                // Only show if count > 0 for both items and currencies
+                if (st.count == 0) continue;
 
                 bool isCoin = isCurrency && id == 1;
 
@@ -447,8 +447,8 @@ namespace UIOverview
                         st = ItemTracker::GetItemStat(id);
 
                     if (st.isIgnored) continue;
-                // For items: only show if count > 0; for currencies: show even with count 0
-                if (!isCurrency && st.count == 0) continue;
+                // Only show if count > 0 for both items and currencies
+                if (st.count == 0) continue;
 
                     float rowH = UICommon::CalcTableRowHeight(32.0f);
                     ImGui::TableNextRow(0, rowH);
