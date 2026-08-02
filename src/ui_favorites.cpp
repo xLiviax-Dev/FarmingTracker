@@ -207,7 +207,7 @@ static bool RenderConfirmPopup(const char* id, const char* msg, const char* warn
 // ────────────────────────────────────────────────────────────────────────────
 static bool RenderItemsSubTab()
 {
-    auto favoriteMap = ItemTracker::GetFavoriteItems();
+    const auto& favoriteMap = ItemTracker::GetFavoriteItemsView();
     std::vector<int> favIds;
     for (auto& [id, st] : favoriteMap) favIds.push_back(id);
 
@@ -346,7 +346,6 @@ static bool RenderItemsSubTab()
     for (int id : favIds)
     {
         Stat st = ItemTracker::GetItemStat(id);
-        if (st.isIgnored) continue;
         if (search.empty()) { filtered.push_back(id); continue; }
         std::string name = st.details.loaded ? st.details.name : "";
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);
@@ -482,7 +481,7 @@ static bool RenderItemsSubTab()
         ImVec4 pc = profit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f)
                   : profit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f)
                   : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
-        ImGui::TextColored(pc, "%s", UICommon::FormatCoin(profit).c_str());
+        ImGui::TextColored(pc, "%s", UICommon::FormatCoin(profit));
 
         // Col 5: unfavorite button
         ImGui::TableSetColumnIndex(5);
@@ -527,7 +526,7 @@ static bool RenderItemsSubTab()
 // ────────────────────────────────────────────────────────────────────────────
 static bool RenderCurrenciesSubTab()
 {
-    auto favoriteMap = ItemTracker::GetFavoriteCurrencies();
+    const auto& favoriteMap = ItemTracker::GetFavoriteCurrenciesView();
     std::vector<int> favIds;
     for (auto& [id, st] : favoriteMap) favIds.push_back(id);
 
@@ -679,7 +678,6 @@ static bool RenderCurrenciesSubTab()
     for (int id : favIds)
     {
         Stat st = ItemTracker::GetCurrencyStat(id);
-        if (st.isIgnored) continue;
         if (search.empty()) { filtered.push_back(id); continue; }
         std::string name = st.details.loaded ? st.details.name : "";
         std::transform(name.begin(), name.end(), name.begin(), ::tolower);

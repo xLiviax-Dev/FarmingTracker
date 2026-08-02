@@ -221,21 +221,21 @@ static void RenderTable(
                 ImGui::InputInt("##eg", &editG, 0);
                 ImGui::SameLine(0.0f, 2.0f);
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.86f, 0.57f, 0.12f, 1.0f));
-                ImGui::TextUnformatted("G");
+                ImGui::TextUnformatted(Localization::GetText("g"));
                 ImGui::PopStyleColor();
                 ImGui::SameLine(0.0f, 6.0f);
                 ImGui::SetNextItemWidth(40.0f);
                 ImGui::InputInt("##es", &editS, 0);
                 ImGui::SameLine(0.0f, 2.0f);
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-                ImGui::TextUnformatted("S");
+                ImGui::TextUnformatted(Localization::GetText("s"));
                 ImGui::PopStyleColor();
                 ImGui::SameLine(0.0f, 6.0f);
                 ImGui::SetNextItemWidth(40.0f);
                 ImGui::InputInt("##ec", &editC, 0);
                 ImGui::SameLine(0.0f, 2.0f);
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.75f, 0.32f, 0.18f, 1.0f));
-                ImGui::TextUnformatted("C");
+                ImGui::TextUnformatted(Localization::GetText("c"));
                 ImGui::PopStyleColor();
                 ImGui::PopStyleVar();
             }

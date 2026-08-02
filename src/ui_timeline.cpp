@@ -196,28 +196,28 @@ namespace UITimeline
 
         KpiCard("##tlk1",
                 Localization::GetText("approx_profits_label"),
-                UICommon::FormatCoin(custom).c_str(),
+                UICommon::FormatCoin(custom),
                 ProfitColor(custom), kw4, cardH);
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("approx_profits_tooltip"));
         ImGui::SameLine();
 
         KpiCard("##tlk2",
                 Localization::GetText("approx_gold_per_hour_label"),
-                UICommon::FormatCoin(profitPerHour).c_str(),
+                UICommon::FormatCoin(profitPerHour),
                 ProfitColor(profitPerHour), kw4, cardH);
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("approx_gold_per_hour_tooltip"));
         ImGui::SameLine();
 
         KpiCard("##tlk3",
                 Localization::GetText("approx_trading_profits_listings_label"),
-                UICommon::FormatCoin(tpSell).c_str(),
+                UICommon::FormatCoin(tpSell),
                 kGold, kw4, cardH);
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("approx_trading_profits_listings_tooltip"));
         ImGui::SameLine();
 
         KpiCard("##tlk4",
                 Localization::GetText("approx_trading_profits_instant_label"),
-                UICommon::FormatCoin(tpInstant).c_str(),
+                UICommon::FormatCoin(tpInstant),
                 kGold, kw4, cardH);
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("approx_trading_profits_instant_tooltip"));
 
@@ -479,7 +479,7 @@ namespace UITimeline
         int openCurrencyMenuId = -1;
         std::string openCurrencyMenuName;
 
-        if (ImGui::BeginChild("TimelineDropsScroll", ImVec2(0, 0), true))
+        if (ImGui::BeginChild("TimelineDropsScroll", ImVec2(0, 0), true, ImGuiWindowFlags_AlwaysVerticalScrollbar))
         {
             if (s_TimelineCache.empty())
             {
@@ -498,7 +498,7 @@ namespace UITimeline
                 const float visibleTop    = scrollY - margin;
                 const float visibleBottom = scrollY + viewH + margin;
 
-                for (const auto& group : s_TimelineCache)
+                for (auto& group : s_TimelineCache)
                 {
                     float groupStartY = ImGui::GetCursorPosY();
 
@@ -535,7 +535,7 @@ namespace UITimeline
                     // 3. Gold Value and Currencies in one row below "Item Drops"
                     ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "%s:", Localization::GetText("timeline_liquid_coins"));
                     ImGui::SameLine();
-                    ImGui::TextColored(ImVec4(1.0f, 0.84f, 0.0f, 1.0f), "%s", UICommon::FormatCoin(groupValue).c_str());
+                    ImGui::TextColored(ImVec4(1.0f, 0.84f, 0.0f, 1.0f), "%s", UICommon::FormatCoin(groupValue));
 
                     if (group.hasCurrencies)
                     {
@@ -549,9 +549,24 @@ namespace UITimeline
                         float curIconSize = static_cast<float>(g_Settings.timelineIconSizeCurrencies);
 
                         bool firstCurrency = true;
-                        for (const auto& [itemId, cs] : group.currencies)
+                        for (auto& [itemId, cs] : group.currencies)
                         {
                             ImGui::PushID(itemId);
+
+                            // Lazy-Update: If the timeline snapshot was built before API details loaded
+                            // (empty iconUrl, name or rarity in the cached copy), heal from live Stat now.
+                            // This happens when drops arrive fast (race condition). Once healed, the cached
+                            // fields stay populated and no further lookups occur for this group entry.
+                            if (cs.iconUrl.empty() || cs.name.empty() || cs.rarity.empty())
+                            {
+                                Stat st = ItemTracker::GetCurrencyStat(itemId);
+                                if (st.details.loaded)
+                                {
+                                    if (cs.iconUrl.empty()) cs.iconUrl = st.details.iconUrl;
+                                    if (cs.name.empty())    cs.name    = st.details.name;
+                                    if (cs.rarity.empty())  cs.rarity  = st.details.rarity;
+                                }
+                            }
 
                             // itemId == 1 is the coin currency → format as G/S/C, everything else plain number.
                             // Show profit instead if a custom profit is set for this currency.
@@ -635,7 +650,7 @@ namespace UITimeline
                     ImGui::Spacing();
                     float iconSize = static_cast<float>(g_Settings.timelineIconSizeItems);
 
-                    const auto& itemDrops = group.itemDrops;
+                    auto& itemDrops = group.itemDrops;
 
                     float spacingX = ImGui::GetStyle().ItemSpacing.x;
                     float availW = ImGui::GetContentRegionAvail().x;
@@ -643,7 +658,33 @@ namespace UITimeline
 
                     for (int itemIndex = 0; itemIndex < static_cast<int>(itemDrops.size()); itemIndex++)
                     {
-                        const auto& d = itemDrops[itemIndex];
+                        auto& d = itemDrops[itemIndex];
+
+                        // Lazy-Update: Heal iconUrl / rarity / itemName in the cached DropEntry if
+                        // it was snapshotted before API details finished loading (fast drops race).
+                        if (d.iconUrl.empty() || d.rarity.empty() || d.itemName.empty())
+                        {
+                            if (d.isCurrency)
+                            {
+                                Stat st = ItemTracker::GetCurrencyStat(d.itemId);
+                                if (st.details.loaded)
+                                {
+                                    if (d.iconUrl.empty())  d.iconUrl  = st.details.iconUrl;
+                                    if (d.rarity.empty())   d.rarity   = st.details.rarity;
+                                    if (d.itemName.empty()) d.itemName = st.details.name;
+                                }
+                            }
+                            else
+                            {
+                                Stat st = ItemTracker::GetItemStat(d.itemId);
+                                if (st.details.loaded)
+                                {
+                                    if (d.iconUrl.empty())  d.iconUrl  = st.details.iconUrl;
+                                    if (d.rarity.empty())   d.rarity   = st.details.rarity;
+                                    if (d.itemName.empty()) d.itemName = st.details.name;
+                                }
+                            }
+                        }
 
                         ImGui::PushID(itemIndex);
                         
@@ -674,46 +715,15 @@ namespace UITimeline
                         // Position: bottom right of icon
                         ImVec2 pos = ImVec2(origin.x + iconSize - textSize.x - 2.0f,
                                                  origin.y + iconSize - textSize.y - 2.0f);
-                        
-                        // 1. Very thin white outline (outer 8-way, 5 pixels)
-                        static const ImVec2 kOffWhiteOuter[] = {
-                            {-5,-5}, {-4,-5}, {-3,-5}, {-2,-5}, {-1,-5}, {0,-5}, {1,-5}, {2,-5}, {3,-5}, {4,-5}, {5,-5},
-                            {-5,-4}, {5,-4},
-                            {-5,-3}, {5,-3},
-                            {-5,-2}, {5,-2},
-                            {-5,-1}, {5,-1},
-                            {-5,0}, {5,0},
-                            {-5,1}, {5,1},
-                            {-5,2}, {5,2},
-                            {-5,3}, {5,3},
-                            {-5,4}, {5,4},
-                            {-5,5}, {-4,5}, {-3,5}, {-2,5}, {-1,5}, {0,5}, {1,5}, {2,5}, {3,5}, {4,5}, {5,5}
-                        };
-                        for (const auto& off : kOffWhiteOuter) {
-                            ImGui::GetWindowDrawList()->AddText(font, desiredPixelSize, ImVec2(pos.x + off.x, pos.y + off.y), 
-                                IM_COL32(255, 255, 255, 255), countStr);
-                        }
-                        
-                        // 2. Thicker black outline (inner, 4 pixels)
-                        static const ImVec2 kOffBlack[] = {
-                            {-4,-4}, {-3,-4}, {-2,-4}, {-1,-4}, {0,-4}, {1,-4}, {2,-4}, {3,-4}, {4,-4},
-                            {-4,-3}, {4,-3},
-                            {-4,-2}, {4,-2},
-                            {-4,-1}, {4,-1},
-                            {-4,0}, {4,0},
-                            {-4,1}, {4,1},
-                            {-4,2}, {4,2},
-                            {-4,3}, {4,3},
-                            {-4,4}, {-3,4}, {-2,4}, {-1,4}, {0,4}, {1,4}, {2,4}, {3,4}, {4,4}
-                        };
-                        for (const auto& off : kOffBlack) {
-                            ImGui::GetWindowDrawList()->AddText(font, desiredPixelSize, ImVec2(pos.x + off.x, pos.y + off.y), 
-                                IM_COL32(0,0,0,255), countStr);
-                        }
-                        
-                        // 3. Actual text with proper colors (same as overview)
+
+                        // Actual text with proper colors (same as overview) 
                         ImVec4 col = d.count < 0 ? ImVec4(0.9f,0.3f,0.3f,1.f) : ImVec4(0.95f,0.7f,0.1f,1.f);
-                        ImGui::GetWindowDrawList()->AddText(font, desiredPixelSize, pos, ImGui::ColorConvertFloat4ToU32(col), countStr);
+
+                        UICommon::DrawTextWithOutline(ImGui::GetWindowDrawList(), font, desiredPixelSize, pos,
+                                                      ImGui::ColorConvertFloat4ToU32(col),
+                                                      IM_COL32(255,255,255,255), 5.0f,
+                                                      IM_COL32(0,0,0,255), 4.0f,
+                                                      countStr);
 
                         if (ImGui::IsItemHovered())
                         {

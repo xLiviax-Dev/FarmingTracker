@@ -1,6 +1,7 @@
 #include "item_tracker.h"
 #include "loot_logger.h"
 #include "magnetite_tracker.h"
+#include "gaeting_tracker.h"
 #include "custom_profit.h"
 #include "ignored_items.h"
 #include "pinned_items.h"
@@ -23,12 +24,16 @@
 #include <vector>
 #include <deque>
 #include <mutex>
+#include <thread>
+#include <condition_variable>
 #include <chrono>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
 #include <functional>
 #include <climits>
+#include <atomic>
+#include <memory>
 
 using json = nlohmann::json;
 
@@ -53,6 +58,223 @@ static std::mutex s_SessionDropsMutex;
 // Bumped on every mutation of s_SessionDrops (AddDrop/Reset/RemoveItem/RemoveCurrency/LoadData)
 // so UI-side caches (Timeline tab) can cheaply detect changes without diffing content.
 static std::atomic<uint64_t> s_SessionDropsVersion{ 0 };
+
+// Bumped whenever item/currency count, favorite status, or ignored/session-ignored/
+// skip-once status changes. Lets UI-side caches for GetFilteredItems()/GetFilteredCurrencies()/
+// GetFavoriteItems()/GetFavoriteCurrencies() detect changes cheaply without diffing content.
+static std::atomic<uint64_t> s_ItemsStateVersion{ 0 };
+
+// ===========================================================================
+// Async Save Worker (Option A)
+// ===========================================================================
+// SaveData() called from render thread no longer does JSON serialization
+// or file IO. Instead it takes a cheap snapshot of shared state and pushes
+// it to a single-slot "drop all but last" queue. A dedicated worker thread
+// picks it up, builds the JSON string, and writes farming_data.json to
+// disk in the background. This eliminates the 3-5s micro-stutter caused by
+// synchronous WriteFile + Defender/cache flush in the render hot path.
+
+struct PersistedStatSaveView
+{
+    long long   count;
+    bool        isFavorite;
+    int         lastMagicFind;
+};
+
+struct SaveSnapshot
+{
+    // ItemTracker core (captured under pLock/dropsLock/lock)
+    int64_t                                            timestamp;
+    std::time_t                                        sessionStart;
+    int                                                magicFind;
+    std::map<int, PersistedStatSaveView>               items;
+    std::map<int, PersistedStatSaveView>               currencies;
+    std::vector<SessionHistory::DropEntry>             sessionDrops;
+    std::set<int>                                      persistentFavoriteItems;
+    std::set<int>                                      persistentFavoriteCurrencies;
+
+    // External managers (captured after releasing core locks, each has own mutex)
+    std::set<int>                                      ignoredItems;
+    std::set<int>                                      ignoredCurrencies;
+    std::map<int, CustomProfitEntry>                   customProfits;
+    nlohmann::json                                     pinnedItemsJson;
+
+    std::string                                        dataPath;
+};
+
+static std::atomic<bool>        s_SaveWorkerShutdown{ true };
+static std::thread              s_SaveWorkerThread;
+static std::mutex               s_SaveQueueMutex;
+static std::condition_variable  s_SaveQueueCv;
+static std::unique_ptr<SaveSnapshot> s_PendingSave;  // single slot — "drop all but last"
+
+static void WriteSnapshotToDisk(const SaveSnapshot& snap);
+
+static void SaveWorkerLoop()
+{
+    for (;;)
+    {
+        std::unique_ptr<SaveSnapshot> snap;
+        {
+            std::unique_lock<std::mutex> lk(s_SaveQueueMutex);
+            s_SaveQueueCv.wait(lk, [] {
+                return s_PendingSave != nullptr || s_SaveWorkerShutdown.load(std::memory_order_acquire);
+            });
+            if (s_SaveWorkerShutdown.load(std::memory_order_acquire) && s_PendingSave == nullptr)
+                return;
+            snap = std::move(s_PendingSave);
+        }
+
+        if (snap)
+            WriteSnapshotToDisk(*snap);
+    }
+}
+
+static void WriteSnapshotToDisk(const SaveSnapshot& snap)
+{
+    try
+    {
+        nlohmann::json data;
+        data["timestamp"] = snap.timestamp;
+        data["sessionStart"] = snap.sessionStart;
+        data["magicFind"] = snap.magicFind;
+
+        nlohmann::json itemsArray = nlohmann::json::array();
+        for (const auto& [id, sv] : snap.items)
+        {
+            nlohmann::json item;
+            item["apiId"] = id;
+            item["count"] = sv.count;
+            item["isFavorite"] = sv.isFavorite;
+            item["lastMagicFind"] = sv.lastMagicFind;
+            itemsArray.push_back(item);
+        }
+        data["items"] = itemsArray;
+
+        nlohmann::json currenciesArray = nlohmann::json::array();
+        for (const auto& [id, sv] : snap.currencies)
+        {
+            nlohmann::json cur;
+            cur["apiId"] = id;
+            cur["count"] = sv.count;
+            cur["isFavorite"] = sv.isFavorite;
+            cur["lastMagicFind"] = sv.lastMagicFind;
+            currenciesArray.push_back(cur);
+        }
+        data["currencies"] = currenciesArray;
+
+        nlohmann::json dropsArray = nlohmann::json::array();
+        for (const auto& drop : snap.sessionDrops)
+        {
+            nlohmann::json dropJson;
+            dropJson["itemId"] = drop.itemId;
+            dropJson["itemName"] = drop.itemName;
+            dropJson["iconUrl"] = drop.iconUrl;
+            dropJson["isCurrency"] = drop.isCurrency;
+            dropJson["rarity"] = drop.rarity;
+            dropJson["count"] = drop.count;
+            dropJson["totalValue"] = drop.totalValue;
+            dropJson["magicFind"] = drop.magicFind;
+            dropJson["timestamp"] = drop.timestamp;
+            dropJson["characterName"] = drop.characterName;
+            dropsArray.push_back(dropJson);
+        }
+        data["sessionDrops"] = dropsArray;
+
+        nlohmann::json ignoredItemsArray = nlohmann::json::array();
+        for (int id : snap.ignoredItems)
+            ignoredItemsArray.push_back(id);
+        data["ignoredItems"] = ignoredItemsArray;
+
+        nlohmann::json ignoredCurrenciesArray = nlohmann::json::array();
+        for (int id : snap.ignoredCurrencies)
+            ignoredCurrenciesArray.push_back(id);
+        data["ignoredCurrencies"] = ignoredCurrenciesArray;
+
+        nlohmann::json favoriteItemsArray = nlohmann::json::array();
+        for (int id : snap.persistentFavoriteItems)
+            favoriteItemsArray.push_back(id);
+        data["favoriteItems"] = favoriteItemsArray;
+
+        nlohmann::json favoriteCurrenciesArray = nlohmann::json::array();
+        for (int id : snap.persistentFavoriteCurrencies)
+            favoriteCurrenciesArray.push_back(id);
+        data["favoriteCurrencies"] = favoriteCurrenciesArray;
+
+        nlohmann::json customProfitsJson = nlohmann::json::object();
+        for (const auto& [id, entry] : snap.customProfits)
+        {
+            nlohmann::json cp;
+            cp["profit"] = entry.customProfitCopper;
+            cp["type"] = static_cast<int>(entry.type);
+            customProfitsJson[std::to_string(id)] = cp;
+        }
+        data["customProfits"] = customProfitsJson;
+
+        data["pinnedItems"] = snap.pinnedItemsJson;
+
+        std::ofstream file(snap.dataPath);
+        if (file.is_open())
+        {
+            file << data.dump(4);
+            file.close();
+            if (APIDefs) APIDefs->Log(LOGL_INFO, "FarmingTracker", "Farming data saved successfully.");
+        }
+        else
+        {
+            if (APIDefs) APIDefs->Log(LOGL_CRITICAL, "FarmingTracker", ("Failed to open " + snap.dataPath + " for writing!").c_str());
+        }
+    }
+    catch (const std::exception& e)
+    {
+        if (APIDefs) APIDefs->Log(LOGL_CRITICAL, "FarmingTracker", ("Exception while saving farming data: " + std::string(e.what())).c_str());
+    }
+}
+
+void ItemTracker::InitSaveWorker()
+{
+    if (s_SaveWorkerThread.joinable())
+        return;
+    s_SaveWorkerShutdown.store(false, std::memory_order_release);
+    s_SaveWorkerThread = std::thread(SaveWorkerLoop);
+}
+
+void ItemTracker::ShutdownSaveWorker()
+{
+    {
+        std::lock_guard<std::mutex> lk(s_SaveQueueMutex);
+        s_SaveWorkerShutdown.store(true, std::memory_order_release);
+    }
+    s_SaveQueueCv.notify_one();
+    if (s_SaveWorkerThread.joinable())
+        s_SaveWorkerThread.join();
+
+    if (s_PendingSave)
+    {
+        WriteSnapshotToDisk(*s_PendingSave);
+        s_PendingSave.reset();
+    }
+}
+
+void ItemTracker::BumpItemsStateVersion()
+{
+    s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
+}
+
+void ItemTracker::ForceCacheInvalidate()
+{
+    s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
+}
+
+void ItemTracker::BumpSessionDropsVersion()
+{
+    s_SessionDropsVersion.fetch_add(1, std::memory_order_relaxed);
+}
+
+uint64_t ItemTracker::GetItemsStateVersion()
+{
+    return s_ItemsStateVersion.load(std::memory_order_relaxed);
+}
 
 // Salvage Kit data structure
 struct SalvageKitInfo
@@ -127,6 +349,11 @@ struct FilterSettings
     int  filterMinQuantity, filterMaxQuantity;
     int  itemRarityFilterMin;
     int  maxHistoryItems;
+
+    bool operator==(const FilterSettings& other) const
+    {
+        return std::memcmp(this, &other, sizeof(FilterSettings)) == 0;
+    }
 
     static FilterSettings FromGlobal()
     {
@@ -222,6 +449,32 @@ struct FilterSettings
         return s;
     }
 };
+
+// Cache structures for filtered/favorite items and currencies
+struct FilteredItemsCache
+{
+    uint64_t itemsVersion = UINT64_MAX;
+    bool hasSettings = false;
+    FilterSettings lastFilterSettings;
+    std::vector<std::pair<int, Stat>> result;
+};
+static FilteredItemsCache s_FilteredItemsCache;
+static std::mutex s_FilteredItemsCacheMutex;
+
+static FilteredItemsCache s_FilteredCurrenciesCache;
+static std::mutex s_FilteredCurrenciesCacheMutex;
+
+struct FavoriteItemsCache
+{
+    uint64_t itemsVersion = UINT64_MAX;
+    std::string lastSearchTerm;
+    std::vector<std::pair<int, Stat>> result;
+};
+static FavoriteItemsCache s_FavoriteItemsCache;
+static std::mutex s_FavoriteItemsCacheMutex;
+
+static FavoriteItemsCache s_FavoriteCurrenciesCache;
+static std::mutex s_FavoriteCurrenciesCacheMutex;
 
 static bool PassesFilterImpl(const Stat& stat, const FilterSettings& f);
 static void CheckAndTriggerNotification(int apiId, Stat& st);
@@ -480,6 +733,26 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
     };
     std::vector<LogEntry> logEntries;
 
+    // Snapshot rarity-ignore settings BEFORE acquiring the big 3-mutex block
+    // to avoid a lock-order inversion with Settings::s_SettingsMutex.
+    // Thread A (Drop): holds s_PersistentMutex → s_SessionDropsMutex → s_Mutex → wants SettingsMutex
+    // Thread B (Backup): holds SettingsMutex → wants s_PersistentMutex/s_Mutex → DEADLOCK!
+    struct RarityIgnoreSnapshot {
+        bool Junk, Basic, Fine, Masterwork, Rare, Exotic, Ascended, Legendary;
+    };
+    RarityIgnoreSnapshot rarityIg = {false, false, false, false, false, false, false, false};
+    {
+        std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
+        rarityIg.Junk       = g_Settings.ignoredRarityToggleJunk;
+        rarityIg.Basic      = g_Settings.ignoredRarityToggleBasic;
+        rarityIg.Fine       = g_Settings.ignoredRarityToggleFine;
+        rarityIg.Masterwork = g_Settings.ignoredRarityToggleMasterwork;
+        rarityIg.Rare       = g_Settings.ignoredRarityToggleRare;
+        rarityIg.Exotic     = g_Settings.ignoredRarityToggleExotic;
+        rarityIg.Ascended   = g_Settings.ignoredRarityToggleAscended;
+        rarityIg.Legendary  = g_Settings.ignoredRarityToggleLegendary;
+    }
+
     // Global Lock Order: 1. s_PersistentMutex, 4. s_SessionDropsMutex, 5. s_Mutex
     // All locks released before processing notifications and logging to avoid deadlock and blocking.
     {
@@ -512,19 +785,18 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
             auto existIt = s_Items.find(id);
             if (!isIgnored && existIt != s_Items.end() && existIt->second.details.loaded)
             {
-                std::string rarity = existIt->second.details.rarity;
+                const std::string& rarity = existIt->second.details.rarity;
                 bool shouldIgnore = false;
-                {
-                    std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
-                    if (rarity == "Junk" && g_Settings.ignoredRarityToggleJunk) shouldIgnore = true;
-                    else if (rarity == "Basic" && g_Settings.ignoredRarityToggleBasic) shouldIgnore = true;
-                    else if (rarity == "Fine" && g_Settings.ignoredRarityToggleFine) shouldIgnore = true;
-                    else if (rarity == "Masterwork" && g_Settings.ignoredRarityToggleMasterwork) shouldIgnore = true;
-                    else if (rarity == "Rare" && g_Settings.ignoredRarityToggleRare) shouldIgnore = true;
-                    else if (rarity == "Exotic" && g_Settings.ignoredRarityToggleExotic) shouldIgnore = true;
-                    else if (rarity == "Ascended" && g_Settings.ignoredRarityToggleAscended) shouldIgnore = true;
-                    else if (rarity == "Legendary" && g_Settings.ignoredRarityToggleLegendary) shouldIgnore = true;
-                }
+                // Use local snapshot — NO SettingsMutex acquisition inside the 3-mutex block!
+                if      (rarity == "Junk")       shouldIgnore = rarityIg.Junk;
+                else if (rarity == "Basic")      shouldIgnore = rarityIg.Basic;
+                else if (rarity == "Fine")       shouldIgnore = rarityIg.Fine;
+                else if (rarity == "Masterwork") shouldIgnore = rarityIg.Masterwork;
+                else if (rarity == "Rare")       shouldIgnore = rarityIg.Rare;
+                else if (rarity == "Exotic")     shouldIgnore = rarityIg.Exotic;
+                else if (rarity == "Ascended")   shouldIgnore = rarityIg.Ascended;
+                else if (rarity == "Legendary")  shouldIgnore = rarityIg.Legendary;
+
                 if (shouldIgnore) {
                     IgnoredItemsManager::IgnoreItem(id);
                     isIgnored = true;
@@ -553,6 +825,7 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
                 }
                 s_SessionDrops.push_back(drop);
                 s_SessionDropsVersion.fetch_add(1, std::memory_order_relaxed);
+                s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
 
                 // Prepare logging info while under lock
                 if (delta > 0) {
@@ -617,6 +890,7 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
                 }
                 s_SessionDrops.push_back(drop);
                 s_SessionDropsVersion.fetch_add(1, std::memory_order_relaxed);
+                s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
 
                 // Prepare logging info while under lock
                 if (delta > 0) {
@@ -652,6 +926,11 @@ void ItemTracker::AddDrop(const std::map<int, long long>& items,
     auto magIt = currencies.find(MagnetiteTracker::CURRENCY_ID);
     if (magIt != currencies.end() && magIt->second > 0)
         MagnetiteTracker::OnDrfShardsEarned(static_cast<int>(magIt->second));
+
+    // 3b. Gaeting Crystal Tracker integration (currency 39)
+    auto gaeIt = currencies.find(GaetingTracker::CURRENCY_ID);
+    if (gaeIt != currencies.end() && gaeIt->second > 0)
+        GaetingTracker::OnDrfCrystalsEarned(static_cast<int>(gaeIt->second));
 
     // 4. Loot Logger — process entries without blocking the main DRF thread
     std::string apiToken;
@@ -689,7 +968,42 @@ int ItemTracker::GetMagicFind()
     return s_MagicFind.load();
 }
 
-void ItemTracker::SaveCurrentSession()
+void ItemTracker::UpdateItemIgnoredFlag(int apiId, bool ignored)
+{
+    std::lock_guard<std::mutex> lock(s_Mutex);
+    auto it = s_Items.find(apiId);
+    if (it != s_Items.end())
+    {
+        it->second.isIgnored = ignored;
+    }
+}
+
+void ItemTracker::UpdateCurrencyIgnoredFlag(int apiId, bool ignored)
+{
+    std::lock_guard<std::mutex> lock(s_Mutex);
+    auto it = s_Currencies.find(apiId);
+    if (it != s_Currencies.end())
+    {
+        it->second.isIgnored = ignored;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Session save helpers (HOCH-2 fix: keep render-thread footprint tiny)
+//
+// Everything between the `namespace ItemTracker { ... }` block below has
+// direct access to the translation-unit statics (s_MagicFind, s_Mutex,
+// s_Items, s_Currencies, s_SessionDrops*, s_LastKnownMapId, …) without
+// needing explicit `ItemTracker::` qualifiers on every symbol.
+// ---------------------------------------------------------------------------
+namespace ItemTracker {
+
+// Captures everything needed to later write a session snapshot to disk. All
+// heavy mutex-guarded copies happen here, but NO HTTP calls and NO disk IO.
+// Returns true if session history is enabled and `out` was populated.
+static bool BuildSessionSnapshot(SessionHistory::SessionData& out,
+                                 int& outMapId,
+                                 std::string& outApiToken)
 {
     bool enableSessionHistory;
     {
@@ -698,7 +1012,7 @@ void ItemTracker::SaveCurrentSession()
     }
 
     if (!enableSessionHistory)
-        return;
+        return false;
 
     // Collect session data
     SessionHistory::SessionData sessionData;
@@ -718,7 +1032,7 @@ void ItemTracker::SaveCurrentSession()
     sessionData.endTime = timeBuffer;
 
     // Calculate start time
-    auto startTime = now - duration;
+    auto startTime = now - std::chrono::duration_cast<std::chrono::system_clock::duration>(duration);
     auto startTimeT = std::chrono::system_clock::to_time_t(startTime);
     localtime_s(&timeInfo, &startTimeT);
     std::strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %H:%M:%S", &timeInfo);
@@ -732,16 +1046,24 @@ void ItemTracker::SaveCurrentSession()
     else
         sessionData.profitPerHour = 0;
 
+    int mapId = s_LastKnownMapId.load();
+    std::string apiToken;
+    {
+        std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
+        apiToken = g_Settings.gw2ApiKey;
+    }
+
     // Get items and collect top drops and rarity counts
     {
         // Global Lock Order: 4. s_SessionDropsMutex, 5. s_Mutex
         std::lock_guard<std::mutex> dropsLock(s_SessionDropsMutex);
         std::lock_guard<std::mutex> lock(s_Mutex);
-        
+
         sessionData.totalDrops = static_cast<int>(s_Items.size());
 
         // Collect top drops (by value)
         std::vector<std::pair<long long, SessionHistory::DropEntry>> drops;
+        drops.reserve(s_Items.size());
         for (const auto& [id, stat] : s_Items)
         {
             long long value = GetStatProfit(stat);
@@ -770,7 +1092,7 @@ void ItemTracker::SaveCurrentSession()
             sessionData.topDrops.push_back(drops[i].second);
         }
 
-        // Populate allDrops with item details
+        // Populate allDrops with item details (deep-copies every drop into sessionData)
         for (auto& drop : s_SessionDrops)
         {
             auto it = s_Items.find(drop.itemId);
@@ -800,29 +1122,65 @@ void ItemTracker::SaveCurrentSession()
             }
             sessionData.allDrops.push_back(drop);
         }
-
-        // Map name
-        int mapId = s_LastKnownMapId.load();
-        std::string apiToken;
-        {
-            std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
-            apiToken = g_Settings.gw2ApiKey;
-        }
-        sessionData.mapName = LootLogger::ResolveMapName(mapId, apiToken);
-        if (sessionData.mapName == "Unknown" || sessionData.mapName.empty())
-        {
-            sessionData.mapName = "Map #" + std::to_string(mapId);
-        }
     }
 
-    // Save session
+    // mapName is resolved in the caller so the HTTP cache-miss path never runs
+    // under item mutexes. We just record the data needed to resolve it later.
+    out       = std::move(sessionData);
+    outMapId  = mapId;
+    outApiToken = std::move(apiToken);
+    return true;
+}
+
+static void FinalizeSessionSave(SessionHistory::SessionData& sessionData,
+                                int mapId,
+                                const std::string& apiToken)
+{
+    // May block on HTTP if map name isn't cached (worker thread only!)
+    sessionData.mapName = LootLogger::ResolveMapName(mapId, apiToken);
+    if (sessionData.mapName == "Unknown" || sessionData.mapName.empty())
+    {
+        sessionData.mapName = "Map #" + std::to_string(mapId);
+    }
+
+    // Write JSON + ofstream to session_history.json (may block on file IO)
     SessionHistory::SaveSession(sessionData);
 }
+
+void SaveCurrentSessionSync()
+{
+    SessionHistory::SessionData sessionData;
+    int mapId = 0;
+    std::string apiToken;
+    if (!BuildSessionSnapshot(sessionData, mapId, apiToken))
+        return;
+    FinalizeSessionSave(sessionData, mapId, apiToken);
+}
+
+void SaveCurrentSession()
+{
+    SessionHistory::SessionData sessionData;
+    int mapId = 0;
+    std::string apiToken;
+    if (!BuildSessionSnapshot(sessionData, mapId, apiToken))
+        return;
+
+    // Hand the captured deep-copy to the shared background worker. The
+    // lambda owns all the state so there's no lifetime risk. BackgroundJobs
+    // will run it synchronously inline if the worker already shut down.
+    BackgroundJobs::Enqueue(
+        [sessionData = std::move(sessionData), mapId, apiToken = std::move(apiToken)]() mutable
+        {
+            FinalizeSessionSave(sessionData, mapId, apiToken);
+        });
+}
+
+} // namespace ItemTracker
 
 void ItemTracker::Reset()
 {
     // Save session history before resetting
-    SaveCurrentSession();
+    ItemTracker::SaveCurrentSession();
 
     // Save immediately (reset is critical for data integrity)
     const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
@@ -853,6 +1211,7 @@ void ItemTracker::Reset()
 
     s_SessionDrops.clear();
     s_SessionDropsVersion.fetch_add(1, std::memory_order_relaxed);
+    s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
 
     // Don't clear s_Items and s_Currencies - keep API data for Loot Log display
     // Only reset the count values
@@ -1054,14 +1413,10 @@ void ItemTracker::SetFavorite(int apiId, bool favorite)
         }
     }
 
-    // Save immediately (favorites are important user settings)
-    // Call SaveData BEFORE acquiring s_Mutex to avoid deadlock
-    const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
-    if (addonDir)
-    {
-        ItemTracker::SaveData(addonDir);
-    }
-
+    // Update in-memory state — persistence handled by the 5-second periodic save loop
+    // (AutoReset::Tick fallback) already. No need to pay CreateSaveSnapshot()
+    // cost on every single favorite click; worst case data is persisted
+    // within 5 seconds.
     std::lock_guard<std::mutex> lock(s_Mutex);
 
     // Update in items if present
@@ -1073,6 +1428,8 @@ void ItemTracker::SetFavorite(int apiId, bool favorite)
     auto currencyIt = s_Currencies.find(apiId);
     if (currencyIt != s_Currencies.end())
         currencyIt->second.isFavorite = favorite;
+
+    s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
 }
 
 bool ItemTracker::IsFavorite(int apiId)
@@ -1110,13 +1467,14 @@ void ItemTracker::ResetItemCount(int apiId)
     {
         it->second.count = 0;
     }
+    s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
 }
 
 void ItemTracker::RemoveItem(int apiId)
 {
-    std::lock_guard<std::mutex> lock(s_Mutex);
     std::lock_guard<std::mutex> pLock(s_PersistentMutex);
     std::lock_guard<std::mutex> dropsLock(s_SessionDropsMutex);
+    std::lock_guard<std::mutex> lock(s_Mutex);
     s_Items.erase(apiId);
     s_PersistentFavoriteItems.erase(apiId);
     s_PersistentFavoriteCurrencies.erase(apiId);
@@ -1128,6 +1486,7 @@ void ItemTracker::RemoveItem(int apiId)
         s_SessionDrops.end()
     );
     s_SessionDropsVersion.fetch_add(1, std::memory_order_relaxed);
+    s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
 }
 
 void ItemTracker::ResetCurrencyCount(int apiId)
@@ -1138,13 +1497,14 @@ void ItemTracker::ResetCurrencyCount(int apiId)
     {
         it->second.count = 0;
     }
+    s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
 }
 
 void ItemTracker::RemoveCurrency(int apiId)
 {
-    std::lock_guard<std::mutex> lock(s_Mutex);
     std::lock_guard<std::mutex> pLock(s_PersistentMutex);
     std::lock_guard<std::mutex> dropsLock(s_SessionDropsMutex);
+    std::lock_guard<std::mutex> lock(s_Mutex);
     s_Currencies.erase(apiId);
     s_PersistentFavoriteItems.erase(apiId);
     s_PersistentFavoriteCurrencies.erase(apiId);
@@ -1156,114 +1516,133 @@ void ItemTracker::RemoveCurrency(int apiId)
         s_SessionDrops.end()
     );
     s_SessionDropsVersion.fetch_add(1, std::memory_order_relaxed);
+    s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
 }
 
-std::map<int, Stat> ItemTracker::GetFavoriteItems()
+std::vector<std::pair<int, Stat>> ItemTracker::GetFavoriteItems()
 {
-    std::map<int, Stat> favorites;
-    std::string searchTerm;
+    uint64_t currentVersion = s_ItemsStateVersion.load(std::memory_order_relaxed);
+
     {
-        std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
-        searchTerm = g_Settings.searchTerm;
+        std::lock_guard<std::mutex> cacheLock(s_FavoriteItemsCacheMutex);
+        if (s_FavoriteItemsCache.itemsVersion == currentVersion)
+        {
+            return s_FavoriteItemsCache.result; // Cache hit
+        }
     }
-    
+
+    std::map<int, Stat> favorites;
     std::set<int> persistentIds;
     {
         std::lock_guard<std::mutex> pLock(s_PersistentMutex);
         persistentIds = s_PersistentFavoriteItems;
     }
 
-    std::lock_guard<std::mutex> lock(s_Mutex);
-
-    // 1. Get current session favorites
-    for (const auto& [id, stat] : s_Items)
     {
-        if (stat.isFavorite)
-        {
-            if (searchTerm.empty() || SearchManager::MatchesSearch(stat.details.name, searchTerm))
-                favorites[id] = stat;
-        }
-    }
-    
-    // 2. Add persistent favorites that are not in the current session yet
-    for (int id : persistentIds)
-    {
-        if (favorites.find(id) == favorites.end())
-        {
-            // Skip if ID is already in currencies (don't show it as item)
-            if (s_Currencies.count(id) > 0) continue;
+        std::lock_guard<std::mutex> lock(s_Mutex);
 
-            Stat s;
-            s.apiId = id;
-            s.type = StatType::Item;
-            s.count = 0;
-            s.isFavorite = true;
-            
-            auto it = s_Items.find(id);
-            std::string name = (it != s_Items.end() && it->second.details.loaded) ? it->second.details.name : "";
-            
-            if (searchTerm.empty() || SearchManager::MatchesSearch(name, searchTerm))
+        // 1. Get current session favorites
+        for (const auto& [id, stat] : s_Items)
+        {
+            if (stat.isFavorite)
             {
+                favorites[id] = stat;
+            }
+        }
+
+        // 2. Add persistent favorites that are not in the current session yet
+        for (int id : persistentIds)
+        {
+            if (favorites.find(id) == favorites.end())
+            {
+                // Skip if ID is already in currencies (don't show it as item)
+                if (s_Currencies.count(id) > 0) continue;
+
+                Stat s;
+                s.apiId = id;
+                s.type = StatType::Item;
+                s.count = 0;
+                s.isFavorite = true;
+
                 favorites[id] = s;
             }
         }
     }
-    
-    return favorites;
+
+    auto result = std::vector<std::pair<int, Stat>>(favorites.begin(), favorites.end());
+
+    // Update cache
+    {
+        std::lock_guard<std::mutex> cacheLock(s_FavoriteItemsCacheMutex);
+        s_FavoriteItemsCache.itemsVersion = currentVersion;
+        s_FavoriteItemsCache.lastSearchTerm.clear();
+        s_FavoriteItemsCache.result = result;
+    }
+
+    return result;
 }
 
-std::map<int, Stat> ItemTracker::GetFavoriteCurrencies()
+std::vector<std::pair<int, Stat>> ItemTracker::GetFavoriteCurrencies()
 {
-    std::map<int, Stat> favorites;
-    std::string searchTerm;
+    uint64_t currentVersion = s_ItemsStateVersion.load(std::memory_order_relaxed);
+
     {
-        std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
-        searchTerm = g_Settings.searchTerm;
+        std::lock_guard<std::mutex> cacheLock(s_FavoriteCurrenciesCacheMutex);
+        if (s_FavoriteCurrenciesCache.itemsVersion == currentVersion)
+        {
+            return s_FavoriteCurrenciesCache.result; // Cache hit
+        }
     }
-    
+
+    std::map<int, Stat> favorites;
     std::set<int> persistentIds;
     {
         std::lock_guard<std::mutex> pLock(s_PersistentMutex);
         persistentIds = s_PersistentFavoriteCurrencies;
     }
 
-    std::lock_guard<std::mutex> lock(s_Mutex);
-
-    // 1. Get current session favorites
-    for (const auto& [id, stat] : s_Currencies)
     {
-        if (stat.isFavorite)
-        {
-            if (searchTerm.empty() || SearchManager::MatchesSearchCurrency(stat.details.name, searchTerm))
-                favorites[id] = stat;
-        }
-    }
-    
-    // 2. Add persistent favorites that are not in the current session yet
-    for (int id : persistentIds)
-    {
-        if (favorites.find(id) == favorites.end())
-        {
-            // Skip if ID is already in items (don't show it as currency)
-            if (s_Items.count(id) > 0) continue;
+        std::lock_guard<std::mutex> lock(s_Mutex);
 
-            Stat s;
-            s.apiId = id;
-            s.type = StatType::Currency;
-            s.count = 0;
-            s.isFavorite = true;
-            
-            auto it = s_Currencies.find(id);
-            std::string name = (it != s_Currencies.end() && it->second.details.loaded) ? it->second.details.name : "";
-            
-            if (searchTerm.empty() || SearchManager::MatchesSearchCurrency(name, searchTerm))
+        // 1. Get current session favorites
+        for (const auto& [id, stat] : s_Currencies)
+        {
+            if (stat.isFavorite)
             {
+                favorites[id] = stat;
+            }
+        }
+
+        // 2. Add persistent favorites that are not in the current session yet
+        for (int id : persistentIds)
+        {
+            if (favorites.find(id) == favorites.end())
+            {
+                // Skip if ID is already in items (don't show it as currency)
+                if (s_Items.count(id) > 0) continue;
+
+                Stat s;
+                s.apiId = id;
+                s.type = StatType::Currency;
+                s.count = 0;
+                s.isFavorite = true;
+
                 favorites[id] = s;
             }
         }
     }
-    
-    return favorites;
+
+    auto result = std::vector<std::pair<int, Stat>>(favorites.begin(), favorites.end());
+
+    // Update cache
+    {
+        std::lock_guard<std::mutex> cacheLock(s_FavoriteCurrenciesCacheMutex);
+        s_FavoriteCurrenciesCache.itemsVersion = currentVersion;
+        s_FavoriteCurrenciesCache.lastSearchTerm.clear();
+        s_FavoriteCurrenciesCache.result = result;
+    }
+
+    return result;
 }
 
 std::vector<SessionHistory::DropEntry> ItemTracker::GetSessionDropsCopy()
@@ -1386,12 +1765,16 @@ std::string ItemTracker::GetCurrencyCategory(int currencyId)
 // Ignored Items (delegates to IgnoredItemsManager + Skip Once + Session Ignore)
 bool ItemTracker::IsItemIgnored(int apiId)
 {
-    return IgnoredItemsManager::IsItemIgnored(apiId) || SessionIgnoreManager::IsItemIgnoredForSession(apiId);
+    return IgnoredItemsManager::IsItemIgnored(apiId)
+        || SessionIgnoreManager::IsItemIgnoredForSession(apiId)
+        || SkipOnceManager::IsItemSkippedOnce(apiId);
 }
 
 bool ItemTracker::IsCurrencyIgnored(int apiId)
 {
-    return IgnoredItemsManager::IsCurrencyIgnored(apiId) || SessionIgnoreManager::IsCurrencyIgnoredForSession(apiId);
+    return IgnoredItemsManager::IsCurrencyIgnored(apiId)
+        || SessionIgnoreManager::IsCurrencyIgnoredForSession(apiId)
+        || SkipOnceManager::IsCurrencySkippedOnce(apiId);
 }
 
 // Advanced Filtering
@@ -1459,8 +1842,8 @@ static bool PassesFilterImpl(const Stat& stat, const FilterSettings& f)
     // Currency filter
     if (stat.IsCurrency())
     {
-        // Ignored currencies should not be shown regardless of currency-specific filters
-        if (stat.isIgnored) return false;
+        // Ignore status respects filterIgnored flag (consistent with top-level ignored/favorite checks)
+        if (stat.isIgnored && !f.filterIgnored) return false;
         
         switch (stat.apiId)
         {
@@ -1543,7 +1926,7 @@ bool ItemTracker::PassesFilter(const Stat& stat)
     return PassesFilterImpl(stat, f);
 }
 
-std::map<int, Stat> ItemTracker::GetFilteredItems()
+std::vector<std::pair<int, Stat>> ItemTracker::GetFilteredItems()
 {
     // Get ignored snapshot BEFORE acquiring s_Mutex to avoid circular deadlock:
     // GetFilteredItems(s_Mutex) -> IsItemIgnored(IgnoredItems::s_Mutex) vs.
@@ -1554,41 +1937,106 @@ std::map<int, Stat> ItemTracker::GetFilteredItems()
 
     // Get filter settings snapshot BEFORE acquiring s_Mutex to avoid circular deadlock:
     // GetFilteredItems(s_Mutex) -> PassesFilter -> FilterSettings::FromGlobal(s_SettingsMutex)
+    // Note: We disable favorite filtering for GetFilteredItems to avoid conflicts with
+    // the Drops tab's custom filter system. The Drops tab uses SortFilterOptions which
+    // has its own excludeFavorites/excludeNonFavorites flags.
+    // We also disable item-type filters to show all items in the Drops tab.
     FilterSettings filterSettings = FilterSettings::FromGlobal();
+    filterSettings.filterFavorite = true; // Always allow favorites
+    filterSettings.filterNotFavorite = true; // Always allow non-favorites
+    filterSettings.filterIgnored = true; // Managed separately via excludeIgnored in SortFilterOptions
+    filterSettings.filterNotIgnored = true; // Prevent global filter from hiding everything
+    filterSettings.filterTypeArmor = true;
+    filterSettings.filterTypeWeapon = true;
+    filterSettings.filterTypeTrinket = true;
+    filterSettings.filterTypeGizmo = true;
+    filterSettings.filterTypeCraftingMaterial = true;
+    filterSettings.filterTypeConsumable = true;
+    filterSettings.filterTypeGatheringTool = true;
+    filterSettings.filterTypeBag = true;
+    filterSettings.filterTypeContainer = true;
+    filterSettings.filterTypeMiniPet = true;
+    filterSettings.filterTypeGizmoContainer = true;
+    filterSettings.filterTypeBackpack = true;
+    filterSettings.filterTypeUpgradeComponent = true;
+    filterSettings.filterTypeTool = true;
+    filterSettings.filterTypeTrophy = true;
+    filterSettings.filterTypeUnlock = true;
+    filterSettings.filterSellableToVendor = true;
+    filterSettings.filterSellableOnTp = true;
+    filterSettings.filterCustomProfit = true;
+    filterSettings.filterAccountBound = true;
+    filterSettings.filterNotAccountBound = true;
+    filterSettings.filterNoSell = true;
+    filterSettings.filterNotNoSell = true;
+    filterSettings.filterKnownByApi = true;
+    filterSettings.filterUnknownByApi = true;
+    filterSettings.filterMinPriceGold = 0;
+    filterSettings.filterMinPriceSilver = 0;
+    filterSettings.filterMinPriceCopper = 0;
+    filterSettings.filterMaxPriceGold = 0;
+    filterSettings.filterMaxPriceSilver = 0;
+    filterSettings.filterMaxPriceCopper = 0;
+    filterSettings.filterMinQuantity = 0;
+    filterSettings.filterMaxQuantity = 0;
+    filterSettings.itemRarityFilterMin = 0;
+    filterSettings.maxHistoryItems = 0;
+    uint64_t currentVersion = s_ItemsStateVersion.load(std::memory_order_relaxed);
 
-    std::map<int, Stat> filtered;
+    {
+        std::lock_guard<std::mutex> cacheLock(s_FilteredItemsCacheMutex);
+        if (s_FilteredItemsCache.hasSettings &&
+            s_FilteredItemsCache.itemsVersion == currentVersion &&
+            s_FilteredItemsCache.lastFilterSettings == filterSettings)
+        {
+            return s_FilteredItemsCache.result; // Cache hit
+        }
+    }
+
+    std::vector<std::pair<int, Stat>> filtered;
     {
         std::lock_guard<std::mutex> lock(s_Mutex);
 
-        std::vector<std::pair<long long, Stat>> candidates;
+        std::vector<std::pair<int, Stat>> candidates;
+        candidates.reserve(s_Items.size());
 
         for (const auto& [id, stat] : s_Items)
         {
-            if (stat.count == 0) continue;
+            // Don't filter out items with count 0 - allow them to be shown
+            // if (stat.count == 0) continue;
 
             Stat copy = stat;
             copy.isIgnored = (ignoredSnapshot.count(id) > 0) || (sessionIgnoredSnapshot.count(id) > 0) || (skipOnceSnapshot.count(id) > 0);
             if (PassesFilterImpl(copy, filterSettings))
-                candidates.push_back({0, copy});
+                candidates.emplace_back(id, std::move(copy));
         }
 
         size_t limit = static_cast<size_t>(filterSettings.maxHistoryItems);
 
         if (limit > 0 && candidates.size() > limit)
         {
-            for (size_t i = candidates.size() - limit; i < candidates.size(); ++i)
-                filtered[candidates[i].second.apiId] = candidates[i].second;
+            filtered.assign(std::make_move_iterator(candidates.end() - limit),
+                            std::make_move_iterator(candidates.end()));
         }
         else
         {
-            for (const auto& cand : candidates)
-                filtered[cand.second.apiId] = cand.second;
+            filtered = std::move(candidates);
         }
     }
+
+    // Update cache
+    {
+        std::lock_guard<std::mutex> cacheLock(s_FilteredItemsCacheMutex);
+        s_FilteredItemsCache.itemsVersion = currentVersion;
+        s_FilteredItemsCache.hasSettings = true;
+        s_FilteredItemsCache.lastFilterSettings = filterSettings;
+        s_FilteredItemsCache.result = filtered;
+    }
+
     return filtered;
 }
 
-std::map<int, Stat> ItemTracker::GetFilteredCurrencies()
+std::vector<std::pair<int, Stat>> ItemTracker::GetFilteredCurrencies()
 {
     // Get ignored snapshot BEFORE acquiring s_Mutex (same deadlock prevention as GetFilteredItems)
     std::set<int> ignoredSnapshot = IgnoredItemsManager::GetIgnoredCurrencies();
@@ -1596,63 +2044,379 @@ std::map<int, Stat> ItemTracker::GetFilteredCurrencies()
     std::set<int> skipOnceSnapshot = SkipOnceManager::GetSkippedCurrencies();
 
     // Get filter settings snapshot BEFORE acquiring s_Mutex to avoid circular deadlock
+    // Note: We disable favorite filtering for GetFilteredCurrencies to avoid conflicts with
+    // the Drops tab's custom filter system. The Drops tab uses SortFilterOptions which
+    // has its own excludeFavorites/excludeNonFavorites flags.
+    // We also disable currency-specific filters to show all currencies in the Drops tab.
     FilterSettings filterSettings = FilterSettings::FromGlobal();
+    filterSettings.filterFavorite = true; // Always allow favorites
+    filterSettings.filterNotFavorite = true; // Always allow non-favorites
+    filterSettings.filterIgnored = true; // Managed separately via excludeIgnored in SortFilterOptions
+    filterSettings.filterNotIgnored = true; // Prevent global filter from hiding everything
+    filterSettings.filterKnownByApi = true;
+    filterSettings.filterUnknownByApi = true;
+    filterSettings.filterKarma = true;
+    filterSettings.filterLaurel = true;
+    filterSettings.filterGem = true;
+    filterSettings.filterFractalRelic = true;
+    filterSettings.filterBadgeOfHonor = true;
+    filterSettings.filterGuildCommendation = true;
+    filterSettings.filterTransmutationCharge = true;
+    filterSettings.filterSpiritShards = true;
+    filterSettings.filterUnboundMagic = true;
+    filterSettings.filterVolatileMagic = true;
+    filterSettings.filterAirshipParts = true;
+    filterSettings.filterGeode = true;
+    filterSettings.filterLeyLineCrystals = true;
+    filterSettings.filterTradeContracts = true;
+    filterSettings.filterElegyMosaic = true;
+    filterSettings.filterUncommonCoins = true;
+    filterSettings.filterAstralAcclaim = true;
+    filterSettings.filterPristineFractalRelics = true;
+    filterSettings.filterUnstableFractalEssence = true;
+    filterSettings.filterMagnetiteShards = true;
+    filterSettings.filterGaetingCrystals = true;
+    filterSettings.filterProphetShards = true;
+    filterSettings.filterGreenProphetShards = true;
+    filterSettings.filterWvWSkirmishTickets = true;
+    filterSettings.filterProofsOfHeroics = true;
+    filterSettings.filterPvpLeagueTickets = true;
+    filterSettings.filterAscendedShardsOfGlory = true;
+    filterSettings.filterResearchNotes = true;
+    filterSettings.filterTyrianDefenseSeal = true;
+    filterSettings.filterTestimonyOfDesertHeroics = true;
+    filterSettings.filterTestimonyOfJadeHeroics = true;
+    filterSettings.filterTestimonyOfCastoranHeroics = true;
+    filterSettings.filterLegendaryInsight = true;
+    filterSettings.filterTalesOfDungeonDelving = true;
+    filterSettings.filterImperialFavor = true;
+    filterSettings.filterCanachCoins = true;
+    filterSettings.filterAncientCoin = true;
+    filterSettings.filterUnusualCoin = true;
+    filterSettings.filterJadeSliver = true;
+    filterSettings.filterStaticCharge = true;
+    filterSettings.filterPinchOfStardust = true;
+    filterSettings.filterCalcifiedGasp = true;
+    filterSettings.filterUrsusOblige = true;
+    filterSettings.filterGaetingCrystalJanthir = true;
+    filterSettings.filterAntiquatedDucat = true;
+    filterSettings.filterAetherRichSap = true;
+    filterSettings.filterMinQuantity = 0;
+    filterSettings.filterMaxQuantity = 0;
+    uint64_t currentVersion = s_ItemsStateVersion.load(std::memory_order_relaxed);
+
+    {
+        std::lock_guard<std::mutex> cacheLock(s_FilteredCurrenciesCacheMutex);
+        if (s_FilteredCurrenciesCache.hasSettings &&
+            s_FilteredCurrenciesCache.itemsVersion == currentVersion &&
+            s_FilteredCurrenciesCache.lastFilterSettings == filterSettings)
+        {
+            return s_FilteredCurrenciesCache.result; // Cache hit
+        }
+    }
 
     auto currencies = GetCurrenciesCopy();
-    std::map<int, Stat> filtered;
+    std::vector<std::pair<int, Stat>> filtered;
+    filtered.reserve(currencies.size());
     for (auto& [id, st] : currencies)
     {
         if (id == 44602 || id == 67027 || id == 89409)
             continue;
-        if (st.count == 0 && id != 1) continue;
+        // Don't filter out currencies with count 0 - allow them to be shown
+        // if (st.count == 0 && id != 1) continue;
 
         st.isIgnored = (ignoredSnapshot.count(id) > 0) || (sessionIgnoredSnapshot.count(id) > 0) || (skipOnceSnapshot.count(id) > 0);
         if (PassesFilterImpl(st, filterSettings))
-            filtered[id] = st;
+            filtered.emplace_back(id, std::move(st));
     }
+
+    // Update cache
+    {
+        std::lock_guard<std::mutex> cacheLock(s_FilteredCurrenciesCacheMutex);
+        s_FilteredCurrenciesCache.itemsVersion = currentVersion;
+        s_FilteredCurrenciesCache.hasSettings = true;
+        s_FilteredCurrenciesCache.lastFilterSettings = filterSettings;
+        s_FilteredCurrenciesCache.result = filtered;
+    }
+
     return filtered;
 }
 
 // Search functionality
-std::map<int, Stat> ItemTracker::GetSearchedItems(const std::string& searchTerm)
+std::vector<std::pair<int, Stat>> ItemTracker::GetSearchedItems(const std::string& searchTerm)
 {
     auto items = GetFilteredItems();
     if (searchTerm.empty())
         return items;
-    
-    std::map<int, Stat> searched;
-    for (const auto& [id, stat] : items)
+
+    std::vector<std::pair<int, Stat>> searched;
+    searched.reserve(items.size());
+    for (auto& [id, stat] : items)
         if (SearchManager::MatchesSearch(stat.details.name, searchTerm))
-            searched[id] = stat;
-    
+            searched.emplace_back(id, std::move(stat));
+
     return searched;
 }
 
-std::map<int, Stat> ItemTracker::GetSearchedCurrencies(const std::string& searchTerm)
+std::vector<std::pair<int, Stat>> ItemTracker::GetSearchedCurrencies(const std::string& searchTerm)
 {
     auto currencies = GetFilteredCurrencies();
     if (searchTerm.empty())
         return currencies;
-    
-    std::map<int, Stat> searched;
-    for (const auto& [id, stat] : currencies)
+
+    std::vector<std::pair<int, Stat>> searched;
+    searched.reserve(currencies.size());
+    for (auto& [id, stat] : currencies)
         if (SearchManager::MatchesSearchCurrency(stat.details.name, searchTerm))
-            searched[id] = stat;
-    
+            searched.emplace_back(id, std::move(stat));
+
     return searched;
+}
+
+// ============================================================================
+//  View-Getter (0-copy hot path)
+//  Uses thread_local storage + atomic version check. On cache hit:
+//    0 mutex locks · 0 copies · 1 atomic load
+//  Only when version or sort-mode actually changes:
+//    1 mutex lock + 1 copy from shared cache to thread_local buffer.
+// ============================================================================
+
+const std::vector<std::pair<int, Stat>>& ItemTracker::GetFilteredItemsView()
+{
+    static thread_local uint64_t s_LastVersion = 0;
+    static thread_local std::vector<std::pair<int, Stat>> s_Local;
+    static thread_local bool s_Initialized = false;
+
+    uint64_t ver = s_ItemsStateVersion.load(std::memory_order_relaxed);
+    if (s_Initialized && s_LastVersion == ver) return s_Local;
+
+    s_Local    = ItemTracker::GetFilteredItems(); // hits shared cache on 2nd miss usually
+    s_LastVersion = ver;
+    s_Initialized = true;
+    return s_Local;
+}
+
+const std::vector<std::pair<int, Stat>>& ItemTracker::GetFilteredCurrenciesView()
+{
+    static thread_local uint64_t s_LastVersion = 0;
+    static thread_local std::vector<std::pair<int, Stat>> s_Local;
+    static thread_local bool s_Initialized = false;
+
+    uint64_t ver = s_ItemsStateVersion.load(std::memory_order_relaxed);
+    if (s_Initialized && s_LastVersion == ver) return s_Local;
+
+    s_Local       = ItemTracker::GetFilteredCurrencies();
+    s_LastVersion = ver;
+    s_Initialized = true;
+    return s_Local;
+}
+
+const std::vector<std::pair<int, Stat>>& ItemTracker::GetFavoriteItemsView()
+{
+    static thread_local uint64_t s_LastVersion = 0;
+    static thread_local std::vector<std::pair<int, Stat>> s_Local;
+    static thread_local bool s_Initialized = false;
+
+    uint64_t ver = s_ItemsStateVersion.load(std::memory_order_relaxed);
+    if (s_Initialized && s_LastVersion == ver) return s_Local;
+
+    s_Local       = ItemTracker::GetFavoriteItems();
+    s_LastVersion = ver;
+    s_Initialized = true;
+    return s_Local;
+}
+
+const std::vector<std::pair<int, Stat>>& ItemTracker::GetFavoriteCurrenciesView()
+{
+    static thread_local uint64_t s_LastVersion = 0;
+    static thread_local std::vector<std::pair<int, Stat>> s_Local;
+    static thread_local bool s_Initialized = false;
+
+    uint64_t ver = s_ItemsStateVersion.load(std::memory_order_relaxed);
+    if (s_Initialized && s_LastVersion == ver) return s_Local;
+
+    s_Local       = ItemTracker::GetFavoriteCurrencies();
+    s_LastVersion = ver;
+    s_Initialized = true;
+    return s_Local;
+}
+
+const std::vector<std::pair<int, Stat>>& ItemTracker::GetSortedItemsView(SortMode mode, const SortFilterOptions& filter)
+{
+    // Key = (itemsVersion · 64 + sortMode). Mode fits in 8 bits.
+    // Include filter options in key for proper caching
+    static thread_local uint64_t s_LastKey = 0;
+    static thread_local SortFilterOptions s_LastFilter = {};
+    static thread_local std::vector<std::pair<int, Stat>> s_Local;
+    static thread_local bool s_Initialized = false;
+
+    uint64_t ver  = s_ItemsStateVersion.load(std::memory_order_relaxed);
+    uint64_t key  = (ver << 8) | (static_cast<uint64_t>(mode) & 0xFF);
+    
+    // Include filter options in cache key
+    uint64_t filterKey = (static_cast<uint64_t>(filter.excludeIgnored) << 0) |
+                         (static_cast<uint64_t>(filter.excludeZeroCount) << 1) |
+                         (static_cast<uint64_t>(filter.excludeCurrencies) << 2) |
+                         (static_cast<uint64_t>(filter.rarityFilterMin) << 3) |
+                         (static_cast<uint64_t>(filter.excludeFavorites) << 4) |
+                         (static_cast<uint64_t>(filter.excludeNonFavorites) << 5);
+    key |= (filterKey << 16);
+
+    if (s_Initialized && s_LastKey == key && s_LastFilter.excludeIgnored == filter.excludeIgnored &&
+        s_LastFilter.excludeZeroCount == filter.excludeZeroCount &&
+        s_LastFilter.excludeCurrencies == filter.excludeCurrencies &&
+        s_LastFilter.rarityFilterMin == filter.rarityFilterMin &&
+        s_LastFilter.searchTerm == filter.searchTerm &&
+        s_LastFilter.excludeFavorites == filter.excludeFavorites &&
+        s_LastFilter.excludeNonFavorites == filter.excludeNonFavorites) return s_Local;
+
+    // Get sorted items and apply filters
+    s_Local = ItemTracker::GetSortedItems(mode);
+    
+    // Apply filters
+    if (filter.excludeIgnored || filter.excludeZeroCount || filter.excludeCurrencies || filter.rarityFilterMin > 0 || !filter.searchTerm.empty() || filter.excludeFavorites || filter.excludeNonFavorites)
+    {
+        std::vector<std::pair<int, Stat>> filtered;
+        filtered.reserve(s_Local.size());
+
+        for (auto& [id, st] : s_Local)
+        {
+            // Exclude ignored items
+            if (filter.excludeIgnored && st.isIgnored) continue;
+
+            // Exclude zero count items
+            if (filter.excludeZeroCount && st.count == 0) continue;
+
+            // Exclude currencies
+            if (filter.excludeCurrencies && st.IsCurrency()) continue;
+
+            // Exclude favorites
+            if (filter.excludeFavorites && st.isFavorite) continue;
+
+            // Exclude non-favorites
+            if (filter.excludeNonFavorites && !st.isFavorite) continue;
+
+            // Rarity filter
+            if (filter.rarityFilterMin > 0)
+            {
+                std::string rarity = st.details.loaded ? st.details.rarity : "";
+                int rarityRank = 0;
+                if (rarity == "Junk") rarityRank = 1;
+                else if (rarity == "Basic") rarityRank = 2;
+                else if (rarity == "Fine") rarityRank = 3;
+                else if (rarity == "Masterwork") rarityRank = 4;
+                else if (rarity == "Rare") rarityRank = 5;
+                else if (rarity == "Exotic") rarityRank = 6;
+                else if (rarity == "Ascended") rarityRank = 7;
+                else if (rarity == "Legendary") rarityRank = 8;
+                if (rarityRank < filter.rarityFilterMin) continue;
+            }
+
+            // Search term filter (case-insensitive)
+            if (!filter.searchTerm.empty())
+            {
+                std::string itemName = st.details.loaded ? st.details.name : ("Item #" + std::to_string(id));
+                std::string searchTermLower = filter.searchTerm;
+                std::string itemNameLower = itemName;
+                std::transform(searchTermLower.begin(), searchTermLower.end(), searchTermLower.begin(), ::tolower);
+                std::transform(itemNameLower.begin(), itemNameLower.end(), itemNameLower.begin(), ::tolower);
+                if (itemNameLower.find(searchTermLower) == std::string::npos) continue;
+            }
+
+            filtered.push_back({id, st});
+        }
+
+        s_Local = std::move(filtered);
+    }
+    
+    s_LastKey = key;
+    s_LastFilter = filter;
+    s_Initialized = true;
+    return s_Local;
+}
+
+const std::vector<std::pair<int, Stat>>& ItemTracker::GetSortedCurrenciesView(SortMode mode, const SortFilterOptions& filter)
+{
+    static thread_local uint64_t s_LastKey = 0;
+    static thread_local SortFilterOptions s_LastFilter = {};
+    static thread_local std::vector<std::pair<int, Stat>> s_Local;
+    static thread_local bool s_Initialized = false;
+
+    uint64_t ver  = s_ItemsStateVersion.load(std::memory_order_relaxed);
+    uint64_t key  = (ver << 8) | (static_cast<uint64_t>(mode) & 0xFF);
+    
+    // Include filter options in cache key
+    uint64_t filterKey = (static_cast<uint64_t>(filter.excludeIgnored) << 0) |
+                         (static_cast<uint64_t>(filter.excludeZeroCount) << 1) |
+                         (static_cast<uint64_t>(filter.excludeCurrencies) << 2) |
+                         (static_cast<uint64_t>(filter.rarityFilterMin) << 3) |
+                         (static_cast<uint64_t>(filter.excludeFavorites) << 4) |
+                         (static_cast<uint64_t>(filter.excludeNonFavorites) << 5);
+    key |= (filterKey << 16);
+
+    if (s_Initialized && s_LastKey == key && s_LastFilter.excludeIgnored == filter.excludeIgnored &&
+        s_LastFilter.excludeZeroCount == filter.excludeZeroCount &&
+        s_LastFilter.excludeCurrencies == filter.excludeCurrencies &&
+        s_LastFilter.rarityFilterMin == filter.rarityFilterMin &&
+        s_LastFilter.searchTerm == filter.searchTerm &&
+        s_LastFilter.excludeFavorites == filter.excludeFavorites &&
+        s_LastFilter.excludeNonFavorites == filter.excludeNonFavorites) return s_Local;
+
+    // Get sorted currencies and apply filters
+    s_Local = ItemTracker::GetSortedCurrencies(mode);
+
+    // Apply filters (currencies typically don't have rarity, so ignore that filter)
+    if (filter.excludeIgnored || filter.excludeZeroCount || filter.excludeCurrencies || !filter.searchTerm.empty() || filter.excludeFavorites || filter.excludeNonFavorites)
+    {
+        std::vector<std::pair<int, Stat>> filtered;
+        filtered.reserve(s_Local.size());
+        
+        for (auto& [id, st] : s_Local)
+        {
+            // Exclude ignored currencies
+            if (filter.excludeIgnored && st.isIgnored) continue;
+
+            // Exclude zero count currencies
+            if (filter.excludeZeroCount && st.count == 0) continue;
+
+            // Exclude favorites
+            if (filter.excludeFavorites && st.isFavorite) continue;
+
+            // Exclude non-favorites
+            if (filter.excludeNonFavorites && !st.isFavorite) continue;
+
+            // Search term filter (case-insensitive)
+            if (!filter.searchTerm.empty())
+            {
+                std::string currencyName = st.details.loaded ? st.details.name : ("Currency #" + std::to_string(id));
+                std::string searchTermLower = filter.searchTerm;
+                std::string currencyNameLower = currencyName;
+                std::transform(searchTermLower.begin(), searchTermLower.end(), searchTermLower.begin(), ::tolower);
+                std::transform(currencyNameLower.begin(), currencyNameLower.end(), currencyNameLower.begin(), ::tolower);
+                if (currencyNameLower.find(searchTermLower) == std::string::npos) continue;
+            }
+
+            filtered.push_back({id, st});
+        }
+
+        s_Local = std::move(filtered);
+    }
+    
+    s_LastKey = key;
+    s_LastFilter = filter;
+    s_Initialized = true;
+    return s_Local;
 }
 
 // Multi-Sort implementation
 std::vector<std::pair<int, Stat>> ItemTracker::GetSortedItems(SortMode mode, bool)
 {
-    std::string searchTerm;
     bool favoritesFirst;
     {
         std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
-        searchTerm    = g_Settings.searchTerm;
         favoritesFirst = g_Settings.itemsFavoritesFirst; // per-tab setting (Drops > Settings)
     }
-    auto items = GetSearchedItems(searchTerm);
+    auto items = GetFilteredItems();
     std::vector<std::pair<int, Stat>> sorted(items.begin(), items.end());
 
     std::sort(sorted.begin(), sorted.end(), [mode, favoritesFirst](const auto& a, const auto& b) {
@@ -1702,14 +2466,12 @@ std::vector<std::pair<int, Stat>> ItemTracker::GetSortedItems(SortMode mode, boo
 
 std::vector<std::pair<int, Stat>> ItemTracker::GetSortedCurrencies(SortMode mode, bool)
 {
-    std::string searchTerm;
     bool favoritesFirst;
     {
         std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
-        searchTerm    = g_Settings.searchTerm;
         favoritesFirst = g_Settings.currenciesFavoritesFirst; // per-tab setting (Drops > Settings)
     }
-    auto currencies = GetSearchedCurrencies(searchTerm);
+    auto currencies = GetFilteredCurrencies();
     std::vector<std::pair<int, Stat>> sorted(currencies.begin(), currencies.end());
 
     std::sort(sorted.begin(), sorted.end(), [mode, favoritesFirst](const auto& a, const auto& b) {
@@ -2062,18 +2824,20 @@ void ItemTracker::UpdateProfitHistory()
     // Calculate profit outside of lock to avoid deadlock
     long long totalProfit = CalcTotalCustomProfit();
     
+    // Read profit goal settings BEFORE acquiring s_ProfitHistoryMutex to prevent
+    // any lock-order inversion (s_ProfitHistoryMutex → SettingsMutex) —
+    // future-safe, in case any outer caller ever holds SettingsMutex and calls us.
+    bool notifyProfitGoal;
+    int  profitGoalAmount;
+    {
+        std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
+        notifyProfitGoal = g_Settings.notifyProfitGoal;
+        profitGoalAmount = g_Settings.profitGoalAmount;
+    }
+
     // Now acquire profit history lock at the end
     {
         std::lock_guard<std::mutex> lock(s_ProfitHistoryMutex);
-    
-        // Check Profit Goal Notification
-        bool notifyProfitGoal;
-        int  profitGoalAmount;
-        {
-            std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
-            notifyProfitGoal = g_Settings.notifyProfitGoal;
-            profitGoalAmount = g_Settings.profitGoalAmount;
-        }
 
         if (notifyProfitGoal && !s_ProfitGoalReached)
         {
@@ -2242,123 +3006,85 @@ int ItemTracker::RarityRank(const std::string& rarity)
 }
 
 // === Persistence Functions ===
+
+static std::unique_ptr<SaveSnapshot> CreateSaveSnapshot(const char* addonDir)
+{
+    auto snap = std::make_unique<SaveSnapshot>();
+    snap->dataPath = std::string(addonDir) + "\\farming_data.json";
+
+    snap->timestamp = std::chrono::system_clock::now().time_since_epoch().count();
+
+    {
+        std::lock_guard<std::mutex> ssLock(s_SessionStartMutex);
+        snap->sessionStart = std::chrono::system_clock::to_time_t(s_SessionStart);
+    }
+
+    snap->magicFind = s_MagicFind.load();
+
+    // Global Lock Order: 1. s_PersistentMutex, 4. s_SessionDropsMutex, 5. s_Mutex
+    {
+        std::lock_guard<std::mutex> pLock(s_PersistentMutex);
+        std::lock_guard<std::mutex> dropsLock(s_SessionDropsMutex);
+        std::lock_guard<std::mutex> lock(s_Mutex);
+
+        for (const auto& [id, stat] : s_Items)
+        {
+            PersistedStatSaveView sv;
+            sv.count = stat.count;
+            sv.isFavorite = stat.isFavorite;
+            sv.lastMagicFind = stat.lastMagicFind;
+            snap->items.emplace(id, sv);
+        }
+
+        for (const auto& [id, stat] : s_Currencies)
+        {
+            PersistedStatSaveView sv;
+            sv.count = stat.count;
+            sv.isFavorite = stat.isFavorite;
+            sv.lastMagicFind = stat.lastMagicFind;
+            snap->currencies.emplace(id, sv);
+        }
+
+        snap->sessionDrops = s_SessionDrops;
+        snap->persistentFavoriteItems = s_PersistentFavoriteItems;
+        snap->persistentFavoriteCurrencies = s_PersistentFavoriteCurrencies;
+    }
+
+    snap->ignoredItems = IgnoredItemsManager::GetIgnoredItems();
+    snap->ignoredCurrencies = IgnoredItemsManager::GetIgnoredCurrencies();
+    snap->customProfits = CustomProfitManager::GetAllCustomProfitsDetailed();
+    snap->pinnedItemsJson = PinnedItemsManager::ExportToJson();
+
+    return snap;
+}
+
 void ItemTracker::SaveData(const char* addonDir)
 {
     if (!addonDir)
         return;
 
-    std::string dataPath = std::string(addonDir) + "\\farming_data.json";
-    
-    // Global Lock Order: 1. s_PersistentMutex, 4. s_SessionDropsMutex, 5. s_Mutex
-    std::lock_guard<std::mutex> pLock(s_PersistentMutex);
-    std::lock_guard<std::mutex> dropsLock(s_SessionDropsMutex);
-    std::lock_guard<std::mutex> lock(s_Mutex);
-
-    nlohmann::json data;
-    data["timestamp"] = std::chrono::system_clock::now().time_since_epoch().count();
-    data["sessionStart"] = std::chrono::system_clock::to_time_t(s_SessionStart);
-    data["magicFind"] = s_MagicFind.load();
-
-    // Save items
-    nlohmann::json itemsArray = nlohmann::json::array();
-    for (const auto& [id, stat] : s_Items)
+    if (!s_SaveWorkerShutdown.load(std::memory_order_acquire))
     {
-        nlohmann::json item;
-        item["apiId"] = id;
-        item["count"] = stat.count;
-        item["isFavorite"] = stat.isFavorite;
-        item["lastMagicFind"] = stat.lastMagicFind;
-        itemsArray.push_back(item);
-    }
-    data["items"] = itemsArray;
-
-    // Save currencies
-    nlohmann::json currenciesArray = nlohmann::json::array();
-    for (const auto& [id, stat] : s_Currencies)
-    {
-        nlohmann::json currency;
-        currency["apiId"] = id;
-        currency["count"] = stat.count;
-        currency["isFavorite"] = stat.isFavorite;
-        currency["lastMagicFind"] = stat.lastMagicFind;
-        currenciesArray.push_back(currency);
-    }
-    data["currencies"] = currenciesArray;
-
-    // Save session drops (for Timeline tab)
-    nlohmann::json dropsArray = nlohmann::json::array();
-    for (const auto& drop : s_SessionDrops)
-    {
-        nlohmann::json dropJson;
-        dropJson["itemId"] = drop.itemId;
-        dropJson["itemName"] = drop.itemName;
-        dropJson["iconUrl"] = drop.iconUrl;
-        dropJson["isCurrency"] = drop.isCurrency;
-        dropJson["rarity"] = drop.rarity;
-        dropJson["count"] = drop.count;
-        dropJson["totalValue"] = drop.totalValue;
-        dropJson["magicFind"] = drop.magicFind;
-        dropJson["timestamp"] = drop.timestamp;
-        dropJson["characterName"] = drop.characterName;
-        dropsArray.push_back(dropJson);
-    }
-    data["sessionDrops"] = dropsArray;
-
-    // Save ignored items
-    nlohmann::json ignoredItemsArray = nlohmann::json::array();
-    {
-        auto ignoredIds = IgnoredItemsManager::GetIgnoredItems();
-        for (int id : ignoredIds)
-            ignoredItemsArray.push_back(id);
-    }
-    data["ignoredItems"] = ignoredItemsArray;
-
-    nlohmann::json ignoredCurrenciesArray = nlohmann::json::array();
-    {
-        auto ignoredIds = IgnoredItemsManager::GetIgnoredCurrencies();
-        for (int id : ignoredIds)
-            ignoredCurrenciesArray.push_back(id);
-    }
-    data["ignoredCurrencies"] = ignoredCurrenciesArray;
-
-    // Save favorites (Persistent stores)
-    nlohmann::json favoriteItemsArray = nlohmann::json::array();
-    nlohmann::json favoriteCurrenciesArray = nlohmann::json::array();
-    for (int id : s_PersistentFavoriteItems)
-        favoriteItemsArray.push_back(id);
-    for (int id : s_PersistentFavoriteCurrencies)
-        favoriteCurrenciesArray.push_back(id);
-    
-    data["favoriteItems"] = favoriteItemsArray;
-    data["favoriteCurrencies"] = favoriteCurrenciesArray;
-
-    // Save custom profits
-    nlohmann::json customProfitsJson = nlohmann::json::object();
-    auto allCustomProfitsDetailed = CustomProfitManager::GetAllCustomProfitsDetailed();
-    for (const auto& [id, entry] : allCustomProfitsDetailed)
-    {
-        nlohmann::json cp;
-        cp["profit"] = entry.customProfitCopper;
-        cp["type"] = static_cast<int>(entry.type);
-        customProfitsJson[std::to_string(id)] = cp;
-    }
-    data["customProfits"] = customProfitsJson;
-
-    // Save pinned items
-    data["pinnedItems"] = PinnedItemsManager::ExportToJson();
-
-    // Write to file
-    std::ofstream file(dataPath);
-    if (file.is_open())
-    {
-        file << data.dump(4);
-        file.close();
-        if (APIDefs) APIDefs->Log(LOGL_INFO, "FarmingTracker", "Farming data saved successfully.");
+        auto snap = CreateSaveSnapshot(addonDir);
+        {
+            std::lock_guard<std::mutex> lk(s_SaveQueueMutex);
+            s_PendingSave = std::move(snap);
+        }
+        s_SaveQueueCv.notify_one();
     }
     else
     {
-        if (APIDefs) APIDefs->Log(LOGL_CRITICAL, "FarmingTracker", ("Failed to open " + dataPath + " for writing!").c_str());
+        SaveDataImmediate(addonDir);
     }
+}
+
+void ItemTracker::SaveDataImmediate(const char* addonDir)
+{
+    if (!addonDir)
+        return;
+
+    auto snap = CreateSaveSnapshot(addonDir);
+    WriteSnapshotToDisk(*snap);
 }
 
 void ItemTracker::LoadData(const char* addonDir)
@@ -2367,6 +3093,9 @@ void ItemTracker::LoadData(const char* addonDir)
         return;
 
     std::string dataPath = std::string(addonDir) + "\\farming_data.json";
+    
+    // Bump version before loading to invalidate any cached data
+    s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
     
     std::ifstream file(dataPath);
     if (!file.is_open())
@@ -2837,6 +3566,8 @@ void ItemTracker::ApplyItemsFromApi(const std::vector<int>& requestedIds, const 
         std::lock_guard<std::mutex> pLock(s_PersistentMutex);
         std::lock_guard<std::mutex> lock(s_Mutex);
 
+        bool modified = false;
+
         std::set<int> receivedItemIds;
         for (auto& item : itemsArray)
         {
@@ -2871,6 +3602,7 @@ void ItemTracker::ApplyItemsFromApi(const std::vector<int>& requestedIds, const 
                     s.count = 0;
                     s_Currencies[id] = s;
                     st = &s_Currencies[id];
+                    modified = true;
                 }
                 else
                 {
@@ -2887,7 +3619,8 @@ void ItemTracker::ApplyItemsFromApi(const std::vector<int>& requestedIds, const 
                 s.count = 0;
                 s_Items[id] = s;
                 st = &s_Items[id];
-                
+                modified = true;
+
                 // Re-apply persistent flags
                 st->isFavorite = s_PersistentFavoriteItems.count(id) > 0;
                 st->isIgnored = IgnoredItemsManager::IsItemIgnored(id);
@@ -3022,6 +3755,9 @@ void ItemTracker::ApplyItemsFromApi(const std::vector<int>& requestedIds, const 
             // Prices updated — re-mark for notification
             st->notificationPending = true;
         }
+
+        if (modified)
+            s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
     } // ← All locks released here
 
     // --- Backfill loot log entries that had unknown price (-1) ---
@@ -3127,6 +3863,8 @@ void ItemTracker::ApplyCurrencyTable(const json& currenciesArray)
     std::lock_guard<std::mutex> pLock(s_PersistentMutex);
     std::lock_guard<std::mutex> lock(s_Mutex);
 
+    bool modified = false;
+
     for (auto& c : currenciesArray)
     {
         if (!c.contains("id")) continue;
@@ -3155,7 +3893,8 @@ void ItemTracker::ApplyCurrencyTable(const json& currenciesArray)
                 s.count = 0;
                 s_Currencies[id] = s;
                 st = &s_Currencies[id];
-                
+                modified = true;
+
                 // Re-apply flags
                 st->isFavorite = s_PersistentFavoriteCurrencies.count(id) > 0;
                 st->isIgnored = IgnoredItemsManager::IsCurrencyIgnored(id);
@@ -3175,6 +3914,9 @@ void ItemTracker::ApplyCurrencyTable(const json& currenciesArray)
         st->details.loaded = true;
         st->details.knownByApi = true;
     }
+
+    if (modified)
+        s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
 }
 
 ItemTracker::CoinSplit ItemTracker::SplitCoin(long long copperValue)
@@ -3204,9 +3946,9 @@ std::pair<int, Stat> ItemTracker::GetBestDropTotalValue()
     {
         if (stat.count == 0) continue;
         if (ignoredSnapshot.count(id) > 0 || sessionIgnoredSnapshot.count(id) > 0 || skipOnceSnapshot.count(id) > 0) continue;
-        
+
         long long totalProfit = GetStatProfit(stat);
-        // Wenn noch kein Drop ausgewählt oder der aktuelle Profit größer ist, nehmen wir diesen
+        // If no drop is selected yet or the current profit is higher, take this one
         if (bestDrop.first == 0 || totalProfit > maxTotalProfit)
         {
             maxTotalProfit = totalProfit;
@@ -3238,7 +3980,7 @@ std::pair<int, Stat> ItemTracker::GetBestDrop()
         long long totalProfit = GetStatProfit(stat);
         long long unitProfit = totalProfit / stat.count;
 
-        // Wenn noch kein Drop ausgewählt oder der aktuelle Profit größer ist, nehmen wir diesen
+        // If no drop is selected yet or the current profit is higher, take this one
         if (bestDrop.first == 0 || unitProfit > maxUnitProfit)
         {
             maxUnitProfit = unitProfit;

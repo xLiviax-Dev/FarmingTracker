@@ -149,9 +149,11 @@
     <ClCompile Include="src\localization_hu.cpp" />
     <ClCompile Include="src\localization_nl.cpp" />
     <ClCompile Include="src\localization_no.cpp" />
+    <ClCompile Include="src\gaeting_tracker.cpp" />
     <ClCompile Include="src\localization_ro.cpp" />
     <ClCompile Include="src\localization_sv.cpp" />
     <ClCompile Include="src\magnetite_tracker.cpp" />
+    <ClCompile Include="src\material_storage_manager.cpp" />
     <ClCompile Include="src\loot_logger.cpp" />
     <ClCompile Include="src\ui_loot_log.cpp" />
     <!-- Dear ImGui: must match Nexus's embedded version (RaidcoreGG/Nexus src/thirdparty/imgui). Mismatch = crash in ImGui::Begin. -->
@@ -198,7 +200,9 @@
     <ClInclude Include="src\session_ignore_manager.h" />
     <ClInclude Include="src\search_manager.h" />
     <ClInclude Include="src\localization.h" />
+    <ClInclude Include="src\gaeting_tracker.h" />
     <ClInclude Include="src\magnetite_tracker.h" />
+    <ClInclude Include="src\material_storage_manager.h" />
     <ClInclude Include="src\loot_logger.h" />
     <ClInclude Include="src\ui_loot_log.h" />
     <ClInclude Include="src\ui_context_menu.h" />

@@ -2,6 +2,8 @@
 
 #include "localization.h"
 #include "ui_common.h"
+#include "session_history.h"
+#include "shared.h"
 
 namespace UITooltips
 {
@@ -23,6 +25,7 @@ namespace UITooltips
         // Temporarily set default item spacing for tooltip (to avoid large gaps from grid views)
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 4.0f));
         ImGui::BeginTooltip();
+
         if (!d.rarity.empty())
             ImGui::TextColored(RarityColor(d.rarity), "%s", d.name.c_str());
         else
@@ -38,13 +41,13 @@ namespace UITooltips
         if (opt.showProfit)
         {
             ImVec4 profitColor = UICommon::ValueColor(opt.profit);
-            ImGui::TextColored(profitColor, "%s %s", Localization::GetText("profit_label"), UICommon::FormatCoin(opt.profit).c_str());
+            ImGui::TextColored(profitColor, "%s %s", Localization::GetText("profit_label"), UICommon::FormatCoin(opt.profit));
         }
 
         if (opt.showValue)
         {
             ImVec4 valueColor = UICommon::ValueColor(opt.value);
-            ImGui::TextColored(valueColor, "%s: %s", Localization::GetText(opt.valueLabelKey), UICommon::FormatCoin(opt.value).c_str());
+            ImGui::TextColored(valueColor, "%s: %s", Localization::GetText(opt.valueLabelKey), UICommon::FormatCoin(opt.value));
         }
 
         if (!d.rarity.empty())
@@ -66,20 +69,20 @@ namespace UITooltips
             if (ItemTracker::CanSellToVendor(d))
             {
                 ImVec4 vendorColor = UICommon::ValueColor(d.vendorValue);
-                ImGui::TextColored(vendorColor, Localization::GetText("vendor_value_format"), UICommon::FormatCoin(d.vendorValue).c_str());
+                ImGui::TextColored(vendorColor, Localization::GetText("vendor_value_format"), UICommon::FormatCoin(d.vendorValue));
             }
 
             ImVec4 tpSellGrossColor = UICommon::ValueColor(d.tpSellPrice);
-            ImGui::TextColored(tpSellGrossColor, Localization::GetText("tp_sell_gross_format"), UICommon::FormatCoin(d.tpSellPrice).c_str());
+            ImGui::TextColored(tpSellGrossColor, Localization::GetText("tp_sell_gross_format"), UICommon::FormatCoin(d.tpSellPrice));
             long long tpSellNet = static_cast<long long>(d.tpSellPrice * 85.0 / 100.0);
             ImVec4 tpSellNetColor = UICommon::ValueColor(tpSellNet);
-            ImGui::TextColored(tpSellNetColor, Localization::GetText("tp_sell_net_format"), UICommon::FormatCoin(tpSellNet).c_str());
+            ImGui::TextColored(tpSellNetColor, Localization::GetText("tp_sell_net_format"), UICommon::FormatCoin(tpSellNet));
 
             ImVec4 tpBuyGrossColor = UICommon::ValueColor(d.tpBuyPrice);
-            ImGui::TextColored(tpBuyGrossColor, Localization::GetText("tp_buy_gross_format"), UICommon::FormatCoin(d.tpBuyPrice).c_str());
+            ImGui::TextColored(tpBuyGrossColor, Localization::GetText("tp_buy_gross_format"), UICommon::FormatCoin(d.tpBuyPrice));
             long long tpBuyNet = static_cast<long long>(d.tpBuyPrice * 85.0 / 100.0);
             ImVec4 tpBuyNetColor = UICommon::ValueColor(tpBuyNet);
-            ImGui::TextColored(tpBuyNetColor, Localization::GetText("tp_buy_net_format"), UICommon::FormatCoin(tpBuyNet).c_str());
+            ImGui::TextColored(tpBuyNetColor, Localization::GetText("tp_buy_net_format"), UICommon::FormatCoin(tpBuyNet));
         }
 
         if (opt.showAccountFlags)
@@ -99,6 +102,39 @@ namespace UITooltips
             char itemIdLabel[256];
             snprintf(itemIdLabel, sizeof(itemIdLabel), Localization::GetText("item_id_label"), itemId);
             ImGui::Text("%s", itemIdLabel);
+        }
+
+        // Show history if enabled
+        if (opt.showHistory)
+        {
+            ImGui::Separator();
+            Stat st = ItemTracker::GetItemStat(itemId);
+            if (st.count > 0)
+            {
+                ImGui::Text("%s: %lld", Localization::GetText("total_drops_label"), st.count);
+                // Could add last drop time here if tracked
+            }
+        }
+
+        // Show average comparison if enabled
+        if (opt.showAverage)
+        {
+            ImGui::Separator();
+            Stat st = ItemTracker::GetItemStat(itemId);
+            int sessionCount = SessionHistory::GetSessionCount();
+            if (st.count > 0 && opt.count > 0 && sessionCount > 0)
+            {
+                double average = static_cast<double>(st.count) / sessionCount;
+                ImGui::Text("%s: %.2f", Localization::GetText("average_per_session_label"), average);
+                if (opt.count > average)
+                {
+                    ImGui::TextColored(ImVec4(0.3f, 0.9f, 0.3f, 1.f), "%s: +%lld", Localization::GetText("above_average_label"), static_cast<long long>(opt.count - average));
+                }
+                else if (opt.count < average)
+                {
+                    ImGui::TextColored(ImVec4(0.9f, 0.3f, 0.3f, 1.f), "%s: %lld", Localization::GetText("below_average_label"), static_cast<long long>(average - opt.count));
+                }
+            }
         }
 
         ImGui::EndTooltip();
@@ -125,13 +161,13 @@ namespace UITooltips
         if (opt.showProfit)
         {
             ImVec4 profitColor = UICommon::ValueColor(opt.profit);
-            ImGui::TextColored(profitColor, "%s %s", Localization::GetText("profit_label"), UICommon::FormatCoin(opt.profit).c_str());
+            ImGui::TextColored(profitColor, "%s %s", Localization::GetText("profit_label"), UICommon::FormatCoin(opt.profit));
         }
 
         if (opt.showValue)
         {
             ImVec4 valueColor = UICommon::ValueColor(opt.value);
-            ImGui::TextColored(valueColor, "%s: %s", Localization::GetText(opt.valueLabelKey), UICommon::FormatCoin(opt.value).c_str());
+            ImGui::TextColored(valueColor, "%s: %s", Localization::GetText(opt.valueLabelKey), UICommon::FormatCoin(opt.value));
         }
 
         if (!rarity.empty())
@@ -173,7 +209,7 @@ namespace UITooltips
     {
         long long profit = (currencyId == 1) ? opt.count : opt.profit;
         ImVec4 profitColor = UICommon::ValueColor(profit);
-        ImGui::TextColored(profitColor, "%s %s", Localization::GetText("profit_label"), UICommon::FormatCoin(profit).c_str());
+        ImGui::TextColored(profitColor, "%s %s", Localization::GetText("profit_label"), UICommon::FormatCoin(profit));
     }
 
     if (opt.showRarity && !d.rarity.empty())
@@ -213,7 +249,7 @@ namespace UITooltips
     {
         long long profit = (currencyId == 1) ? opt.count : opt.profit;
         ImVec4 profitColor = UICommon::ValueColor(profit);
-        ImGui::TextColored(profitColor, "%s %s", Localization::GetText("profit_label"), UICommon::FormatCoin(profit).c_str());
+        ImGui::TextColored(profitColor, "%s %s", Localization::GetText("profit_label"), UICommon::FormatCoin(profit));
     }
 
     if (opt.showRarity && !rarity.empty())

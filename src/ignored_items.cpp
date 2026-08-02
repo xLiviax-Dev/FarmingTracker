@@ -10,6 +10,13 @@ void IgnoredItemsManager::IgnoreItem(int apiId)
 {
     std::lock_guard<std::mutex> lock(s_Mutex);
     s_IgnoredItems.insert(apiId);
+    ItemTracker::BumpItemsStateVersion();
+    // Update isIgnored flag in s_Items to ensure UI reflects the change immediately
+    ItemTracker::UpdateItemIgnoredFlag(apiId, true);
+    // Force cache invalidation to ensure sorted views are refreshed
+    ItemTracker::ForceCacheInvalidate();
+    // Bump session drops version to invalidate Timeline cache
+    ItemTracker::BumpSessionDropsVersion();
     // Note: favorites and ignored are independent persistent stores.
     // Removing from favorites here would require calling back into ItemTracker
     // which risks circular lock ordering. The UI enforces mutual exclusivity instead.
@@ -19,6 +26,13 @@ void IgnoredItemsManager::IgnoreCurrency(int apiId)
 {
     std::lock_guard<std::mutex> lock(s_Mutex);
     s_IgnoredCurrencies.insert(apiId);
+    ItemTracker::BumpItemsStateVersion();
+    // Update isIgnored flag in s_Currencies to ensure UI reflects the change immediately
+    ItemTracker::UpdateCurrencyIgnoredFlag(apiId, true);
+    // Force cache invalidation to ensure sorted views are refreshed
+    ItemTracker::ForceCacheInvalidate();
+    // Bump session drops version to invalidate Timeline cache
+    ItemTracker::BumpSessionDropsVersion();
     // Same reasoning as IgnoreItem above.
 }
 
@@ -50,12 +64,26 @@ void IgnoredItemsManager::UnignoreItem(int apiId)
 {
     std::lock_guard<std::mutex> lock(s_Mutex);
     s_IgnoredItems.erase(apiId);
+    ItemTracker::BumpItemsStateVersion();
+    // Update isIgnored flag in s_Items to ensure UI reflects the change immediately
+    ItemTracker::UpdateItemIgnoredFlag(apiId, false);
+    // Force cache invalidation to ensure sorted views are refreshed
+    ItemTracker::ForceCacheInvalidate();
+    // Bump session drops version to invalidate Timeline cache
+    ItemTracker::BumpSessionDropsVersion();
 }
 
 void IgnoredItemsManager::UnignoreCurrency(int apiId)
 {
     std::lock_guard<std::mutex> lock(s_Mutex);
     s_IgnoredCurrencies.erase(apiId);
+    ItemTracker::BumpItemsStateVersion();
+    // Update isIgnored flag in s_Currencies to ensure UI reflects the change immediately
+    ItemTracker::UpdateCurrencyIgnoredFlag(apiId, false);
+    // Force cache invalidation to ensure sorted views are refreshed
+    ItemTracker::ForceCacheInvalidate();
+    // Bump session drops version to invalidate Timeline cache
+    ItemTracker::BumpSessionDropsVersion();
 }
 
 bool IgnoredItemsManager::IsItemIgnored(int apiId)
@@ -87,6 +115,7 @@ void IgnoredItemsManager::ClearAll()
     std::lock_guard<std::mutex> lock(s_Mutex);
     s_IgnoredItems.clear();
     s_IgnoredCurrencies.clear();
+    ItemTracker::BumpItemsStateVersion();
 }
 
 void IgnoredItemsManager::ImportFromJson(const nlohmann::json& j)

@@ -13,11 +13,16 @@
 #include <iomanip>
 #include <algorithm>
 #include <vector>
+#include <mutex>
 
 namespace fs = std::filesystem;
 
 namespace BackupRestore
 {
+// Ensures CreateFullBackup + file write + rotate never runs concurrently from
+// both auto-tick (background worker) and manual UI button.
+static std::mutex s_BackupMutex;
+
 // Helper: Get current UTC time as ISO-8601 string (YYYY-MM-DD)
 static std::string GetCurrentDateUtc()
 {
@@ -42,46 +47,30 @@ static std::string GetCurrentTimestampForFile()
     return ss.str();
 }
 
-void Tick()
+// Shared implementation used by both the async tick job (render-thread safe)
+// and the synchronous manual UI backup. `lastBackupDateOnEntry` is the date
+// already written to g_Settings on the tick side (prevents double-backups if
+// the job runs after midnight local time).
+static bool RunBackupJob(const std::string& lastBackupDateOnEntry)
 {
-    static auto lastCheck = std::chrono::steady_clock::now();
-    auto now = std::chrono::steady_clock::now();
-    
-    // Check every 5 minutes
-    if (std::chrono::duration_cast<std::chrono::minutes>(now - lastCheck).count() < 5)
-        return;
-    lastCheck = now;
+    std::lock_guard<std::mutex> runLock(s_BackupMutex);
 
-    std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
-    if (!g_Settings.enableAutoBackups || g_Settings.backupFrequency == 0)
-        return;
-
-    std::string currentDate = GetCurrentDateUtc();
-    if (g_Settings.lastBackupTimestamp == currentDate)
-        return; // Already backed up today
-
-    // For weekly backup, check if it's Monday
-    if (g_Settings.backupFrequency == 2) // Weekly
-    {
-        auto systemNow = std::chrono::system_clock::now();
-        std::time_t now_c = std::chrono::system_clock::to_time_t(systemNow);
-        std::tm tm_utc;
-        gmtime_s(&tm_utc, &now_c);
-        if (tm_utc.tm_wday != 1) // 1 = Monday
-            return;
-    }
-
-    // Determine backup path
     fs::path backupDir;
-    if (g_Settings.autoBackupPath.empty())
+    size_t maxBackupCount;
     {
-        const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
-        if (!addonDir) return;
-        backupDir = fs::path(addonDir) / "backups";
-    }
-    else
-    {
-        backupDir = fs::path(g_Settings.autoBackupPath);
+        std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
+        maxBackupCount = static_cast<size_t>(std::max(0, g_Settings.maxBackupCount));
+
+        if (g_Settings.autoBackupPath.empty())
+        {
+            const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
+            if (!addonDir) return false;
+            backupDir = fs::path(addonDir) / "backups";
+        }
+        else
+        {
+            backupDir = fs::path(g_Settings.autoBackupPath);
+        }
     }
 
     try
@@ -93,57 +82,134 @@ void Tick()
         std::string filename = "backup_" + GetCurrentTimestampForFile() + ".json";
         fs::path backupFile = backupDir / filename;
 
-        if (SaveBackupToFile(backupFile.string()))
+        // SaveBackupToFile internally calls CreateFullBackup which acquires
+        // Settings::s_SettingsMutex briefly at start + several other manager
+        // mutexes. All of that now happens on the background worker, never
+        // blocking the render thread for 100s of ms.
+        bool ok = SaveBackupToFile(backupFile.string());
+        if (ok)
         {
-            g_Settings.lastBackupTimestamp = currentDate;
-            SettingsManager::Save();
+            // Persist lastBackupTimestamp if the caller didn't already (manual
+            // backup path still wants the timestamp updated).
+            if (!lastBackupDateOnEntry.empty())
+            {
+                std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
+                g_Settings.lastBackupTimestamp = lastBackupDateOnEntry;
+            }
+            // Mark settings dirty for async persistence (coalesced write).
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
 
             // Rotate old backups
             std::vector<fs::directory_entry> backups;
             for (const auto& entry : fs::directory_iterator(backupDir))
             {
-                if (entry.is_regular_file() && entry.path().extension() == ".json" && 
+                if (entry.is_regular_file() && entry.path().extension() == ".json" &&
                     entry.path().filename().string().find("backup_") == 0)
                 {
                     backups.push_back(entry);
                 }
             }
 
-            if (backups.size() > (size_t)g_Settings.maxBackupCount)
+            if (maxBackupCount > 0 && backups.size() > maxBackupCount)
             {
                 std::sort(backups.begin(), backups.end(), [](const fs::directory_entry& a, const fs::directory_entry& b) {
                     return fs::last_write_time(a) < fs::last_write_time(b);
                 });
 
-                for (size_t i = 0; i < backups.size() - g_Settings.maxBackupCount; ++i)
+                for (size_t i = 0; i < backups.size() - maxBackupCount; ++i)
                 {
-                    fs::remove(backups[i]);
+                    std::error_code ec;
+                    fs::remove(backups[i], ec); // ignore errors on rotation
                 }
             }
         }
+        return ok;
     }
     catch (...)
     {
-        // Silent fail for auto-backup
+        return false;
     }
+}
+
+void Tick()
+{
+    static auto lastCheck = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+
+    // Check every 5 minutes (cheap, no locks, no IO)
+    if (std::chrono::duration_cast<std::chrono::minutes>(now - lastCheck).count() < 5)
+        return;
+    lastCheck = now;
+
+    std::string currentDate;
+    bool shouldBackup = false;
+    {
+        std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+        if (!g_Settings.enableAutoBackups || g_Settings.backupFrequency == 0)
+            return;
+
+        currentDate = GetCurrentDateUtc();
+        if (g_Settings.lastBackupTimestamp == currentDate)
+            return; // Already backed up today (or scheduled)
+
+        // For weekly backup, check if it's Monday
+        if (g_Settings.backupFrequency == 2) // Weekly
+        {
+            auto systemNow = std::chrono::system_clock::now();
+            std::time_t now_c = std::chrono::system_clock::to_time_t(systemNow);
+            std::tm tm_utc;
+            gmtime_s(&tm_utc, &now_c);
+            if (tm_utc.tm_wday != 1) // 1 = Monday
+                return;
+        }
+
+        // Mark the day as "already scheduled" WHILE holding the settings
+        // mutex — this way 2 rapid-fire ticks (or mid-day reloads) never
+        // enqueue 2 competing backup jobs on the same day.
+        g_Settings.lastBackupTimestamp = currentDate;
+        shouldBackup = true;
+    }
+
+    if (!shouldBackup)
+        return;
+
+    // Mark settings dirty; the actual write is coalesced with other pending
+    // settings writes (e.g. magnetite shard drops, language toggles).
+    BackgroundJobs::EnqueueDebouncedSettingsSave();
+
+    // Hand the 100-500ms of work (JSON build, file IO, backup rotation) to
+    // the shared background worker. Render thread returns immediately.
+    BackgroundJobs::Enqueue([currentDate] {
+        RunBackupJob(currentDate);
+    });
 }
 
 bool CreateManualBackup()
 {
-    std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
-    
-    // Determine backup path
+    // Lock ordering: s_BackupMutex (BackupRestore-global) first, then Settings
+    // mutex. This matches RunBackupJob and prevents deadlock if a manual UI
+    // backup is triggered while the auto worker is still running.
+    std::lock_guard<std::mutex> backupLock(s_BackupMutex);
+
+    // Read settings-dependent backup path WITH SettingsMutex, then release
+    // immediately so that downstream SaveBackupToFile → CreateFullBackup →
+    // ItemTracker::Get*Copy() can acquire s_PersistentMutex without risking
+    // a lock-order inversion with AddDrop().
     fs::path backupDir;
-    if (g_Settings.autoBackupPath.empty())
     {
-        const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
-        if (!addonDir) return false;
-        backupDir = fs::path(addonDir) / "backups";
+        std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+        if (g_Settings.autoBackupPath.empty())
+        {
+            const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
+            if (!addonDir) return false;
+            backupDir = fs::path(addonDir) / "backups";
+        }
+        else
+        {
+            backupDir = fs::path(g_Settings.autoBackupPath);
+        }
     }
-    else
-    {
-        backupDir = fs::path(g_Settings.autoBackupPath);
-    }
+    // SettingsMutex is now RELEASED.
 
     try
     {
@@ -164,15 +230,33 @@ bool CreateManualBackup()
 
 std::string CreateFullBackup()
 {
-    std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+    // =========================================================
+    // STEP 1: Acquire SettingsMutex ONLY for settings-related
+    // fields, then RELEASE IT IMMEDIATELY. This avoids a
+    // lock-order inversion deadlock with ItemTracker mutexes:
+    //   Drop-Thread:  s_PersistentMutex → SettingsMutex
+    //   Backup-Thread: SettingsMutex → s_PersistentMutex → DEADLOCK
+    // =========================================================
+    nlohmann::json settingsJson;
+    uint64_t backupTimestamp;
+    {
+        std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+        backupTimestamp = std::chrono::system_clock::now().time_since_epoch().count();
+        settingsJson = SettingsManager::ToSettingsJson(g_Settings);
+    }
+
     nlohmann::json backupData;
-    backupData["version"] = 2; // v2: full settings backup
-    backupData["backupTimestamp"] = std::chrono::system_clock::now().time_since_epoch().count();
+    backupData["version"] = 2;
+    backupData["backupTimestamp"] = backupTimestamp;
+    backupData["settings"] = settingsJson;
 
     // =========================================================
-    // Full Settings Backup (mirrors ExportToFile / Load logic)
+    // STEP 2: Everything from here on does NOT hold SettingsMutex.
+    // It only acquires module-local mutexes (ItemTracker,
+    // SessionHistory, IgnoredItems, CustomProfit) each of which
+    // is guaranteed to never call back into Settings while
+    // holding their own lock.
     // =========================================================
-    backupData["settings"] = SettingsManager::ToSettingsJson(g_Settings);
 
     // Backup Session History
     std::string sessionHistoryJson = SessionHistory::ExportToJson();
@@ -275,16 +359,34 @@ bool RestoreFromBackup(const std::string& jsonData)
 {
     try
     {
-        std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+        // =========================================================
+        // STEP 1: Parse first (no locks needed), then apply ONLY
+        // settings with SettingsMutex held. Release the mutex
+        // IMMEDIATELY after. This avoids the deadlock:
+        //   Drop-Thread:  s_PersistentMutex → SettingsMutex
+        //   Restore:      SettingsMutex → s_PersistentMutex (via SetFavorite)
+        // =========================================================
         nlohmann::json backupData = nlohmann::json::parse(jsonData);
 
-        // Restore Settings — use ImportFromFile logic via a temp file is complex;
-        // instead directly apply the full settings JSON via the same field-by-field approach.
+        // Apply + save settings under SettingsMutex, then release
         if (backupData.contains("settings"))
         {
-            SettingsManager::FromSettingsJson(backupData["settings"], g_Settings);
+            {
+                std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+                SettingsManager::FromSettingsJson(backupData["settings"], g_Settings);
+            }
+            // Safe to call SettingsManager::Save() without outer SettingsMutex —
+            // Save() acquires it internally (recursive_mutex is fine but we
+            // don't want to hold it for subsequent ItemTracker/Manager calls).
             SettingsManager::Save();
         }
+
+        // =========================================================
+        // STEP 2: Everything below runs WITHOUT SettingsMutex.
+        // SessionHistory / ItemTracker / IgnoredItems / CustomProfit
+        // all use their own independent mutexes and do not call
+        // back into Settings while locked.
+        // =========================================================
 
         // Restore Session History
         if (backupData.contains("sessionHistory"))
@@ -292,15 +394,6 @@ bool RestoreFromBackup(const std::string& jsonData)
             std::string sessionHistoryJson = backupData["sessionHistory"].dump();
             SessionHistory::ImportFromJson(sessionHistoryJson);
         }
-
-        // Restore Current Session (optional - may not want to restore current session)
-        // This is commented out as restoring current session may not be desired
-        /*
-        if (backupData.contains("currentSession"))
-        {
-            // Implementation would go here if needed
-        }
-        */
 
         // Restore Favorites — items and currencies separately
         if (backupData.contains("favorites"))

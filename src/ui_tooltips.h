@@ -21,6 +21,10 @@ namespace UITooltips
         bool showTrading = true;
         bool showAccountFlags = true;
         bool showId = true;
+
+        // Enhanced tooltip options
+        bool showHistory = false;
+        bool showAverage = false;
     };
 
     struct CurrencyTooltipOptions

@@ -125,7 +125,7 @@ static bool PillCheckbox(const char* label, bool& val)
     ImGui::Dummy(ImVec2(pillW, pillH));
     bool hovered = ImGui::IsItemHovered();
     bool changed = false;
-    if (hovered && ImGui::IsMouseClicked(0)) { val = !val; SettingsManager::Save(); changed = true; }
+    if (hovered && ImGui::IsMouseClicked(0)) { val = !val; BackgroundJobs::EnqueueDebouncedSettingsSave(); changed = true; }
     if (hovered)
         ImGui::SetTooltip("%s: %s", label, val ? Localization::GetText("filter_active") : Localization::GetText("filter_inactive"));
 
@@ -365,10 +365,10 @@ static bool SectionHeader(const char* id, const char* label, bool& open,
         ImGui::SetCursorScreenPos(ImVec2(cursorPos.x + btnStartX, cursorPos.y));
 
         if (UICommon::OrangeGradientButton(Localization::GetText("filter_all"), ("##all_" + std::string(id)).c_str()))
-        { for (int i=0;i<n;i++) *ptrs[i]=true;  SettingsManager::Save(); }
+        { for (int i=0;i<n;i++) *ptrs[i]=true;  BackgroundJobs::EnqueueDebouncedSettingsSave(); }
         ImGui::SameLine(0.0f, 4.0f);
         if (UICommon::OrangeGradientButton(Localization::GetText("filter_none"), ("##none_" + std::string(id)).c_str()))
-        { for (int i=0;i<n;i++) *ptrs[i]=false; SettingsManager::Save(); }
+        { for (int i=0;i<n;i++) *ptrs[i]=false; BackgroundJobs::EnqueueDebouncedSettingsSave(); }
     }
 
     ImGui::SetCursorScreenPos(ImVec2(cursorPos.x, cursorPos.y + itemSize.y + 4.f));
@@ -465,7 +465,7 @@ static void ResetAllToDefaults()
     g_Settings.filterMaxPriceCopper       = 0;
     g_Settings.filterMinQuantity          = 0;
     g_Settings.filterMaxQuantity          = 0;
-    SettingsManager::Save();
+    BackgroundJobs::EnqueueDebouncedSettingsSave();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -820,31 +820,31 @@ void RenderFilterTab()
             ImGui::SameLine();
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + labelW - ImGui::CalcTextSize(Localization::GetText("filter_min_price")).x);
             ImGui::SetNextItemWidth(colW);
-            if (ImGui::InputInt("G##MinG", &g_Settings.filterMinPriceGold,   0)) SettingsManager::Save();
+            if (ImGui::InputInt("G##MinG", &g_Settings.filterMinPriceGold,   0)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             ImGui::SameLine(0.0f,4.0f); ImGui::SetNextItemWidth(colW);
-            if (ImGui::InputInt("S##MinS", &g_Settings.filterMinPriceSilver, 0)) SettingsManager::Save();
+            if (ImGui::InputInt("S##MinS", &g_Settings.filterMinPriceSilver, 0)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             ImGui::SameLine(0.0f,4.0f); ImGui::SetNextItemWidth(colW);
-            if (ImGui::InputInt("C##MinC", &g_Settings.filterMinPriceCopper, 0)) SettingsManager::Save();
+            if (ImGui::InputInt("C##MinC", &g_Settings.filterMinPriceCopper, 0)) BackgroundJobs::EnqueueDebouncedSettingsSave();
 
             ImGui::Text("%s", Localization::GetText("filter_max_price"));
             ImGui::SameLine();
             ImGui::SetNextItemWidth(colW);
-            if (ImGui::InputInt("G##MaxG", &g_Settings.filterMaxPriceGold,   0)) SettingsManager::Save();
+            if (ImGui::InputInt("G##MaxG", &g_Settings.filterMaxPriceGold,   0)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             ImGui::SameLine(0.0f,4.0f); ImGui::SetNextItemWidth(colW);
-            if (ImGui::InputInt("S##MaxS", &g_Settings.filterMaxPriceSilver, 0)) SettingsManager::Save();
+            if (ImGui::InputInt("S##MaxS", &g_Settings.filterMaxPriceSilver, 0)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             ImGui::SameLine(0.0f,4.0f); ImGui::SetNextItemWidth(colW);
-            if (ImGui::InputInt("C##MaxC", &g_Settings.filterMaxPriceCopper, 0)) SettingsManager::Save();
+            if (ImGui::InputInt("C##MaxC", &g_Settings.filterMaxPriceCopper, 0)) BackgroundJobs::EnqueueDebouncedSettingsSave();
 
             ImGui::Spacing();
             SubLabel(Localization::GetText("quantity_range"));
             float halfW = (ImGui::GetContentRegionAvail().x - 8.0f) * 0.20f; // 20% kleiner (war * 0.25f)
             ImGui::SetNextItemWidth(halfW);
             if (ImGui::InputInt(Localization::GetText("filter_min_quantity"),
-                    &g_Settings.filterMinQuantity, 0)) SettingsManager::Save();
+                    &g_Settings.filterMinQuantity, 0)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             ImGui::SameLine(0.0f,8.0f);
             ImGui::SetNextItemWidth(halfW);
             if (ImGui::InputInt(Localization::GetText("filter_max_quantity"),
-                    &g_Settings.filterMaxQuantity, 0)) SettingsManager::Save();
+                    &g_Settings.filterMaxQuantity, 0)) BackgroundJobs::EnqueueDebouncedSettingsSave();
 
             ImGui::Unindent(8.0f);
             ImGui::Spacing();
@@ -859,7 +859,7 @@ void RenderFilterTab()
     ImGui::Spacing();
 
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f,1.0f,1.0f,1.0f));
-    ImGui::TextUnformatted("Current Export Path");
+    ImGui::TextUnformatted(Localization::GetText("current_export_path"));
     ImGui::PopStyleColor();
     ImGui::Spacing();
 
@@ -892,7 +892,7 @@ void RenderFilterTab()
         if (!s_FolderDialogResult.empty())
         {
             g_Settings.liveLogCustomPath = s_FolderDialogResult;
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
     }
 

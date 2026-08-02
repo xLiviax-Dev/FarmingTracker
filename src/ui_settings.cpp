@@ -11,6 +11,7 @@
 #include "backup_restore.h"
 #include "localization.h"
 #include "magnetite_tracker.h"
+#include "gaeting_tracker.h"
 #include "shared.h"
 #include <imgui/imgui_internal.h>
 #include <algorithm>
@@ -446,20 +447,20 @@ static void RenderPage_General()
             }
             Localization::SetLanguage(Localization::StringToLanguage(g_Settings.language));
             ItemTracker::ClearItemDetails();
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("language_tooltip"));
 
         ImGui::Spacing();
-        if (ImGui::Checkbox(Localization::GetText("show_main_window"), &g_Settings.showMainWindow)) SettingsManager::Save();
-        if (ImGui::Checkbox(Localization::GetText("show_mini_window"), &g_Settings.showMiniWindow)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("show_main_window"), &g_Settings.showMainWindow)) BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::Checkbox(Localization::GetText("show_mini_window"), &g_Settings.showMiniWindow)) BackgroundJobs::EnqueueDebouncedSettingsSave();
 
         EndSection();
     }
 
     if (BeginSection("magnetite", Localization::GetText("magnetite_tracker"), false, "magnetite"))
     {
-        if (ImGui::Checkbox(Localization::GetText("enable_magnetite_tracker"), &g_Settings.enableMagnetiteTracker)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("enable_magnetite_tracker"), &g_Settings.enableMagnetiteTracker)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_magnetite_tracker_tooltip"));
 
         if (g_Settings.enableMagnetiteTracker)
@@ -480,7 +481,7 @@ static void RenderPage_General()
             ImGui::Text("%s", Localization::GetText("magnetite_api_check_cooldown")); ImGui::SameLine();
             ImGui::SetNextItemWidth(85.0f);
             if (ImGui::InputInt("##MagCooldown", &g_Settings.magnetiteApiCheckCooldownMin, 1, 5))
-            { g_Settings.magnetiteApiCheckCooldownMin = std::max(1, std::min(60, g_Settings.magnetiteApiCheckCooldownMin)); SettingsManager::Save(); }
+            { g_Settings.magnetiteApiCheckCooldownMin = std::max(1, std::min(60, g_Settings.magnetiteApiCheckCooldownMin)); BackgroundJobs::EnqueueDebouncedSettingsSave(); }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Minimum time between wallet API checks. Default: 10 min.");
             
             ImGui::Spacing();
@@ -492,7 +493,7 @@ static void RenderPage_General()
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Manually resets the weekly counter to 0.");
             if (ImGui::BeginPopup("MagResetConfirm")) {
                 ImGui::TextUnformatted(Localization::GetText("reset_confirm"));
-                ImGui::TextUnformatted("This will reset the weekly Magnetite Shard counter to 0.");
+                ImGui::TextUnformatted(Localization::GetText("magnetite_reset_confirm"));
                 ImGui::Spacing();
                 if (ImGui::Button(Localization::GetText("yes_reset"))) { MagnetiteTracker::OnWeeklyReset(); ImGui::CloseCurrentPopup(); }
                 ImGui::SameLine();
@@ -504,6 +505,102 @@ static void RenderPage_General()
             { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); lastCheck = g_Settings.magnetiteLastApiCheckUtc; }
             if (!lastCheck.empty()) ImGui::Text(Localization::GetText("magnetite_last_wallet_check"), MagnetiteTracker::UtcToLocal(lastCheck).c_str());
             else ImGui::TextDisabled("%s", Localization::GetText("magnetite_wallet_not_queried"));
+
+            // API discrepancy status / dismissal
+            ImGui::Spacing();
+            if (MagnetiteTracker::HasApiDiscrepancy())
+            {
+                int gap = MagnetiteTracker::GetLastApiDiscrepancy();
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.78f, 0.15f, 1.f));
+                ImGui::TextUnformatted(Localization::GetText("api_discrepancy_active"));
+                ImGui::PopStyleColor();
+                ImGui::TextWrapped(Localization::GetText("api_discrepancy_message"), gap);
+                ImGui::Spacing();
+                if (ImGui::SmallButton(Localization::GetText("dismiss_api_warning")))
+                {
+                    MagnetiteTracker::ClearApiDiscrepancy();
+                }
+            }
+            else
+            {
+                ImGui::TextDisabled("%s", Localization::GetText("no_api_discrepancy"));
+            }
+        }
+        EndSection();
+    }
+
+    if (BeginSection("gaeting", "Gaeting Crystal Weekly Tracker", false, "gaeting"))
+    {
+        if (ImGui::Checkbox("Enable Gaeting Crystal tracker", &g_Settings.enableGaetingTracker)) BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(
+            "Tracks weekly Gaeting Crystals earned from Visions of Eternity raids.\n"
+            "Only direct encounter rewards and failure tiers count toward the 150 cap.\n"
+            "CM (+10), minis (40), and salvage (60) are auto-excluded.");
+
+        if (g_Settings.enableGaetingTracker)
+        {
+            ImGui::Spacing();
+            LabelText("Weekly earned");
+            int earned = GaetingTracker::GetWeeklyEarned();
+            ImGui::SetNextItemWidth(120.0f);
+            if (ImGui::InputInt("##GaetingManual", &earned))
+            {
+                GaetingTracker::SetWeeklyEarned(earned);
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip(
+                "Manually edit the Gaeting Crystal counter for this week.\n"
+                "Use this to correct after missed DRF drops or addons reloads.");
+            ImGui::SameLine();
+            ImGui::Text("/ %d", GaetingTracker::WEEKLY_CAP);
+
+            ImGui::Spacing();
+            ImGui::Text("%s", Localization::GetText("magnetite_api_check_cooldown")); ImGui::SameLine();
+            ImGui::SetNextItemWidth(85.0f);
+            if (ImGui::InputInt("##GaeCooldown", &g_Settings.gaetingApiCheckCooldownMin, 1, 5))
+            { g_Settings.gaetingApiCheckCooldownMin = std::max(1, std::min(60, g_Settings.gaetingApiCheckCooldownMin)); BackgroundJobs::EnqueueDebouncedSettingsSave(); }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Minimum time between wallet API checks. Default: 10 min.");
+
+            ImGui::Spacing();
+            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.10f,0.40f,0.40f,0.40f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.13f,0.60f,0.60f,0.70f));
+            ImGui::PushStyleColor(ImGuiCol_Text,          ImVec4(1.00f,1.00f,1.00f,1.00f));
+            if (ImGui::Button("Reset weekly counter##GaeReset")) ImGui::OpenPopup("GaeResetConfirm");
+            ImGui::PopStyleColor(3);
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Manually resets the weekly Gaeting Crystal counter to 0.");
+            if (ImGui::BeginPopup("GaeResetConfirm")) {
+                ImGui::TextUnformatted(Localization::GetText("reset_confirm"));
+                ImGui::TextUnformatted(Localization::GetText("gaeting_reset_confirm"));
+                ImGui::Spacing();
+                if (ImGui::Button(Localization::GetText("yes_reset"))) { GaetingTracker::OnWeeklyReset(); ImGui::CloseCurrentPopup(); }
+                ImGui::SameLine();
+                if (ImGui::Button(Localization::GetText("no_cancel"))) ImGui::CloseCurrentPopup();
+                ImGui::EndPopup();
+            }
+            ImGui::Spacing();
+            std::string lastCheck;
+            { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); lastCheck = g_Settings.gaetingLastApiCheckUtc; }
+            if (!lastCheck.empty()) ImGui::Text(Localization::GetText("magnetite_last_wallet_check"), GaetingTracker::UtcToLocal(lastCheck).c_str());
+            else ImGui::TextDisabled("%s", Localization::GetText("magnetite_wallet_not_queried"));
+
+            // API discrepancy status / dismissal
+            ImGui::Spacing();
+            if (GaetingTracker::HasApiDiscrepancy())
+            {
+                int gap = GaetingTracker::GetLastApiDiscrepancy();
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.78f, 0.15f, 1.f));
+                ImGui::TextUnformatted(Localization::GetText("api_discrepancy_active"));
+                ImGui::PopStyleColor();
+                ImGui::TextWrapped(Localization::GetText("api_discrepancy_message_gaeting"), gap);
+                ImGui::Spacing();
+                if (ImGui::SmallButton(Localization::GetText("dismiss_api_warning")))
+                {
+                    GaetingTracker::ClearApiDiscrepancy();
+                }
+            }
+            else
+            {
+                ImGui::TextDisabled("%s", Localization::GetText("no_api_discrepancy"));
+            }
         }
         EndSection();
     }
@@ -511,14 +608,14 @@ static void RenderPage_General()
     if (BeginSection("seshist", Localization::GetText("session_history"), false, "session_history"))
     {
         if (ImGui::Checkbox(Localization::GetText("enable_session_history"), &g_Settings.enableSessionHistory))
-        { SettingsManager::Save(); SessionHistory::SetEnabled(g_Settings.enableSessionHistory); }
+        { BackgroundJobs::EnqueueDebouncedSettingsSave(); SessionHistory::SetEnabled(g_Settings.enableSessionHistory); }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_session_history_tooltip"));
         if (ImGui::Checkbox(Localization::GetText("overwrite_session_history"), &g_Settings.overwriteSessionHistory))
-        { SettingsManager::Save(); SessionHistory::SetOverwrite(g_Settings.overwriteSessionHistory); }
+        { BackgroundJobs::EnqueueDebouncedSettingsSave(); SessionHistory::SetOverwrite(g_Settings.overwriteSessionHistory); }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("overwrite_session_history_tooltip"));
         LabelText(Localization::GetText("max_session_history"));
         if (ImGui::SliderInt("##MaxSessHist", &g_Settings.maxSessionHistory, 1, 50, "%d"))
-        { SettingsManager::Save(); SessionHistory::SetMaxSessions(g_Settings.maxSessionHistory); }
+        { BackgroundJobs::EnqueueDebouncedSettingsSave(); SessionHistory::SetMaxSessions(g_Settings.maxSessionHistory); }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("max_session_history_tooltip"));
         EndSection();
     }
@@ -569,9 +666,7 @@ static void RenderPage_Account()
                         DrfClient::Connect(g_Settings.drfToken);
                     Gw2Fetcher::UpdateApiKey();
                     ItemTracker::SafeReset();
-                    const char* dir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
-                    ItemTracker::SaveData(dir);
-                    SettingsManager::Save();
+                    BackgroundJobs::EnqueueDebouncedSettingsSave();
                 }
                 ImGui::PopID();
 
@@ -609,7 +704,7 @@ static void RenderPage_Account()
             { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
               g_Settings.accounts.push_back(newAcc);
               g_Settings.currentAccountIndex = (int)g_Settings.accounts.size() - 1; }
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("add_account_tooltip"));
         ImGui::SameLine();
@@ -622,7 +717,7 @@ static void RenderPage_Account()
               g_Settings.accounts.erase(g_Settings.accounts.begin() + g_Settings.currentAccountIndex);
               if (g_Settings.currentAccountIndex >= (int)g_Settings.accounts.size())
                   g_Settings.currentAccountIndex = (int)g_Settings.accounts.size() - 1; }
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
         ImGui::PopStyleColor(3);
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("remove_account_tooltip"));
@@ -689,7 +784,7 @@ static void RenderPage_Account()
                     if (!g_Settings.drfToken.empty() && SettingsManager::IsTokenValid(g_Settings.drfToken))
                         DrfClient::Connect(g_Settings.drfToken);
                     Gw2Fetcher::UpdateApiKey();
-                    SettingsManager::Save();
+                    BackgroundJobs::EnqueueDebouncedSettingsSave();
                 }
             }
             ImGui::PopStyleColor(3);
@@ -754,7 +849,7 @@ static void RenderPage_Appearance()
     {
         bool oldValue = g_Settings.showShortIcon;
         if (ImGui::Checkbox(Localization::GetText("show_short_icon"), &g_Settings.showShortIcon)) {
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (APIDefs) {
                 if (g_Settings.showShortIcon && !oldValue) {
                     // Add the icon
@@ -775,29 +870,29 @@ static void RenderPage_Appearance()
         }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_short_icon_tooltip"));
 
-        if (ImGui::Checkbox(Localization::GetText("show_item_icons"), &g_Settings.showItemIcons)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("show_item_icons"), &g_Settings.showItemIcons)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_item_icons_tooltip"));
-        if (ImGui::SliderInt(Localization::GetText("history_icon_size"), &g_Settings.historyIconSize, 16, 96)) SettingsManager::Save();
+        if (ImGui::SliderInt(Localization::GetText("history_icon_size"), &g_Settings.historyIconSize, 16, 96)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("history_icon_size_tooltip"));
-        if (ImGui::SliderInt(Localization::GetText("profit_icon_size"), &g_Settings.profitIconSize, 16, 96)) SettingsManager::Save();
+        if (ImGui::SliderInt(Localization::GetText("profit_icon_size"), &g_Settings.profitIconSize, 16, 96)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("profit_icon_size_tooltip"));
-        if (ImGui::SliderInt(Localization::GetText("items_icon_size"), &g_Settings.itemsIconSize, 16, 96)) SettingsManager::Save();
+        if (ImGui::SliderInt(Localization::GetText("items_icon_size"), &g_Settings.itemsIconSize, 16, 96)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("items_icon_size_tooltip"));
-        if (ImGui::SliderInt(Localization::GetText("timeline_icon_size_items"), &g_Settings.timelineIconSizeItems, 16, 96)) SettingsManager::Save();
+        if (ImGui::SliderInt(Localization::GetText("timeline_icon_size_items"), &g_Settings.timelineIconSizeItems, 16, 96)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("timeline_icon_size_items_tooltip"));
-        if (ImGui::SliderInt(Localization::GetText("timeline_icon_size_currencies"), &g_Settings.timelineIconSizeCurrencies, 16, 48)) SettingsManager::Save();
+        if (ImGui::SliderInt(Localization::GetText("timeline_icon_size_currencies"), &g_Settings.timelineIconSizeCurrencies, 16, 48)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("timeline_icon_size_currencies_tooltip"));
-        if (ImGui::SliderInt(Localization::GetText("grid_icon_size_items"), &g_Settings.gridIconSize, 16, 96)) SettingsManager::Save();
+        if (ImGui::SliderInt(Localization::GetText("grid_icon_size_items"), &g_Settings.gridIconSize, 16, 96)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("grid_icon_size_items_tooltip"));
-        if (ImGui::SliderInt(Localization::GetText("grid_icon_size_currencies"), &g_Settings.gridIconSizeCurrencies, 16, 96)) SettingsManager::Save();
+        if (ImGui::SliderInt(Localization::GetText("grid_icon_size_currencies"), &g_Settings.gridIconSizeCurrencies, 16, 96)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("grid_icon_size_currencies_tooltip"));
-        if (ImGui::SliderInt(Localization::GetText("overview_favorites_icon_size"), &g_Settings.overviewFavoritesIconSize, 16, 96)) SettingsManager::Save();
+        if (ImGui::SliderInt(Localization::GetText("overview_favorites_icon_size"), &g_Settings.overviewFavoritesIconSize, 16, 96)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("overview_favorites_icon_size_tooltip"));
-        if (ImGui::Checkbox(Localization::GetText("show_rarity_borders"), &g_Settings.showRarityBorder)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("show_rarity_borders"), &g_Settings.showRarityBorder)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_rarity_borders_tooltip"));
         if (g_Settings.showRarityBorder)
         {
-            if (ImGui::SliderFloat(Localization::GetText("border_size"), &g_Settings.rarityBorderSize, 0.0f, 10.0f)) SettingsManager::Save();
+            if (ImGui::SliderFloat(Localization::GetText("border_size"), &g_Settings.rarityBorderSize, 0.0f, 10.0f)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("border_size_tooltip"));
         }
         EndSection();
@@ -809,11 +904,11 @@ static void RenderPage_Appearance()
         ImVec4 accentColor(g_Settings.accentColorR, g_Settings.accentColorG, g_Settings.accentColorB, 1.0f);
         if (ImGui::ColorEdit3("##AccentColor", (float*)&accentColor, ImGuiColorEditFlags_NoInputs))
         { g_Settings.accentColorR = accentColor.x; g_Settings.accentColorG = accentColor.y;
-          g_Settings.accentColorB = accentColor.z; SettingsManager::Save(); }
+          g_Settings.accentColorB = accentColor.z; BackgroundJobs::EnqueueDebouncedSettingsSave(); }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("accent_color_tooltip"));
 
         ImGui::Spacing();
-        if (ImGui::Checkbox(Localization::GetText("gradient_backgrounds"), &g_Settings.enableGradientBackgrounds)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("gradient_backgrounds"), &g_Settings.enableGradientBackgrounds)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("gradient_backgrounds_tooltip"));
         if (g_Settings.enableGradientBackgrounds)
         {
@@ -825,9 +920,9 @@ static void RenderPage_Appearance()
             ImGui::Text("%s:", Localization::GetText("bottom_gradient_color")); ImGui::SameLine();
             ImGui::ColorEdit3("##BotGrad", g_Settings.gradientBottomColor, ImGuiColorEditFlags_NoInputs);
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("bottom_gradient_color_tooltip"));
-            if (ImGui::IsItemDeactivatedAfterEdit()) SettingsManager::Save();
+            if (ImGui::IsItemDeactivatedAfterEdit()) BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
-        if (ImGui::Checkbox(Localization::GetText("show_profit_sparkline"), &g_Settings.showProfitSparkline)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("show_profit_sparkline"), &g_Settings.showProfitSparkline)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_profit_sparkline_tooltip"));
         
         ImGui::Separator();
@@ -845,7 +940,7 @@ static void RenderPage_Appearance()
                 ((int)(sparklineColor[0] * 255.0f) << 16) |
                 ((int)(sparklineColor[1] * 255.0f) << 8) |
                 (int)(sparklineColor[2] * 255.0f);
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("sparkline_color_tooltip"));
         
@@ -869,9 +964,9 @@ static void RenderPage_Windows()
 
     if (BeginSection("mainwin", Localization::GetText("main_window_settings"), false, "main_window"))
     {
-        if (ImGui::Checkbox(Localization::GetText("main_window_click_through"), &g_Settings.mainWindowClickThrough)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("main_window_click_through"), &g_Settings.mainWindowClickThrough)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("main_window_click_through_tooltip"));
-        if (ImGui::Checkbox(Localization::GetText("main_window_hide_title_bar"), &g_Settings.mainWindowHideTitleBar)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("main_window_hide_title_bar"), &g_Settings.mainWindowHideTitleBar)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("main_window_hide_title_bar_tooltip"));
         ImGui::Spacing();
         
@@ -882,26 +977,26 @@ static void RenderPage_Windows()
         if (ImGui::Combo("##MainWindowVisibility", &mainVisibilityMode, mainVisibilityItems, 2))
         {
             g_Settings.mainWindowVisibilityMode = static_cast<MainWindowVisibilityMode>(mainVisibilityMode);
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
         
         LabelText(Localization::GetText("main_window_font_size"));
         if (ImGui::SliderFloat("##MainFontSize", &g_Settings.mainWindowFontSize, 0.5f, 2.0f, "%.2f"))
-        { SettingsManager::Save(); }
+        { BackgroundJobs::EnqueueDebouncedSettingsSave(); }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("main_window_font_size_tooltip"));
         
         LabelText(Localization::GetText("tab_content_font_size"));
         if (ImGui::SliderFloat("##TabContentFontSize", &g_Settings.tabContentFontSize, 0.5f, 2.0f, "%.2f"))
-        { SettingsManager::Save(); }
+        { BackgroundJobs::EnqueueDebouncedSettingsSave(); }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("tab_content_font_size_tooltip"));
         EndSection();
     }
 
     if (BeginSection("miniwin", Localization::GetText("mini_window_settings"), false, "mini_window"))
     {
-        if (ImGui::Checkbox(Localization::GetText("mini_window_click_through"),  &g_Settings.miniWindowClickThrough))  SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("mini_window_click_through"),  &g_Settings.miniWindowClickThrough))  BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_click_through_tooltip"));
-        if (ImGui::Checkbox(Localization::GetText("mini_window_locked"),          &g_Settings.miniWindowLocked))        SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("mini_window_locked"),          &g_Settings.miniWindowLocked))        BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_locked_tooltip"));
 
         LabelText("Mini Window Visibility");
@@ -913,26 +1008,101 @@ static void RenderPage_Windows()
         if (ImGui::Combo("##MiniWindowVisibility", &visibilityMode, visibilityItems, 2))
         {
             g_Settings.miniWindowVisibilityMode = static_cast<MiniWindowVisibilityMode>(visibilityMode);
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
 
         SubHeader(Localization::GetText("mini_window_widget"));
-        if (ImGui::Checkbox(Localization::GetText("mini_window_show_profit"),             &g_Settings.miniWindowShowProfit))              SettingsManager::Save();
-        if (ImGui::Checkbox(Localization::GetText("mini_window_show_profit_per_hour"),    &g_Settings.miniWindowShowProfitPerHour))       SettingsManager::Save();
-        if (ImGui::Checkbox(Localization::GetText("mini_window_show_tp_sell"),            &g_Settings.miniWindowShowTradingProfitSell))   SettingsManager::Save();
-        if (ImGui::Checkbox(Localization::GetText("mini_window_show_tp_instant"),         &g_Settings.miniWindowShowTradingProfitInstant))SettingsManager::Save();
-        if (ImGui::Checkbox(Localization::GetText("mini_window_show_total_items"),        &g_Settings.miniWindowShowTotalItems))          SettingsManager::Save();
-        if (ImGui::Checkbox(Localization::GetText("mini_window_show_session_duration"),   &g_Settings.miniWindowShowSessionDuration))     SettingsManager::Save();
-        if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_single"),  &g_Settings.miniWindowShowBestDropSingle))      SettingsManager::Save();
-        if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_total"),   &g_Settings.miniWindowShowBestDropTotalValue))   SettingsManager::Save();
-        if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_icons"), &g_Settings.miniWindowShowBestDropIcons)) SettingsManager::Save();
-        if (ImGui::SliderInt(Localization::GetText("mini_window_best_drop_icon_size"), &g_Settings.miniWindowBestDropIconSize, 16, 96)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("mini_window_show_profit"),             &g_Settings.miniWindowShowProfit))              BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::Checkbox(Localization::GetText("mini_window_show_profit_per_hour"),    &g_Settings.miniWindowShowProfitPerHour))       BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::Checkbox(Localization::GetText("mini_window_show_tp_sell"),            &g_Settings.miniWindowShowTradingProfitSell))   BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::Checkbox(Localization::GetText("mini_window_show_tp_instant"),         &g_Settings.miniWindowShowTradingProfitInstant))BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::Checkbox(Localization::GetText("mini_window_show_total_items"),        &g_Settings.miniWindowShowTotalItems))          BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::Checkbox(Localization::GetText("mini_window_show_session_duration"),   &g_Settings.miniWindowShowSessionDuration))     BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_single"),  &g_Settings.miniWindowShowBestDropSingle))      BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_total"),   &g_Settings.miniWindowShowBestDropTotalValue))   BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::Checkbox(Localization::GetText("mini_window_show_best_drop_icons"), &g_Settings.miniWindowShowBestDropIcons)) BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::SliderInt(Localization::GetText("mini_window_best_drop_icon_size"), &g_Settings.miniWindowBestDropIconSize, 16, 96)) BackgroundJobs::EnqueueDebouncedSettingsSave();
 
         SubHeader("Pinned Items/Currencies");
-        if (ImGui::SliderFloat(Localization::GetText("pinned_icon_size"), &g_Settings.miniWindowPinnedIconSize, 16.0f, 64.0f, "%.0f")) SettingsManager::Save();
+        if (ImGui::SliderFloat(Localization::GetText("pinned_icon_size"), &g_Settings.miniWindowPinnedIconSize, 16.0f, 64.0f, "%.0f")) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("pinned_icon_size_tooltip"));
-        if (ImGui::Checkbox(Localization::GetText("allow_unpin_right_click"), &g_Settings.miniWindowAllowRightClickUnpin)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("allow_unpin_right_click"), &g_Settings.miniWindowAllowRightClickUnpin)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("allow_unpin_right_click_tooltip"));
+        if (ImGui::Checkbox(Localization::GetText("show_material_storage_count"), &g_Settings.miniWindowShowMaterialStorageCount)) BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("show_material_storage_count_tooltip"));
+        if (ImGui::Checkbox(Localization::GetText("show_wallet_count"), &g_Settings.miniWindowShowWalletCount)) BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("show_wallet_count_tooltip"));
+        if (ImGui::Checkbox(Localization::GetText("show_bank_count"), &g_Settings.miniWindowShowBankCount)) BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("show_bank_count_tooltip"));
+        if (ImGui::Checkbox(Localization::GetText("show_inventory_count"), &g_Settings.miniWindowShowInventoryCount)) BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("show_inventory_count_tooltip"));
+        if (ImGui::Checkbox(Localization::GetText("hide_count_labels"), &g_Settings.miniWindowHideCountLabels)) BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("hide_count_labels_tooltip"));
+        if (ImGui::Checkbox(Localization::GetText("short_count_labels"), &g_Settings.miniWindowShortCountLabels)) BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("short_count_labels_tooltip"));
+        if (ImGui::Checkbox(Localization::GetText("hide_zero_drop_stats"), &g_Settings.miniWindowHideZeroDropStats)) BackgroundJobs::EnqueueDebouncedSettingsSave();
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("hide_zero_drop_stats_tooltip"));
+        if (ImGui::Checkbox(Localization::GetText("hide_text_labels"), &g_Settings.miniWindowHideTextLabels))
+        {
+            if (g_Settings.miniWindowHideTextLabels)
+                g_Settings.miniWindowHideIcons = false;
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("hide_text_labels_tooltip"));
+        if (ImGui::Checkbox(Localization::GetText("hide_icons"), &g_Settings.miniWindowHideIcons))
+        {
+            if (g_Settings.miniWindowHideIcons)
+                g_Settings.miniWindowHideTextLabels = false;
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
+        }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip(Localization::GetText("hide_icons_tooltip"));
+
+        // Manual pin by API ID — allows pinning items/currencies without
+        // ever having received them as a drop first.
+        ImGui::Spacing();
+        LabelText("Pin Item / Currency by ID");
+
+        // --- Pin Item ---
+        static int s_PinItemId = 0;
+        ImGui::SetNextItemWidth(120.0f);
+        ImGui::InputInt("##PinItemId", &s_PinItemId, 1, 10);
+        ImGui::SameLine();
+        if (ImGui::SmallButton("Pin Item"))
+        {
+            if (s_PinItemId > 0)
+            {
+                PinnedItemsManager::PinItem(s_PinItemId);
+                // Create empty Stat entry so CollectPendingItemIds will pick it
+                // up for API detail fetch (name, icon, rarity) on next cycle.
+                (void)ItemTracker::GetItemStat(s_PinItemId);
+                // Force UI refresh so entry appears in pinned list instantly.
+                ItemTracker::BumpItemsStateVersion();
+                BackgroundJobs::EnqueueDebouncedSettingsSave();
+                s_PinItemId = 0;
+            }
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled("  Enter item API-ID, e.g. 12345");
+
+        // --- Pin Currency ---
+        static int s_PinCurrencyId = 0;
+        ImGui::SetNextItemWidth(120.0f);
+        ImGui::InputInt("##PinCurrencyId", &s_PinCurrencyId, 1, 10);
+        ImGui::SameLine();
+        if (ImGui::SmallButton("Pin Currency"))
+        {
+            if (s_PinCurrencyId > 0)
+            {
+                PinnedItemsManager::PinCurrency(s_PinCurrencyId);
+                // Same as above: trigger API detail preload.
+                (void)ItemTracker::GetCurrencyStat(s_PinCurrencyId);
+                ItemTracker::BumpItemsStateVersion();
+                BackgroundJobs::EnqueueDebouncedSettingsSave();
+                s_PinCurrencyId = 0;
+            }
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled("  Enter currency API-ID, e.g. 1=Coin, 2=Karma, 4=Gem");
 
         ImGui::Spacing();
         
@@ -940,7 +1110,7 @@ static void RenderPage_Windows()
         auto pinnedItems = PinnedItemsManager::GetPinnedItems();
         if (!pinnedItems.empty())
         {
-            if (ImGui::BeginTable("PinnedItemsTable", 4, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
+            if (ImGui::BeginTable("PinnedItemsTable", 4, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Resizable))
             {
                 ImGui::TableSetupColumn("Icon", ImGuiTableColumnFlags_WidthFixed, 30.0f);
                 ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 200.0f);
@@ -971,30 +1141,64 @@ static void RenderPage_Windows()
                         UICommon::DrawItemIconCell(stat.apiId, stat.details.iconUrl, 24.0f, stat.details.rarity, true);
                     }
 
-                    // Name
+                    // Name (drag source)
                     ImGui::TableSetColumnIndex(1);
-                    std::string displayName = stat.details.loaded ? stat.details.name : (stat.IsCurrency() ? "Currency" : "Item");
-                    ImGui::Text("%s", displayName.c_str());
+                    std::string displayName;
+                    if (stat.details.loaded)
+                        displayName = stat.details.name;
+                    else
+                        displayName = (stat.IsCurrency() ? "Currency #" : "Item #") + std::to_string(pinnedEntry.apiId);
+                    
+                    // Enable drag and drop on the name column
+                    if (ImGui::Selectable(displayName.c_str(), false, ImGuiSelectableFlags_SpanAllColumns))
+                    {
+                        // Selection click
+                    }
+                    
+                    // Drag source
+                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+                    {
+                        ImGui::SetDragDropPayload("PINNED_ITEM", &i, sizeof(size_t));
+                        ImGui::Text("%s", displayName.c_str());
+                        ImGui::EndDragDropSource();
+                    }
+                    
+                    // Drop target
+                    if (ImGui::BeginDragDropTarget())
+                    {
+                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("PINNED_ITEM"))
+                        {
+                            size_t sourceIndex = *(const size_t*)payload->Data;
+                            if (sourceIndex != i)
+                            {
+                                PinnedItemsManager::MoveToIndex(pinnedItems[sourceIndex].apiId, pinnedItems[sourceIndex].type, i);
+                                BackgroundJobs::EnqueueDebouncedSettingsSave();
+                            }
+                        }
+                        ImGui::EndDragDropTarget();
+                    }
 
-                    // Order buttons
+                    // Order buttons (keep as fallback)
                     ImGui::TableSetColumnIndex(2);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 5.0f));
                     if (i > 0)
                     {
-                        if (ImGui::Button("^"))
+                        if (ImGui::ArrowButton("##up", ImGuiDir_Up))
                         {
                             PinnedItemsManager::MoveUp(pinnedEntry.apiId, pinnedEntry.type);
-                            SettingsManager::Save();
+                            BackgroundJobs::EnqueueDebouncedSettingsSave();
                         }
                         ImGui::SameLine();
                     }
                     if (i < pinnedItems.size() - 1)
                     {
-                        if (ImGui::Button("v"))
+                        if (ImGui::ArrowButton("##down", ImGuiDir_Down))
                         {
                             PinnedItemsManager::MoveDown(pinnedEntry.apiId, pinnedEntry.type);
-                            SettingsManager::Save();
+                            BackgroundJobs::EnqueueDebouncedSettingsSave();
                         }
                     }
+                    ImGui::PopStyleVar();
 
                     // Remove button
                     ImGui::TableSetColumnIndex(3);
@@ -1004,7 +1208,7 @@ static void RenderPage_Windows()
                     if (ImGui::SmallButton("X"))
                     {
                         PinnedItemsManager::Unpin(pinnedEntry.apiId, pinnedEntry.type);
-                        SettingsManager::Save();
+                        BackgroundJobs::EnqueueDebouncedSettingsSave();
                     }
                     ImGui::PopStyleColor(3);
 
@@ -1022,14 +1226,14 @@ static void RenderPage_Windows()
         if (ImGui::Checkbox(Localization::GetText("mini_window_hide_title_bar"), &g_Settings.miniWindowHideTitleBar)) 
         {
             g_Settings.miniWindowHideBorder = g_Settings.miniWindowHideTitleBar;
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_hide_title_bar_tooltip"));
         
         LabelText(Localization::GetText("mini_window_font_size"));
         if (ImGui::SliderFloat("##MiniFontSize", &g_Settings.miniWindowFontSize, 10.0f, 30.0f, "%.1f"))
         {
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_font_size_tooltip"));
         
@@ -1045,7 +1249,7 @@ static void RenderPage_Windows()
                 ((int)(textColor[0] * 255.0f) << 16) |
                 ((int)(textColor[1] * 255.0f) << 8) |
                 (int)(textColor[2] * 255.0f);
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_text_color_tooltip"));
         
@@ -1064,32 +1268,66 @@ static void RenderPage_Windows()
             {
                 ImGui::PushID(i);
                 ImGui::TableNextRow();
-                
-                // Element name
+
+                // Element name (drag source)
                 ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%s", g_Settings.miniWindowElementOrder[i].c_str());
+                const char* elementName = g_Settings.miniWindowElementOrder[i].c_str();
                 
-                // Action buttons
+                // Enable drag and drop on the element name
+                if (ImGui::Selectable(elementName, false, ImGuiSelectableFlags_SpanAllColumns))
+                {
+                    // Selection click
+                }
+                
+                // Drag source
+                if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+                {
+                    ImGui::SetDragDropPayload("MINI_WINDOW_ELEMENT", &i, sizeof(int));
+                    ImGui::Text("%s", elementName);
+                    ImGui::EndDragDropSource();
+                }
+                
+                // Drop target
+                if (ImGui::BeginDragDropTarget())
+                {
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MINI_WINDOW_ELEMENT"))
+                    {
+                        int sourceIndex = *(const int*)payload->Data;
+                        if (sourceIndex != i)
+                        {
+                            // Move element to new position
+                            std::string element = g_Settings.miniWindowElementOrder[sourceIndex];
+                            g_Settings.miniWindowElementOrder.erase(g_Settings.miniWindowElementOrder.begin() + sourceIndex);
+                            g_Settings.miniWindowElementOrder.insert(g_Settings.miniWindowElementOrder.begin() + i, element);
+                            BackgroundJobs::EnqueueDebouncedSettingsSave();
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+
+                // Action buttons (keep as fallback)
                 ImGui::TableSetColumnIndex(1);
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 5.0f));
                 if (i > 0)
                 {
-                    if (ImGui::Button("^"))
+                    if (ImGui::ArrowButton("##elem_up", ImGuiDir_Up))
                     {
                         std::swap(g_Settings.miniWindowElementOrder[i], g_Settings.miniWindowElementOrder[i - 1]);
-                        SettingsManager::Save();
+                        BackgroundJobs::EnqueueDebouncedSettingsSave();
                     }
                     ImGui::SameLine();
                 }
-                
+
                 if (i < static_cast<int>(g_Settings.miniWindowElementOrder.size()) - 1)
                 {
-                    if (ImGui::Button("v"))
+                    if (ImGui::ArrowButton("##elem_down", ImGuiDir_Down))
                     {
                         std::swap(g_Settings.miniWindowElementOrder[i], g_Settings.miniWindowElementOrder[i + 1]);
-                        SettingsManager::Save();
+                        BackgroundJobs::EnqueueDebouncedSettingsSave();
                     }
                 }
-                
+                ImGui::PopStyleVar();
+
                 ImGui::PopID();
             }
             
@@ -1104,12 +1342,12 @@ static void RenderPage_Windows()
         LabelText(Localization::GetText("main_window_opacity"));
         float mainPct = (1.0f - g_Settings.mainWindowOpacity) * 100.0f;
         if (ImGui::SliderFloat("##MainOpacity", &mainPct, 0.0f, 100.0f, "%.0f%%"))
-        { g_Settings.mainWindowOpacity = 1.0f - mainPct / 100.0f; SettingsManager::Save(); }
+        { g_Settings.mainWindowOpacity = 1.0f - mainPct / 100.0f; BackgroundJobs::EnqueueDebouncedSettingsSave(); }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("main_window_opacity_tooltip"));
         LabelText(Localization::GetText("mini_window_opacity"));
         float miniPct = (1.0f - g_Settings.miniWindowOpacity) * 100.0f;
         if (ImGui::SliderFloat("##MiniOpacity", &miniPct, 0.0f, 100.0f, "%.0f%%"))
-        { g_Settings.miniWindowOpacity = 1.0f - miniPct / 100.0f; SettingsManager::Save(); }
+        { g_Settings.miniWindowOpacity = 1.0f - miniPct / 100.0f; BackgroundJobs::EnqueueDebouncedSettingsSave(); }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("mini_window_opacity_tooltip"));
         EndSection();
     }
@@ -1127,19 +1365,19 @@ static void RenderPage_Tabs()
 
     if (BeginSection("tabs", Localization::GetText("tabs_settings"), false, "tabs"))
     {
-        if (ImGui::Checkbox(Localization::GetText("lock_tab_order"), &g_Settings.lockTabOrder)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("lock_tab_order"), &g_Settings.lockTabOrder)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("lock_tab_order_tooltip"));
 
         SubHeader(Localization::GetText("tabs_description"));
-        if (ImGui::Checkbox(Localization::GetText("enable_drops_tab"),           &g_Settings.enableDropsTab))          SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("enable_drops_tab"),           &g_Settings.enableDropsTab))          BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_drops_tab_tooltip"));
-        if (ImGui::Checkbox(Localization::GetText("enable_session_history_tab"), &g_Settings.enableSessionHistoryTab)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("enable_session_history_tab"), &g_Settings.enableSessionHistoryTab)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_session_history_tab_tooltip"));
-        if (ImGui::Checkbox(Localization::GetText("enable_timeline_tab"),        &g_Settings.enableTimelineTab))       SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("enable_timeline_tab"),        &g_Settings.enableTimelineTab))       BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_timeline_tab_tooltip"));
-        if (ImGui::Checkbox(Localization::GetText("enable_custom_profit"),       &g_Settings.enableCustomProfit))      SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("enable_custom_profit"),       &g_Settings.enableCustomProfit))      BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_custom_profit_tooltip"));
-        if (ImGui::Checkbox(Localization::GetText("enable_loot_log_tab"),        &g_Settings.enableLootLog))           SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("enable_loot_log_tab"),        &g_Settings.enableLootLog))           BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_loot_log_tab_tooltip"));
         EndSection();
     }
@@ -1171,7 +1409,7 @@ static void RenderPage_DataReset()
         LabelText(Localization::GetText("auto_reset_label"));
         ImGui::SetNextItemWidth(240.0f);
         if (ImGui::Combo("##AutoReset", &g_Settings.automaticResetMode, resetModes, 9))
-        { SettingsManager::Save(); AutoReset::RefreshSchedule(); }
+        { BackgroundJobs::EnqueueDebouncedSettingsSave(); AutoReset::RefreshSchedule(); }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("auto_reset_tooltip"));
 
         if (g_Settings.automaticResetMode == 7)
@@ -1179,14 +1417,14 @@ static void RenderPage_DataReset()
             char lbl[256]; snprintf(lbl, sizeof(lbl), "%s##minrst", Localization::GetText("minutes_after_unload_tooltip"));
             if (ImGui::InputInt(lbl, &g_Settings.minutesUntilResetAfterShutdown))
             { g_Settings.minutesUntilResetAfterShutdown = std::clamp(g_Settings.minutesUntilResetAfterShutdown, 1, 24*60);
-              SettingsManager::Save(); AutoReset::RefreshSchedule(); }
+              BackgroundJobs::EnqueueDebouncedSettingsSave(); AutoReset::RefreshSchedule(); }
         }
         if (g_Settings.automaticResetMode == 8)
         {
             int sd = g_Settings.customResetDays;
             char lbl[256]; snprintf(lbl, sizeof(lbl), "%s##customdays", Localization::GetText("reset_interval_days"));
             if (ImGui::SliderInt(lbl, &sd, 1, 30))
-            { g_Settings.customResetDays = sd; SettingsManager::Save(); AutoReset::RefreshSchedule(); }
+            { g_Settings.customResetDays = sd; BackgroundJobs::EnqueueDebouncedSettingsSave(); AutoReset::RefreshSchedule(); }
         }
         char nrLbl[256];
         snprintf(nrLbl, sizeof(nrLbl), Localization::GetText("next_reset_utc"), AutoReset::GetNextResetDisplayUtc().c_str());
@@ -1208,26 +1446,26 @@ static void RenderPage_Favorites()
     if (BeginSection("favcol", Localization::GetText("favorites_settings"), false, "favorites"))
     {
         LabelText(Localization::GetText("favorites_colors"));
-        if (ImGui::Checkbox(Localization::GetText("enable_favorite_text_color"), &g_Settings.enableFavoriteTextColor)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("enable_favorite_text_color"), &g_Settings.enableFavoriteTextColor)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_favorite_text_color_tooltip"));
         if (g_Settings.enableFavoriteTextColor) {
             ImGui::SameLine();
-            if (ImGui::ColorEdit3("##FavTextCol", g_Settings.favoriteTextColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_PickerHueWheel)) SettingsManager::Save();
+            if (ImGui::ColorEdit3("##FavTextCol", g_Settings.favoriteTextColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_PickerHueWheel)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("text_color"));
         }
-        if (ImGui::Checkbox(Localization::GetText("enable_favorite_row_color"), &g_Settings.enableFavoriteRowColor)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("enable_favorite_row_color"), &g_Settings.enableFavoriteRowColor)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_favorite_row_color_tooltip"));
         if (g_Settings.enableFavoriteRowColor) {
             ImGui::SameLine();
-            if (ImGui::ColorEdit3("##FavRowCol", g_Settings.favoriteRowColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_PickerHueWheel)) SettingsManager::Save();
+            if (ImGui::ColorEdit3("##FavRowCol", g_Settings.favoriteRowColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_PickerHueWheel)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("row_color"));
         }
         ImGui::Spacing();
-        if (ImGui::Checkbox(Localization::GetText("enable_best_drop_highlight"), &g_Settings.enableBestDropHighlight)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("enable_best_drop_highlight"), &g_Settings.enableBestDropHighlight)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_best_drop_highlight_tooltip"));
         if (g_Settings.enableBestDropHighlight) {
             ImGui::SameLine();
-            if (ImGui::ColorEdit3("##BestDropCol", g_Settings.bestDropHighlightColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_PickerHueWheel)) SettingsManager::Save();
+            if (ImGui::ColorEdit3("##BestDropCol", g_Settings.bestDropHighlightColor, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_PickerHueWheel)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("row_color"));
         }
         EndSection();
@@ -1246,25 +1484,25 @@ static void RenderPage_Notifications()
 
     if (BeginSection("notifgen", Localization::GetText("notification_settings"), false, "notifications"))
     {
-        if (ImGui::Checkbox(Localization::GetText("enable_notifications"), &g_Settings.enableNotifications)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("enable_notifications"), &g_Settings.enableNotifications)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_notifications_tooltip"));
 
         if (g_Settings.enableNotifications)
         {
-            if (ImGui::Checkbox(Localization::GetText("show_notification_setup"), &g_Settings.showNotificationSetup)) SettingsManager::Save();
+            if (ImGui::Checkbox(Localization::GetText("show_notification_setup"), &g_Settings.showNotificationSetup)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_notification_setup_tooltip"));
-            if (ImGui::SliderFloat(Localization::GetText("notification_duration"), &g_Settings.notificationDuration, 1.0f, 20.0f, "%.1f s")) SettingsManager::Save();
+            if (ImGui::SliderFloat(Localization::GetText("notification_duration"), &g_Settings.notificationDuration, 1.0f, 20.0f, "%.1f s")) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_duration_tooltip"));
-            if (ImGui::Checkbox(Localization::GetText("notification_stacking"), &g_Settings.notificationStacking)) SettingsManager::Save();
+            if (ImGui::Checkbox(Localization::GetText("notification_stacking"), &g_Settings.notificationStacking)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_stacking_tooltip"));
             ImGui::Spacing();
             LabelText(Localization::GetText("notification_font_size"));
             if (ImGui::SliderFloat("##NotificationFontSize", &g_Settings.notificationFontSize, 0.5f, 2.0f, "%.2f"))
-            { SettingsManager::Save(); }
+            { BackgroundJobs::EnqueueDebouncedSettingsSave(); }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_font_size_tooltip"));
 
             SubHeader(Localization::GetText("notification_play_sound"));
-            if (ImGui::Checkbox("##PlaySound", &g_Settings.notificationPlaySound)) SettingsManager::Save();
+            if (ImGui::Checkbox("##PlaySound", &g_Settings.notificationPlaySound)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             ImGui::SameLine(); LabelText(Localization::GetText("notification_play_sound"));
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_play_sound_tooltip"));
 
@@ -1272,7 +1510,7 @@ static void RenderPage_Notifications()
             {
                 int volPct = static_cast<int>(g_Settings.notificationVolume * 100.0f);
                 if (ImGui::SliderInt(Localization::GetText("notification_volume"), &volPct, 1, 100, "%d%%"))
-                { g_Settings.notificationVolume = volPct / 100.0f; UINotifications::SetVolume(g_Settings.notificationVolume); SettingsManager::Save(); }
+                { g_Settings.notificationVolume = volPct / 100.0f; UINotifications::SetVolume(g_Settings.notificationVolume); BackgroundJobs::EnqueueDebouncedSettingsSave(); }
 
                 auto drawSoundRow = [](const char* labelKey, std::string& path, float& volume, bool isPrecursor, bool isInfusion, bool isAlert) {
                     ImGui::PushID(labelKey);
@@ -1280,20 +1518,20 @@ static void RenderPage_Notifications()
                     char buf[512]; strncpy_s(buf, sizeof(buf), path.c_str(), _TRUNCATE);
                     ImGui::SetNextItemWidth(250.0f);
                     if (ImGui::InputTextWithHint("##path", Localization::GetText("sound_path_hint"), buf, sizeof(buf)))
-                    { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); path = buf; SettingsManager::Save(); }
+                    { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); path = buf; BackgroundJobs::EnqueueDebouncedSettingsSave(); }
                     ImGui::SameLine();
                     if (ImGui::Button("...")) {
                         OPENFILENAMEA ofn; char szFile[512] = {}; ZeroMemory(&ofn, sizeof(ofn));
                         ofn.lStructSize = sizeof(ofn); ofn.lpstrFile = szFile; ofn.nMaxFile = sizeof(szFile);
                         ofn.lpstrFilter = "Audio Files\0*.wav;*.mp3;*.flac\0All Files\0*.*\0";
                         ofn.nFilterIndex = 1; ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
-                        if (GetOpenFileNameA(&ofn)) { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); path = szFile; SettingsManager::Save(); }
+                        if (GetOpenFileNameA(&ofn)) { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); path = szFile; BackgroundJobs::EnqueueDebouncedSettingsSave(); }
                     }
                     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("browse_for_file"));
                     ImGui::SameLine(); ImGui::SetNextItemWidth(80.0f);
                     int vp = static_cast<int>(volume * 100.0f);
                     if (ImGui::SliderInt("##vol", &vp, 0, 100, "%d%%"))
-                    { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); volume = vp / 100.0f; SettingsManager::Save(); }
+                    { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); volume = vp / 100.0f; BackgroundJobs::EnqueueDebouncedSettingsSave(); }
                     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("individual_volume"));
                     ImGui::SameLine();
                     if (ImGui::Button(Localization::GetText("sound_test"))) UINotifications::PlayNotificationSound(isPrecursor, isInfusion, isAlert);
@@ -1319,7 +1557,7 @@ static void RenderPage_Notifications()
             bool disVal = !g_Settings.notificationEnableMinValue;
             if (disVal) { ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); }
             if (ImGui::InputFloat(Localization::GetText("notification_min_value"), &g_Settings.notificationMinValueGold, 0.1f, 1.0f, "%.2f g"))
-            { if (g_Settings.notificationMinValueGold < 0) g_Settings.notificationMinValueGold = 0; SettingsManager::Save(); }
+            { if (g_Settings.notificationMinValueGold < 0) g_Settings.notificationMinValueGold = 0; BackgroundJobs::EnqueueDebouncedSettingsSave(); }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_min_value_tooltip"));
             if (disVal) { ImGui::PopStyleVar(); }
 
@@ -1329,27 +1567,27 @@ static void RenderPage_Notifications()
             bool disRar = !g_Settings.notificationEnableMinRarity;
             if (disRar) { ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); }
             const char* rarityLabels[] = { Localization::GetText("rarity_all"), Localization::GetText("rarity_basic"), Localization::GetText("rarity_fine"), Localization::GetText("rarity_masterwork"), Localization::GetText("rarity_rare"), Localization::GetText("rarity_exotic"), Localization::GetText("rarity_ascended"), Localization::GetText("rarity_legendary") };
-            if (ImGui::Combo(Localization::GetText("notification_min_rarity"), &g_Settings.notificationMinRarity, rarityLabels, 8)) SettingsManager::Save();
+            if (ImGui::Combo(Localization::GetText("notification_min_rarity"), &g_Settings.notificationMinRarity, rarityLabels, 8)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_min_rarity_tooltip"));
             if (disRar) { ImGui::PopStyleVar(); }
 
             bool disCom = !g_Settings.notificationEnableMinValue || !g_Settings.notificationEnableMinRarity;
             if (disCom) { ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); }
-            if (ImGui::Checkbox(Localization::GetText("notification_combine_logic"), &g_Settings.notificationCombineValueAndRarity)) SettingsManager::Save();
+            if (ImGui::Checkbox(Localization::GetText("notification_combine_logic"), &g_Settings.notificationCombineValueAndRarity)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_combine_logic_tooltip"));
             if (disCom) { ImGui::PopStyleVar(); }
 
-            if (ImGui::Checkbox(Localization::GetText("notification_include_non_profit"), &g_Settings.notificationIncludeNonProfit)) SettingsManager::Save();
+            if (ImGui::Checkbox(Localization::GetText("notification_include_non_profit"), &g_Settings.notificationIncludeNonProfit)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_include_non_profit_tooltip"));
 
             SubHeader("");
-            if (ImGui::Checkbox(Localization::GetText("notification_precursor_alert"), &g_Settings.notificationPrecursorAlert)) SettingsManager::Save();
+            if (ImGui::Checkbox(Localization::GetText("notification_precursor_alert"), &g_Settings.notificationPrecursorAlert)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_precursor_alert_tooltip"));
-            if (ImGui::Checkbox(Localization::GetText("notification_infusion_alert"),  &g_Settings.notificationInfusionAlert))  SettingsManager::Save();
+            if (ImGui::Checkbox(Localization::GetText("notification_infusion_alert"),  &g_Settings.notificationInfusionAlert))  BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_infusion_alert_tooltip"));
             if (g_Settings.notificationInfusionAlert) {
                 ImGui::Indent();
-                if (ImGui::Checkbox(Localization::GetText("notification_include_agony"), &g_Settings.notificationIncludeAgonyInfusions)) SettingsManager::Save();
+                if (ImGui::Checkbox(Localization::GetText("notification_include_agony"), &g_Settings.notificationIncludeAgonyInfusions)) BackgroundJobs::EnqueueDebouncedSettingsSave();
                 if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notification_include_agony_tooltip"));
                 ImGui::Unindent();
             }
@@ -1374,7 +1612,7 @@ static void RenderPage_Notifications()
                     if (std::find(g_Settings.notificationBlacklist.begin(), g_Settings.notificationBlacklist.end(), blacklistItemId) == g_Settings.notificationBlacklist.end())
                     {
                         g_Settings.notificationBlacklist.push_back(blacklistItemId);
-                        SettingsManager::Save();
+                        BackgroundJobs::EnqueueDebouncedSettingsSave();
                     }
                     blacklistItemId = 0;
                 }
@@ -1420,7 +1658,7 @@ static void RenderPage_Notifications()
                     if (ImGui::Button("X", ImVec2(20, 20)))
                     {
                         g_Settings.notificationBlacklist.erase(g_Settings.notificationBlacklist.begin() + i);
-                        SettingsManager::Save();
+                        BackgroundJobs::EnqueueDebouncedSettingsSave();
                         ImGui::PopStyleColor(2);
                         ImGui::PopID();
                         break;
@@ -1441,26 +1679,26 @@ static void RenderPage_Notifications()
         if (BeginSection("sessalerts", Localization::GetText("notification_session_alerts"), false, "profit"))
         {
             ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.4f, 1.0f), "%s", Localization::GetText("trigger_profit_goal"));
-            if (ImGui::Checkbox(Localization::GetText("notify_profit_goal"), &g_Settings.notifyProfitGoal)) SettingsManager::Save();
+            if (ImGui::Checkbox(Localization::GetText("notify_profit_goal"), &g_Settings.notifyProfitGoal)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notify_profit_goal_tooltip"));
             if (g_Settings.notifyProfitGoal) {
                 float gold = g_Settings.profitGoalAmount / 10000.0f;
                 if (ImGui::InputFloat(Localization::GetText("profit_goal_amount"), &gold, 1.0f, 10.0f, "%.2f g"))
-                { g_Settings.profitGoalAmount = static_cast<int>(gold * 10000); SettingsManager::Save(); }
+                { g_Settings.profitGoalAmount = static_cast<int>(gold * 10000); BackgroundJobs::EnqueueDebouncedSettingsSave(); }
                 if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("profit_goal_amount_tooltip"));
             }
             ImGui::Spacing();
             ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.4f, 1.0f), "%s", Localization::GetText("trigger_time_reset"));
-            if (ImGui::Checkbox(Localization::GetText("notify_reset_warning"), &g_Settings.notifyResetWarning)) SettingsManager::Save();
+            if (ImGui::Checkbox(Localization::GetText("notify_reset_warning"), &g_Settings.notifyResetWarning)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notify_reset_warning_tooltip"));
             if (g_Settings.notifyResetWarning) {
-                if (ImGui::SliderInt(Localization::GetText("reset_warning_minutes"), &g_Settings.resetWarningMinutes, 1, 60)) SettingsManager::Save();
+                if (ImGui::SliderInt(Localization::GetText("reset_warning_minutes"), &g_Settings.resetWarningMinutes, 1, 60)) BackgroundJobs::EnqueueDebouncedSettingsSave();
                 if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("reset_warning_minutes_tooltip"));
             }
-            if (ImGui::Checkbox(Localization::GetText("notify_session_complete"), &g_Settings.notifySessionComplete)) SettingsManager::Save();
+            if (ImGui::Checkbox(Localization::GetText("notify_session_complete"), &g_Settings.notifySessionComplete)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("notify_session_complete_tooltip"));
             if (g_Settings.notifySessionComplete) {
-                if (ImGui::SliderInt(Localization::GetText("session_complete_hours"), &g_Settings.sessionCompleteHours, 1, 24)) SettingsManager::Save();
+                if (ImGui::SliderInt(Localization::GetText("session_complete_hours"), &g_Settings.sessionCompleteHours, 1, 24)) BackgroundJobs::EnqueueDebouncedSettingsSave();
                 if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("session_complete_hours_tooltip"));
             }
             EndSection();
@@ -1480,19 +1718,19 @@ static void RenderPage_Performance()
 
     if (BeginSection("perf", Localization::GetText("performance_settings"), false, "performance"))
     {
-        if (ImGui::Checkbox(Localization::GetText("enable_icon_cache"), &g_Settings.enableIconCache)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("enable_icon_cache"), &g_Settings.enableIconCache)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_icon_cache_tooltip"));
         if (g_Settings.enableIconCache) {
             ImGui::Indent();
             if (ImGui::InputInt(Localization::GetText("icon_cache_max_icons"), &g_Settings.iconCacheMaxIcons, 10, 50))
-            { g_Settings.iconCacheMaxIcons = std::clamp(g_Settings.iconCacheMaxIcons, 10, 5000); SettingsManager::Save(); }
+            { g_Settings.iconCacheMaxIcons = std::clamp(g_Settings.iconCacheMaxIcons, 10, 5000); BackgroundJobs::EnqueueDebouncedSettingsSave(); }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("icon_cache_max_icons_tooltip"));
             ImGui::Unindent();
         }
         ImGui::Spacing();
-        if (ImGui::SliderInt(Localization::GetText("max_history_items_limit"), &g_Settings.maxHistoryItems, 50, 2000, "%d Items")) SettingsManager::Save();
+        if (ImGui::SliderInt(Localization::GetText("max_history_items_limit"), &g_Settings.maxHistoryItems, 50, 2000, "%d Items")) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("max_history_items_limit_tooltip"));
-        if (ImGui::SliderInt(Localization::GetText("api_update_interval"), &g_Settings.priceUpdateIntervalMin, 5, 15, "%d Min")) SettingsManager::Save();
+        if (ImGui::SliderInt(Localization::GetText("api_update_interval"), &g_Settings.priceUpdateIntervalMin, 5, 15, "%d Min")) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("api_update_interval_tooltip"));
         EndSection();
     }
@@ -1540,17 +1778,17 @@ static void RenderPage_Export()
     if (BeginSection("auto_backup_section", Localization::GetText("backup_restore"), false, "open_folder"))
     {
         SubHeader(Localization::GetText("backup_restore"), "open_folder");
-        if (ImGui::Checkbox(Localization::GetText("enable_automatic_backups"), &g_Settings.enableAutoBackups)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("enable_automatic_backups"), &g_Settings.enableAutoBackups)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_automatic_backups_tooltip"));
 
         if (g_Settings.enableAutoBackups)
         {
             const char* freqItems[] = { Localization::GetText("backup_manual_only"), Localization::GetText("backup_daily"), Localization::GetText("backup_weekly") };
             ImGui::SetNextItemWidth(160.0f);
-            if (ImGui::Combo("##BackupFreq", &g_Settings.backupFrequency, freqItems, 3)) SettingsManager::Save();
+            if (ImGui::Combo("##BackupFreq", &g_Settings.backupFrequency, freqItems, 3)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("backup_frequency_tooltip"));
             char cntLbl[256]; snprintf(cntLbl, sizeof(cntLbl), "%s##BackupCount", Localization::GetText("max_backup_count"));
-            if (ImGui::SliderInt(cntLbl, &g_Settings.maxBackupCount, 1, 20)) SettingsManager::Save();
+            if (ImGui::SliderInt(cntLbl, &g_Settings.maxBackupCount, 1, 20)) BackgroundJobs::EnqueueDebouncedSettingsSave();
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("max_backup_count_tooltip"));
 
             ImGui::Spacing();
@@ -1565,7 +1803,7 @@ static void RenderPage_Export()
             float inputW  = ImGui::GetContentRegionAvail().x - browseW - openW - gap * 2.0f;
             ImGui::SetNextItemWidth(inputW);
             if (ImGui::InputText("##BackupFolder", s_BackupPathBuf, sizeof(s_BackupPathBuf)))
-            { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); g_Settings.autoBackupPath = s_BackupPathBuf; SettingsManager::Save(); }
+            { std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex); g_Settings.autoBackupPath = s_BackupPathBuf; BackgroundJobs::EnqueueDebouncedSettingsSave(); }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", g_Settings.autoBackupPath.empty() ? Localization::GetText("backup_path_default_tooltip") : g_Settings.autoBackupPath.c_str());
             ImGui::SameLine(0, gap);
             if (ImGui::Button("...##BackupBrowse", ImVec2(browseW, 0)))
@@ -1602,7 +1840,7 @@ static void RenderPage_Export()
                             g_Settings.autoBackupPath = fp;
                             // Note: s_BackupPathBuf cannot be updated easily from here as it's static in RenderPage_Export
                             // But it will be updated on the next frame because of g_Settings.autoBackupPath
-                            SettingsManager::Save();
+                            BackgroundJobs::EnqueueDebouncedSettingsSave();
                         }
                         CoTaskMemFree(pidl);
                     }
@@ -1763,7 +2001,7 @@ static void RenderPage_Advanced()
 
     if (BeginSection("debug", Localization::GetText("debug_settings"), false, "debug"))
     {
-        if (ImGui::Checkbox(Localization::GetText("enable_debug_tab"), &g_Settings.enableDebugTab)) SettingsManager::Save();
+        if (ImGui::Checkbox(Localization::GetText("enable_debug_tab"), &g_Settings.enableDebugTab)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_debug_tab_tooltip"));
         EndSection();
     }
@@ -1916,7 +2154,7 @@ void RenderOptions()
     ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.10f, 0.50f, 0.15f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.15f, 0.65f, 0.20f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.08f, 0.40f, 0.12f, 1.00f));
-    if (ImGui::Button(Localization::GetText("save"), ImVec2(saveBtnW, 25.0f))) SettingsManager::Save();
+    if (ImGui::Button(Localization::GetText("save"), ImVec2(saveBtnW, 25.0f))) BackgroundJobs::EnqueueDebouncedSettingsSave();
     ImGui::PopStyleColor(3);
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("save_tooltip"));
 
@@ -1927,7 +2165,7 @@ void RenderOptions()
     // Scrollable content area
     ImGui::SetCursorScreenPos(ImVec2(contentX, orig.y + TOPBAR_H + 4.0f));
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-    ImGui::BeginChild("##settings_content", ImVec2(contentW, 0.0f), false, ImGuiWindowFlags_None);
+    ImGui::BeginChild("##settings_content", ImVec2(contentW, 0.0f), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
 
     switch (s_CurrentPage)
     {

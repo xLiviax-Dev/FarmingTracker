@@ -1,5 +1,6 @@
 #include "auto_reset.h"
 #include "magnetite_tracker.h"
+#include "gaeting_tracker.h"
 #include "loot_logger.h"
 #include "settings.h"
 #include "item_tracker.h"
@@ -225,9 +226,11 @@ namespace
 
 void AutoReset::OnAddonLoad()
 {
+    int mode;
     bool isEmpty;
     {
         std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+        mode = g_Settings.automaticResetMode;
         isEmpty = g_Settings.nextResetDateTimeUtc.empty();
     }
     if (isEmpty)
@@ -235,10 +238,15 @@ void AutoReset::OnAddonLoad()
 
     if (ShouldResetNowOnLoad())
     {
-        const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
         ItemTracker::SafeReset();
-        ItemTracker::SaveData(addonDir);
-        SettingsManager::Save();
+
+        if (mode == static_cast<int>(AutomaticResetMode::OnWeeklyReset))
+        {
+            MagnetiteTracker::OnWeeklyReset();
+            GaetingTracker::OnWeeklyReset();
+        }
+
+        BackgroundJobs::EnqueueDebouncedSettingsSave();
     }
 
     UpdateNextResetDateTime();
@@ -367,9 +375,12 @@ void AutoReset::Tick()
 
     ItemTracker::SafeReset();
 
-    // Weekly tracker resets (Magnetite Shards etc.) — mode 3 = Monday 07:30 UTC
+    // Weekly tracker resets (Magnetite Shards, Gaeting Crystals) — mode 3 = Monday 07:30 UTC
     if (mode == 3)
+    {
         MagnetiteTracker::OnWeeklyReset();
+        GaetingTracker::OnWeeklyReset();
+    }
 
     // Loot Logger — start a new session file after each reset
     LootLogger::StartNewSession(addonDir ? addonDir : "");
@@ -377,11 +388,8 @@ void AutoReset::Tick()
     // Reset notification trigger flags so they can fire again in the new session
     ResetNotificationTriggers();
 
-    // Persist the reset state immediately to avoid data loss on crash
-    ItemTracker::SaveData(addonDir);
-
     UpdateNextResetDateTime();
-    SettingsManager::Save();
+    BackgroundJobs::EnqueueDebouncedSettingsSave();
     
     // Notification for completed reset
     UINotifications::AddGenericNotification(Localization::GetText("auto_reset_done_title"), Localization::GetText("auto_reset_done_msg"), "", "Fine", false);
@@ -405,13 +413,13 @@ void AutoReset::OnManualReset()
     {
         UpdateNextResetDateTime();
     }
-    SettingsManager::Save();
+    BackgroundJobs::EnqueueDebouncedSettingsSave();
 }
 
 void AutoReset::RefreshSchedule()
 {
     UpdateNextResetDateTime();
-    SettingsManager::Save();
+    BackgroundJobs::EnqueueDebouncedSettingsSave();
 }
 
 std::string AutoReset::GetNextResetDisplayUtc()

@@ -26,6 +26,8 @@
 #include "ui_notifications.h"
 #include "gw2_api.h"
 #include "magnetite_tracker.h"
+#include "gaeting_tracker.h"
+#include "material_storage_manager.h"
 #include "loot_logger.h"
 
 // ---------------------------------------------------------------------------
@@ -115,6 +117,8 @@ static void OnMumbleIdentityUpdated(void* aEventArgs)
             token = g_Settings.gw2ApiKey;
         }
         MagnetiteTracker::OnMapChange(s_LastMapId, token);
+        GaetingTracker::OnMapChange(s_LastMapId, token);
+        MaterialStorageManager::OnMapChange(token);
     }
 
     s_LastMapId = newMapId;
@@ -135,7 +139,7 @@ extern "C" __declspec(dllexport) AddonDefinition_t* GetAddonDef()
     s_AddonDef.Version.Major    = 2;
     s_AddonDef.Version.Minor    = 0;
     s_AddonDef.Version.Build    = 1;
-    s_AddonDef.Version.Revision = 0;
+    s_AddonDef.Version.Revision = 2;
     s_AddonDef.Author           = "Livia.3928";
     s_AddonDef.Description      = "Tracks farmed items and currencies in real-time via DRF (drf.rs).";
     s_AddonDef.Load             = AddonLoad;
@@ -201,6 +205,17 @@ void AddonLoad(AddonAPI_t* aApi)
     // Load persisted farming data FIRST before any reset logic
     ItemTracker::LoadData(addonDir);
 
+    // Force cache invalidation to ensure new filter settings take effect
+    ItemTracker::ForceCacheInvalidate();
+
+    // Start shared background job queue BEFORE SaveWorker + AutoReset. All async
+    // session saves, backup creation and debounced settings writes go here.
+    BackgroundJobs::Init();
+
+    // Start async save worker AFTER data is loaded so initial (empty) state is
+    // not accidentally queued before LoadData completes.
+    ItemTracker::InitSaveWorker();
+
     AutoReset::OnAddonLoad();
 
     DrfClient::Init([](DrfStatus s) { /* Status change callback - unused */ });
@@ -242,6 +257,8 @@ void AddonLoad(AddonAPI_t* aApi)
         }
     }
     MagnetiteTracker::Init();
+    GaetingTracker::Init();
+    MaterialStorageManager::Init(addonDir);
 
     // Loot Logger — must come after SettingsManager::Load()
     {
@@ -285,6 +302,15 @@ void AddonUnload()
         Gw2Fetcher::Shutdown();
         APIDefs->Log(LOGL_INFO, "FarmingTracker", "GW2 fetcher shutdown complete");
 
+        MagnetiteTracker::Shutdown();
+        APIDefs->Log(LOGL_INFO, "FarmingTracker", "Magnetite tracker shutdown complete");
+
+        GaetingTracker::Shutdown();
+        APIDefs->Log(LOGL_INFO, "FarmingTracker", "Gaeting tracker shutdown complete");
+
+        MaterialStorageManager::Shutdown();
+        APIDefs->Log(LOGL_INFO, "FarmingTracker", "Material storage manager shutdown complete");
+
         DrfClient::Shutdown();
         APIDefs->Log(LOGL_INFO, "FarmingTracker", "DRF client shutdown complete");
 
@@ -294,8 +320,22 @@ void AddonUnload()
         AutoReset::OnAddonUnload();
         APIDefs->Log(LOGL_INFO, "FarmingTracker", "Auto reset shutdown complete");
         
-        // Save current session to history before shutdown
-        ItemTracker::SaveCurrentSession();
+        // Save current session to history before shutdown. Use the synchronous
+        // variant because the DLL is about to unload and we cannot rely on
+        // the background worker still being alive to finish the write.
+        ItemTracker::SaveCurrentSessionSync();
+
+        // Stop shared background job queue — flushes all pending async jobs
+        // (session saves, backups, debounced settings writes) within 3s and
+        // joins the worker. Afterwards everything runs synchronously for the
+        // final persistence calls below.
+        BackgroundJobs::Shutdown();
+        APIDefs->Log(LOGL_INFO, "FarmingTracker", "Background job queue shutdown complete");
+
+        // Stop async save worker: flushes any pending save + joins background thread.
+        // Subsequent SaveData() will run synchronously (s_SaveWorkerShutdown == true).
+        ItemTracker::ShutdownSaveWorker();
+        APIDefs->Log(LOGL_INFO, "FarmingTracker", "Save worker shutdown complete");
         
         // Save farming data before shutdown
         const char* addonDir = APIDefs->Paths_GetAddonDirectory("FarmingTracker");

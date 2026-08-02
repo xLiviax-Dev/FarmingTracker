@@ -93,17 +93,17 @@ static void DrawGridItemCount(long long count, float iconSz)
     std::string cs = UICommon::FormatCompact(count);
     const char* countStr = cs.c_str();
 
-    // Origin holen
+    // Get origin
     ImVec2 origin   = ImGui::GetItemRectMin();
 
-    // Basis-Schriftgröße berechnen - 10% kleiner!
+    // Calculate base font size - 10% smaller!
     const float desiredPixelSize = iconSz * 0.54f;
     ImFont* font = ImGui::GetFont();
 
-    // Text Größe berechnen MIT der gewünschten Schriftgröße
+    // Calculate text size WITH the desired font size
     ImVec2 textSize = font->CalcTextSizeA(desiredPixelSize, FLT_MAX, 0.0f, countStr);
 
-    // Position unten rechts
+    // Position bottom right
     ImVec2 pos = ImVec2(origin.x + iconSz - textSize.x,
                       origin.y + iconSz - textSize.y - 2.0f);
 
@@ -112,42 +112,11 @@ static void DrawGridItemCount(long long count, float iconSz)
                           : ImVec4(0.95f,0.7f,0.1f,1.f);
     ImDrawList* dl = ImGui::GetWindowDrawList();
 
-    // 1. Sehr dünner weißer Outline (außen 5 Pixel)
-    static const ImVec2 kOffWhiteOuter[] = {
-        {-5,-5}, {-4,-5}, {-3,-5}, {-2,-5}, {-1,-5}, {0,-5}, {1,-5}, {2,-5}, {3,-5}, {4,-5}, {5,-5},
-        {-5,-4}, {5,-4},
-        {-5,-3}, {5,-3},
-        {-5,-2}, {5,-2},
-        {-5,-1}, {5,-1},
-        {-5,0}, {5,0},
-        {-5,1}, {5,1},
-        {-5,2}, {5,2},
-        {-5,3}, {5,3},
-        {-5,4}, {5,4},
-        {-5,5}, {-4,5}, {-3,5}, {-2,5}, {-1,5}, {0,5}, {1,5}, {2,5}, {3,5}, {4,5}, {5,5}
-    };
-    for (const auto& off : kOffWhiteOuter) {
-        dl->AddText(font, desiredPixelSize, ImVec2(pos.x + off.x, pos.y + off.y), IM_COL32(255,255,255,255), countStr);
-    }
-
-    // 2. Dickerer schwarzer Outline (4 Pixel)
-    static const ImVec2 kOffBlack[] = {
-        {-4,-4}, {-3,-4}, {-2,-4}, {-1,-4}, {0,-4}, {1,-4}, {2,-4}, {3,-4}, {4,-4},
-        {-4,-3}, {4,-3},
-        {-4,-2}, {4,-2},
-        {-4,-1}, {4,-1},
-        {-4,0}, {4,0},
-        {-4,1}, {4,1},
-        {-4,2}, {4,2},
-        {-4,3}, {4,3},
-        {-4,4}, {-3,4}, {-2,4}, {-1,4}, {0,4}, {1,4}, {2,4}, {3,4}, {4,4}
-    };
-    for (const auto& off : kOffBlack) {
-        dl->AddText(font, desiredPixelSize, ImVec2(pos.x + off.x, pos.y + off.y), IM_COL32(0,0,0,255), countStr);
-    }
-
-    // 3. Eigentlicher Text
-    dl->AddText(font, desiredPixelSize, pos, ImGui::ColorConvertFloat4ToU32(col), countStr);
+    UICommon::DrawTextWithOutline(dl, font, desiredPixelSize, pos,
+                                  ImGui::ColorConvertFloat4ToU32(col),
+                                  IM_COL32(255,255,255,255), 5.0f,
+                                  IM_COL32(0,0,0,255), 4.0f,
+                                  countStr);
 }
 
 void RenderItemsTab()
@@ -227,12 +196,13 @@ void RenderItemsTab()
     {
         ImGui::Spacing();
 
-        auto items = ItemTracker::GetFilteredItems();
+        const auto& items = ItemTracker::GetFilteredItemsView();
         std::vector<std::pair<int, Stat>> favoriteItems;
         for (auto& [id, st] : items)
         {
-            if (st.isFavorite && !st.IsCurrency())
-                favoriteItems.push_back({id, st});
+            if (!st.isFavorite || st.IsCurrency()) continue;
+            if (st.count == 0) continue;
+            favoriteItems.push_back({id, st});
         }
 
         if (g_Settings.itemsFavoritesAsGrid)
@@ -247,7 +217,7 @@ void RenderItemsTab()
             int count = 0;
             for (auto& [id, st] : favoriteItems)
             {
-                if (st.isIgnored || st.count == 0 || st.IsCurrency()) continue;
+                if (st.IsCurrency()) continue;
 
                 if (count > 0)
                 {
@@ -285,7 +255,7 @@ void RenderItemsTab()
                         else UITooltips::RenderItemTooltipFallback(Localization::GetText("loading"), "", id, opt);
                     }
 
-                    // Rechtsklick → pending setzen
+                    // Right-click → set pending
                     if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(1))
                     {
                         s_FavGridPendingId   = id;
@@ -325,7 +295,7 @@ void RenderItemsTab()
 
                 for (auto& [id, st] : favoriteItems)
                 {
-                    if (st.isIgnored || st.count == 0 || st.IsCurrency()) continue;
+                    if (st.IsCurrency()) continue;
 
                     float rowH = UICommon::CalcTableRowHeight(32.f);
                     ImGui::TableNextRow(0, rowH);
@@ -359,7 +329,7 @@ void RenderItemsTab()
                     ImGui::TableSetColumnIndex(3);
                     long long profit = ItemTracker::GetStatProfit(st);
                     ImVec4 profitColor = profit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (profit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
-                    ImGui::TextColored(profitColor, "%s", UICommon::FormatCoin(profit).c_str());
+                    ImGui::TextColored(profitColor, "%s", UICommon::FormatCoin(profit));
                 }
                 ImGui::EndTable();
             }
@@ -385,7 +355,7 @@ void RenderItemsTab()
         Localization::GetText("sort_rarity_low")
     };
     if (ImGui::Combo("##SortItems", &g_Settings.itemSortMode, sortLabels, 10))
-        SettingsManager::Save();
+        BackgroundJobs::EnqueueDebouncedSettingsSave();
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("%s", Localization::GetText("sort_tooltip"));
 
@@ -405,7 +375,7 @@ void RenderItemsTab()
     if (ImGui::Combo("##RarityF", &rarityCombo, rarityLabels, 8))
     {
         g_Settings.itemRarityFilterMin = rarityCombo;
-        SettingsManager::Save();
+        BackgroundJobs::EnqueueDebouncedSettingsSave();
     }
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("%s", Localization::GetText("rarity_tooltip"));
@@ -413,10 +383,9 @@ void RenderItemsTab()
     ImGui::Spacing();
 
     ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 140.0f);
-    if (ImGui::InputTextWithHint("##Search", Localization::GetText("search_items_hint"), UICommon::s_SearchBuf, sizeof(UICommon::s_SearchBuf)))
+    if (ImGui::InputTextWithHint("##Search", Localization::GetText("search_items_hint"), UICommon::s_ItemsSearchBuf, sizeof(UICommon::s_ItemsSearchBuf)))
     {
-        g_Settings.searchTerm = UICommon::s_SearchBuf;
-        SettingsManager::Save();
+        BackgroundJobs::EnqueueDebouncedSettingsSave();
     }
     ImGui::PopItemWidth();
 
@@ -436,7 +405,7 @@ void RenderItemsTab()
                 for (const auto& [id, st] : items)
                     if (st.details.rarity == rarityName)
                         IgnoredItemsManager::IgnoreItem(id);
-                SettingsManager::Save();
+                BackgroundJobs::EnqueueDebouncedSettingsSave();
             }
         };
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.f)); renderMenuItem("mass_actions_ignore_junk", "Junk"); ImGui::PopStyleColor();
@@ -448,7 +417,7 @@ void RenderItemsTab()
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.85f, 0.20f, 0.50f, 1.f)); renderMenuItem("mass_actions_ignore_ascended", "Ascended"); ImGui::PopStyleColor();
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.20f, 0.90f, 1.f)); renderMenuItem("mass_actions_ignore_legendary", "Legendary"); ImGui::PopStyleColor();
         ImGui::Separator();
-        if (ImGui::MenuItem(Localization::GetText("mass_actions_clear_ignore"))) { IgnoredItemsManager::ClearAll(); SettingsManager::Save(); }
+        if (ImGui::MenuItem(Localization::GetText("mass_actions_clear_ignore"))) { IgnoredItemsManager::ClearAll(); BackgroundJobs::EnqueueDebouncedSettingsSave(); }
         ImGui::EndPopup();
     }
 
@@ -496,15 +465,18 @@ void RenderItemsTab()
 
     ImGui::Spacing();
 
-    auto sortedItems = ItemTracker::GetSortedItems(static_cast<ItemTracker::SortMode>(g_Settings.itemSortMode));
-    // Filter out ignored items
-    std::vector<std::pair<int, Stat>> filteredSortedItems;
-    for (auto& [id, st] : sortedItems)
-    {
-        if (!st.isIgnored && st.count != 0 && !st.IsCurrency())
-            filteredSortedItems.push_back({id, st});
-    }
-    sortedItems.swap(filteredSortedItems);
+    // Use cached sorted view with filters
+    ItemTracker::SortFilterOptions filter;
+    filter.excludeIgnored = true;
+    filter.excludeZeroCount = true;
+    filter.excludeCurrencies = true;
+    filter.rarityFilterMin = g_Settings.itemRarityFilterMin;
+    filter.searchTerm = UICommon::s_ItemsSearchBuf;
+
+    const auto& sortedItems = ItemTracker::GetSortedItemsView(
+        static_cast<ItemTracker::SortMode>(g_Settings.itemSortMode),
+        filter
+    );
 
     if (g_Settings.itemsEnableGridView)
     {
@@ -535,6 +507,7 @@ void RenderItemsTab()
                 std::map<std::string, std::vector<std::pair<int, Stat>>> rarityGroups;
                 for (auto& [id, st] : sortedItems)
                 {
+                    if (st.count == 0) continue;
                     std::string ar = st.details.loaded ? st.details.rarity : "Unknown";
                     std::string lr;
                     if (ar == "Legendary") lr = Localization::GetText("rarity_name_legendary");
@@ -647,7 +620,11 @@ void RenderItemsTab()
                     }
                 };
                 std::map<ItemType, std::vector<std::pair<int, Stat>>> typeGroups;
-                for (auto& [id, st] : sortedItems) typeGroups[st.details.itemType].push_back({id, st});
+                for (auto& [id, st] : sortedItems)
+                {
+                    if (st.count == 0) continue;
+                    typeGroups[st.details.itemType].push_back({id, st});
+                }
 
                 auto renderCell = [&](int id, const Stat& st) {
                     if (ImGui::BeginChild("##ItemCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
@@ -709,6 +686,7 @@ void RenderItemsTab()
                 int columns = getColumns(ImGui::GetContentRegionAvail().x), col = 0;
                 for (auto& [id, st] : sortedItems)
                 {
+                    if (st.count == 0) continue;
                     if (col > 0) ImGui::SameLine();
                     ImGui::PushID(id);
                     if (ImGui::BeginChild("##ItemCell", ImVec2(cellSize, cellSize), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
@@ -793,8 +771,8 @@ void RenderItemsTab()
             ImGui::TableSetColumnIndex(3);
             UICommon::AlignTableCellText(rowH);
             long long profit = ItemTracker::GetStatProfit(st);
-            if (profit>0) ImGui::TextColored(ImVec4(1.f,0.84f,0.f,1.f),"%s",UICommon::FormatCoin(profit).c_str());
-            else if (profit<0) ImGui::TextColored(ImVec4(0.9f,0.2f,0.2f,1.f),"%s",UICommon::FormatCoin(profit).c_str());
+            if (profit>0) ImGui::TextColored(ImVec4(1.f,0.84f,0.f,1.f),"%s",UICommon::FormatCoin(profit));
+            else if (profit<0) ImGui::TextColored(ImVec4(0.9f,0.2f,0.2f,1.f),"%s",UICommon::FormatCoin(profit));
             else ImGui::TextUnformatted(Localization::GetText("no_profit"));
 
             ImGui::TableSetColumnIndex(4);
@@ -820,7 +798,11 @@ void RenderItemsTab()
         {
             if (setupTable("##ItemsTable_v3", itemTableColumnCount))
             {
-                for (auto& [id, st] : sortedItems) renderItemRow(id, st, itemTableColumnCount);
+                for (auto& [id, st] : sortedItems)
+                {
+                    if (st.count == 0) continue;
+                    renderItemRow(id, st, itemTableColumnCount);
+                }
                 UIContextMenu::RenderItemContextMenu("ItemContextMenu", UIContextMenu::ContextMenuType::General);
                 ImGui::EndTable();
             }
@@ -836,6 +818,7 @@ void RenderItemsTab()
             };
             std::map<std::string, std::vector<std::pair<int,Stat>>> rarityGroups;
             for (auto& [id, st] : sortedItems) {
+                if (st.count == 0) continue;
                 std::string ar = st.details.loaded ? st.details.rarity : "Unknown", lr;
                 if (ar=="Legendary") lr=Localization::GetText("rarity_name_legendary");
                 else if (ar=="Ascended") lr=Localization::GetText("rarity_name_ascended");
@@ -926,7 +909,11 @@ void RenderItemsTab()
                 }
             };
             std::map<ItemType, std::vector<std::pair<int,Stat>>> typeGroups;
-            for (auto& [id,st]:sortedItems) typeGroups[st.details.itemType].push_back({id,st});
+            for (auto& [id,st]:sortedItems)
+            {
+                if (st.count == 0) continue;
+                typeGroups[st.details.itemType].push_back({id,st});
+            }
 
             if (!g_Settings.itemsShowGroupAsTabs)
             {

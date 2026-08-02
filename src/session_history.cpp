@@ -41,14 +41,24 @@ void Shutdown()
 
 void SaveSession(const SessionData& session)
 {
-    std::lock_guard<std::mutex> lock(s_Mutex);
-
+    // Read settings BEFORE acquiring s_Mutex to prevent any possible lock-order
+    // inversion.  Currently SaveSession() is only called from background jobs
+    // without outer SettingsMutex, but this makes the pattern consistent and
+    // future-safe if a caller ever wraps it.
+    bool enabled, overwrite;
+    int maxSessions;
     {
         std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
-        s_enabled = g_Settings.enableSessionHistory;
-        s_maxSessions = g_Settings.maxSessionHistory;
-        s_overwrite = g_Settings.overwriteSessionHistory;
+        enabled     = g_Settings.enableSessionHistory;
+        maxSessions = g_Settings.maxSessionHistory;
+        overwrite   = g_Settings.overwriteSessionHistory;
     }
+    // Cache locally so we don't touch globals while locked
+    s_enabled = enabled;
+    s_maxSessions = maxSessions;
+    s_overwrite = overwrite;
+
+    std::lock_guard<std::mutex> lock(s_Mutex);
 
     if (!s_enabled || s_addonDir.empty())
         return;

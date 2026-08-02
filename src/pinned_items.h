@@ -53,6 +53,9 @@ public:
     // Move pinned item down in the list (for sorting)
     static void MoveDown(int apiId, StatType type);
 
+    // Move pinned item to specific index (for drag & drop)
+    static void MoveToIndex(int apiId, StatType type, size_t newIndex);
+
     static void ImportFromJson(const nlohmann::json& j);
     static nlohmann::json ExportToJson();
 };

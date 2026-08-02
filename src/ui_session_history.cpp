@@ -112,7 +112,7 @@ void RenderSessionHistoryTab()
             // Duration
             ImGui::TableSetColumnIndex(1);
             UICommon::AlignTableCellText(rowH);
-            ImGui::Text("%s", UICommon::FormatDuration(session.durationSeconds).c_str());
+            ImGui::Text("%s", UICommon::FormatDuration(session.durationSeconds));
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("%s", Localization::GetText("duration_tooltip"));
 
@@ -120,7 +120,7 @@ void RenderSessionHistoryTab()
             ImGui::TableSetColumnIndex(2);
             UICommon::AlignTableCellText(rowH);
             ImVec4 profitColor = session.totalProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (session.totalProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
-            ImGui::TextColored(profitColor, "%s", UICommon::FormatCoin(session.totalProfit).c_str());
+            ImGui::TextColored(profitColor, "%s", UICommon::FormatCoin(session.totalProfit));
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("%s", Localization::GetText("profit_tooltip"));
 
@@ -128,7 +128,7 @@ void RenderSessionHistoryTab()
             ImGui::TableSetColumnIndex(3);
             UICommon::AlignTableCellText(rowH);
             ImVec4 profitPerHourColor = session.profitPerHour > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (session.profitPerHour < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
-            ImGui::TextColored(profitPerHourColor, "%s", UICommon::FormatCoin(session.profitPerHour).c_str());
+            ImGui::TextColored(profitPerHourColor, "%s", UICommon::FormatCoin(session.profitPerHour));
             if (ImGui::IsItemHovered())
                 ImGui::SetTooltip("%s", Localization::GetText("profit_per_hour_tooltip"));
 
@@ -145,7 +145,7 @@ void RenderSessionHistoryTab()
             if (!session.topDrops.empty())
             {
                 const auto& bestDrop = session.topDrops[0];
-                ImGui::Text("%s (%s)", bestDrop.itemName.c_str(), UICommon::FormatCoin(bestDrop.totalValue).c_str());
+                ImGui::Text("%s (%s)", bestDrop.itemName.c_str(), UICommon::FormatCoin(bestDrop.totalValue));
                 if (ImGui::IsItemHovered())
                     ImGui::SetTooltip("%s", Localization::GetText("best_drop_tooltip"));
             }
@@ -177,8 +177,8 @@ void RenderSessionHistoryTab()
         {
             // Session summary header
             ImGui::Text("%s: %s", Localization::GetText("date"), s_SelectedSession.startTime.c_str());
-            ImGui::Text("%s: %s", Localization::GetText("duration"), UICommon::FormatDuration(s_SelectedSession.durationSeconds).c_str());
-            ImGui::Text("%s: %s", Localization::GetText("profit"), UICommon::FormatCoin(s_SelectedSession.totalProfit).c_str());
+            ImGui::Text("%s: %s", Localization::GetText("duration"), UICommon::FormatDuration(s_SelectedSession.durationSeconds));
+            ImGui::Text("%s: %s", Localization::GetText("profit"), UICommon::FormatCoin(s_SelectedSession.totalProfit));
             ImGui::Text("%s: %d", Localization::GetText("drops"), s_SelectedSession.totalDrops);
             if (s_SelectedSession.averageMagicFind >= 0)
                 ImGui::Text("%s: %d%%", Localization::GetText("magic_find"), s_SelectedSession.averageMagicFind);
@@ -315,7 +315,7 @@ void RenderSessionHistoryTab()
                         // Value
                         ImGui::TableSetColumnIndex(3);
                         UICommon::AlignTableCellText(rowH);
-                        ImGui::Text("%s", UICommon::FormatCoin(drop.totalValue).c_str());
+                        ImGui::Text("%s", UICommon::FormatCoin(drop.totalValue));
 
                         // Magic Find
                         ImGui::TableSetColumnIndex(4);

@@ -15,6 +15,13 @@ namespace Gw2Api
                         nlohmann::json& itemsOut, nlohmann::json& pricesOut, std::string& error);
 
     bool FetchCurrenciesAll(const std::string& token, nlohmann::json& currenciesOut, std::string& error);
+    bool FetchMaterials(const std::string& token, nlohmann::json& materialsOut, std::string& error);
+    bool FetchMaterialStorage(const std::string& token, nlohmann::json& materialsOut, std::string& error);
+    bool FetchWallet(const std::string& token, nlohmann::json& walletOut, std::string& error);
+    bool FetchBank(const std::string& token, nlohmann::json& bankOut, std::string& error);
+    bool FetchInventory(const std::string& token, const std::string& characterName, nlohmann::json& bagsOut, std::string& error);
+    bool FetchSharedInventory(const std::string& token, nlohmann::json& sharedOut, std::string& error);
+    bool FetchCharacters(const std::string& token, nlohmann::json& charactersOut, std::string& error);
 
     bool FetchAccountName(const std::string& token, std::string& accountName, std::string& error);
 

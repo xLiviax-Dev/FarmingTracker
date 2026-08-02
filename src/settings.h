@@ -112,6 +112,15 @@ struct Settings
     bool miniWindowShowSessionDuration = false;
     bool miniWindowClickThrough = false;
     bool miniWindowAllowRightClickUnpin = true; // Allow unpin via right-click in Mini Window
+    bool miniWindowShowMaterialStorageCount = false; // Show material storage count next to pinned items in Mini Window
+    bool miniWindowShowWalletCount = false; // Show wallet count next to pinned currencies in Mini Window
+    bool miniWindowShowBankCount = false; // Show account bank count next to pinned items in Mini Window
+    bool miniWindowShowInventoryCount = false; // Show current character inventory (incl. shared slots) count next to pinned items
+    bool miniWindowHideCountLabels = false; // Hide count labels (Drop, Inv, Bank, Mat, Wallet) but keep numbers
+    bool miniWindowShortCountLabels = false; // Use short count labels (D, I, B, M, W) instead of full labels
+    bool miniWindowHideZeroDropStats = false; // Hide pinned items with 0 drop count in Mini Window
+    bool miniWindowHideTextLabels = false; // Hide text labels for pinned items (show only icons)
+    bool miniWindowHideIcons = false; // Hide icons for pinned items (show only text labels)
     float miniWindowPinnedIconSize = 32.0f; // Icon size for pinned items in Mini Window
 
     // Font Size Settings
@@ -224,6 +233,14 @@ struct Settings
     int         magnetiteLastWalletTotal         = -1;    // Last known wallet total (-1 = unknown)
     std::string magnetiteLastApiCheckUtc;                 // ISO-8601 UTC of last wallet API check
     int         magnetiteApiCheckCooldownMin     = 10;    // Minutes between wallet API checks on map change
+
+    // === Gaeting Crystal Weekly Tracker (Visions of Eternity / Janthir Wilds raids) ===
+    bool        enableGaetingTracker             = true;
+    int         gaetingWeeklyEarned              = 0;     // Crystals earned this week via DRF (resets Monday 07:30 UTC)
+    int         gaetingWeeklyEarnedAtLastCheck   = 0;     // DRF counter snapshot at time of last wallet API check
+    int         gaetingLastWalletTotal           = -1;    // Last known wallet total (-1 = unknown)
+    std::string gaetingLastApiCheckUtc;                   // ISO-8601 UTC of last wallet API check
+    int         gaetingApiCheckCooldownMin       = 10;    // Minutes between wallet API checks on map change
 
     // === Loot Log ===
     bool        enableLootLog           = true;
@@ -441,10 +458,9 @@ struct Settings
     // UI State Settings
     bool showTopItems = true;
     bool showTopCurrencies = true;
-    
+
     // Debug Features
     bool enableDebugTab = false;
-    bool useFakeDrfServer = false;
 
     // API Timeouts (in milliseconds)
     int gw2ApiConnectTimeout = 15000;
@@ -497,6 +513,9 @@ namespace SettingsManager
     void ImportFilterSettings(const nlohmann::json& j);
     nlohmann::json ExportFilterSettings();
     void ResetToDefaults();
+
+    // Snapshot pattern - get a thread-safe copy of settings for UI use
+    Settings GetSnapshot();
 
     // JSON Serialization (Internal use and Backup/Restore)
     nlohmann::json ToSettingsJson(const Settings& settings);

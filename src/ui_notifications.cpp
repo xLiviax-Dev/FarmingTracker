@@ -240,13 +240,15 @@ namespace UINotifications
         n.isInfusion = (specialText.find("Infusion") != std::string::npos);
         n.isFavorite = stat.isFavorite;
 
+        // Read stacking flag BEFORE acquiring s_Mutex to prevent lock-order
+        // inversion (s_Mutex → SettingsMutex would be reversed).
+        bool stacking;
+        {
+            std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
+            stacking = g_Settings.notificationStacking;
+        }
         {
             std::lock_guard<std::mutex> lock(s_Mutex);
-            bool stacking;
-            {
-                std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
-                stacking = g_Settings.notificationStacking;
-            }
             if (!stacking)
             {
                 s_Notifications.clear();
@@ -278,13 +280,15 @@ namespace UINotifications
         n.isInfusion = false;
         n.customWidth = customWidth;
 
+        // Read stacking flag BEFORE acquiring s_Mutex to prevent lock-order
+        // inversion (s_Mutex → SettingsMutex would be reversed).
+        bool stacking;
+        {
+            std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
+            stacking = g_Settings.notificationStacking;
+        }
         {
             std::lock_guard<std::mutex> lock(s_Mutex);
-            bool stacking;
-            {
-                std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
-                stacking = g_Settings.notificationStacking;
-            }
             if (!stacking)
             {
                 s_Notifications.clear();
@@ -475,7 +479,7 @@ namespace UINotifications
                         // Value
                         if (n.value > 0)
                         {
-                            ImGui::Text("%s", UICommon::FormatCoin(n.value).c_str());
+                            ImGui::Text("%s", UICommon::FormatCoin(n.value));
                         }
 
                         ImGui::EndGroup();

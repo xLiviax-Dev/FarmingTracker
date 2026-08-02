@@ -368,37 +368,37 @@ static void RenderSettingsSubTab()
 
     CardHeader("items", Localization::GetText("tab_items"));
 
-    if (IconToggleRow("layout-grid",    "Enable Grid View",     &g_Settings.itemsEnableGridView,     colW))        SettingsManager::Save();
+    if (IconToggleRow("layout-grid",    "Enable Grid View",     &g_Settings.itemsEnableGridView,     colW))        BackgroundJobs::EnqueueDebouncedSettingsSave();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_grid_view_tooltip"));
 
-    if (IconToggleRow("layout-grid",    "Favorites as Grid",    &g_Settings.itemsFavoritesAsGrid,    colW))        SettingsManager::Save();
+    if (IconToggleRow("layout-grid",    "Favorites as Grid",    &g_Settings.itemsFavoritesAsGrid,    colW))        BackgroundJobs::EnqueueDebouncedSettingsSave();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show the Favorites section as a grid of icons instead of a table.");
 
     {
         bool rarityDisabled = g_Settings.itemsGroupByCategory;
         if (IconToggleRow("color-swatch",   "Group by Rarity",      &g_Settings.itemsGroupByRarity,      colW, false, rarityDisabled))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip(rarityDisabled ? "Not available while Group by Category is active." : Localization::GetText("group_by_rarity_tooltip"));
     }
 
     if (g_Settings.itemsGroupByRarity)
     {
         if (IconToggleRow("layout-columns", "Rarity as Tabs",    &g_Settings.itemsShowRarityAsTabs,  colW, true))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_rarity_as_tabs_tooltip"));
     }
 
     {
         bool categoryDisabled = g_Settings.itemsGroupByRarity;
         if (IconToggleRow("groupcategory", "Group by Category",    &g_Settings.itemsGroupByCategory,    colW, false, categoryDisabled))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip(categoryDisabled ? "Not available while Group by Rarity is active." : Localization::GetText("group_by_category_tooltip"));
     }
 
     if (g_Settings.itemsGroupByCategory)
     {
         if (IconToggleRow("layout-columns", "Category as Tabs",  &g_Settings.itemsShowGroupAsTabs,   colW, true))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_group_as_tabs_tooltip"));
     }
 
@@ -418,20 +418,20 @@ static void RenderSettingsSubTab()
 
     CardHeader("currencies", Localization::GetText("tab_currencies"));
 
-    if (IconToggleRow("layout-grid",    "Enable Grid View",     &g_Settings.currenciesEnableGridView,  colW))        SettingsManager::Save();
+    if (IconToggleRow("layout-grid",    "Enable Grid View",     &g_Settings.currenciesEnableGridView,  colW))        BackgroundJobs::EnqueueDebouncedSettingsSave();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_grid_view_tooltip"));
 
-    if (IconToggleRow("layout-grid",    "Favorites as Grid",    &g_Settings.currenciesFavoritesAsGrid, colW))        SettingsManager::Save();
+    if (IconToggleRow("layout-grid",    "Favorites as Grid",    &g_Settings.currenciesFavoritesAsGrid, colW))        BackgroundJobs::EnqueueDebouncedSettingsSave();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show the Favorites section as a grid of icons instead of a table.");
 
     if (IconToggleRow("groupcategory", "Group by Category",    &g_Settings.currenciesGroupByCategory,  colW))
-        SettingsManager::Save();
+        BackgroundJobs::EnqueueDebouncedSettingsSave();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("group_by_category_tooltip"));
 
     if (g_Settings.currenciesGroupByCategory)
     {
         if (IconToggleRow("layout-columns", "Category as Tabs",  &g_Settings.currenciesShowGroupAsTabs,  colW, true))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_group_as_tabs_tooltip"));
     }
 
@@ -452,38 +452,38 @@ static void RenderSettingsSubTab()
 
     CardHeader("summaries", Localization::GetText("tab_overview"));
 
-    if (IconToggleRow("layout-grid",    "Enable Grid View",     &g_Settings.overviewEnableGridView,     colW))        SettingsManager::Save();
+    if (IconToggleRow("layout-grid",    "Enable Grid View",     &g_Settings.overviewEnableGridView,     colW))        BackgroundJobs::EnqueueDebouncedSettingsSave();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_grid_view_tooltip"));
 
     if (IconToggleRow("favorites",      "Favorites as Grid",      &g_Settings.overviewFavoritesAsGrid,     colW))
-        SettingsManager::Save();
+        BackgroundJobs::EnqueueDebouncedSettingsSave();
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show favorites section as grid in overview tab");
 
     {
         bool rarityDisabled = g_Settings.overviewGroupByCategory;
         if (IconToggleRow("color-swatch",   "Group by Rarity",      &g_Settings.overviewGroupByRarity,      colW, false, rarityDisabled))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip(rarityDisabled ? "Not available while Group by Category is active." : Localization::GetText("group_by_rarity_tooltip"));
     }
 
     if (g_Settings.overviewGroupByRarity)
     {
         if (IconToggleRow("layout-columns", "Rarity as Tabs",    &g_Settings.overviewShowRarityAsTabs,  colW, true))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_rarity_as_tabs_tooltip"));
     }
 
     {
         bool categoryDisabled = g_Settings.overviewGroupByRarity;
         if (IconToggleRow("groupcategory", "Group by Category",    &g_Settings.overviewGroupByCategory,    colW, false, categoryDisabled))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip(categoryDisabled ? "Not available while Group by Rarity is active." : Localization::GetText("group_by_category_tooltip"));
     }
 
     if (g_Settings.overviewGroupByCategory)
     {
         if (IconToggleRow("layout-columns", "Category as Tabs",  &g_Settings.overviewShowGroupAsTabs,   colW, true))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("show_group_as_tabs_tooltip"));
     }
 
@@ -511,14 +511,14 @@ void RenderDropsTab()
     ImGui::Text("%s", Localization::GetText("total_profit_label_simple"));
     ImGui::SameLine();
     ImVec4 profitColor = totalProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (totalProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
-    ImGui::TextColored(profitColor, "%s", UICommon::FormatCoin(totalProfit).c_str());
+    ImGui::TextColored(profitColor, "%s", UICommon::FormatCoin(totalProfit));
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("%s", Localization::GetText("total_profit_tooltip"));
 
     ImGui::Text("%s", Localization::GetText("profit_per_hour_label_simple"));
     ImGui::SameLine();
     ImVec4 profitPerHourColor = profitPerHour > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f) : (profitPerHour < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
-    ImGui::TextColored(profitPerHourColor, "%s", UICommon::FormatCoin(profitPerHour).c_str());
+    ImGui::TextColored(profitPerHourColor, "%s", UICommon::FormatCoin(profitPerHour));
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("%s", Localization::GetText("profit_per_hour_tooltip"));
 

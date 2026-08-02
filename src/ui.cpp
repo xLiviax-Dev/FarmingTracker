@@ -146,8 +146,6 @@ static bool IsMainTabEnabled(const std::string& key)
 static void SafeReset()
 {
     ItemTracker::SafeReset();
-    const char* addonDir = APIDefs ? APIDefs->Paths_GetAddonDirectory("FarmingTracker") : nullptr;
-    ItemTracker::SaveData(addonDir);
 }
 
 // ---------------------------------------------------------------------------
@@ -373,7 +371,7 @@ static void RenderPillTabBar(const std::vector<std::string>& order)
                     else
                         mo.insert(dstIt, dragged);
                 }
-                SettingsManager::Save();
+                BackgroundJobs::EnqueueDebouncedSettingsSave();
             }
         }
     }
@@ -504,7 +502,7 @@ static void RenderPillTabBar(const std::vector<std::string>& order)
             else if (tab.key == "debug")           g_Settings.activeTab = 5;
             else if (tab.key == "loot_log")        g_Settings.activeTab = 6;
             else if (tab.key == "timeline")        g_Settings.activeTab = 7;
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
     }
 
@@ -758,7 +756,7 @@ static void RenderMainWindow()
                                 g_Settings.gw2ApiKey = g_Settings.accounts[g_Settings.currentAccountIndex].gw2ApiKey;
                             }
                         }
-                        SettingsManager::Save();
+                        BackgroundJobs::EnqueueDebouncedSettingsSave();
                         DrfClient::Connect(g_Settings.drfToken);
                         Gw2Fetcher::UpdateApiKey();
                     }
@@ -871,12 +869,12 @@ static void ProcessKeybind(const char* aIdentifier, bool aIsRelease)
     if (!aIsRelease && strcmp(aIdentifier, "FT_TOGGLE_MAIN") == 0)
     {
         g_Settings.showMainWindow = !g_Settings.showMainWindow;
-        SettingsManager::Save();
+        BackgroundJobs::EnqueueDebouncedSettingsSave();
     }
     if (!aIsRelease && strcmp(aIdentifier, "FT_TOGGLE_MINI") == 0)
     {
         g_Settings.showMiniWindow = !g_Settings.showMiniWindow;
-        SettingsManager::Save();
+        BackgroundJobs::EnqueueDebouncedSettingsSave();
     }
     if (!aIsRelease && strcmp(aIdentifier, "FT_RESET") == 0)
     {

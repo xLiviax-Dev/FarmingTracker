@@ -174,12 +174,12 @@ static void RenderMassIgnoreBar()
         if (ImGui::SmallButton(RarityLabel(rar)))
         {
             *toggleState = !*toggleState;
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
             
             // When toggling on, ignore all existing items of this rarity
             if (*toggleState)
             {
-                auto items = ItemTracker::GetSortedItems(ItemTracker::SortMode::NameAZ);
+                const auto& items = ItemTracker::GetSortedItemsView(ItemTracker::SortMode::NameAZ);
                 for (const auto& [id, st] : items)
                     if (st.details.loaded && st.details.rarity == rar && !IgnoredItemsManager::IsItemIgnored(id))
                         IgnoredItemsManager::IgnoreItem(id);
@@ -244,7 +244,7 @@ static void RenderItemsSubTab()
     // Group by Rarity checkbox
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
     if (ImGui::Checkbox("##ignored_group_by_rarity", &g_Settings.ignoredGroupByRarity))
-        SettingsManager::Save();
+        BackgroundJobs::EnqueueDebouncedSettingsSave();
     ImGui::PopStyleColor();
     ImGui::SameLine(0, 4);
     ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%s", Localization::GetText("group_by_rarity"));
@@ -257,7 +257,7 @@ static void RenderItemsSubTab()
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.4f);
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
     if (!disableRarityTabs && ImGui::Checkbox("##ignored_show_rarity_as_tabs", &g_Settings.ignoredShowRarityAsTabs))
-        SettingsManager::Save();
+        BackgroundJobs::EnqueueDebouncedSettingsSave();
     else if (disableRarityTabs)
     {
         bool dummy = g_Settings.ignoredShowRarityAsTabs;

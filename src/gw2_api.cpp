@@ -278,6 +278,59 @@ bool Gw2Api::FetchCurrenciesAll(const std::string& token, nlohmann::json& curren
     return GetJson("/v2/currencies?ids=all&lang=" + langCode, token, currenciesOut, error);
 }
 
+bool Gw2Api::FetchMaterials(const std::string& token, nlohmann::json& materialsOut, std::string& error)
+{
+    // /v2/materials returns a list of all item IDs that can go into material storage
+    // This endpoint does not require authentication, but we pass token for consistency
+    return GetJson("/v2/materials", token, materialsOut, error);
+}
+
+bool Gw2Api::FetchMaterialStorage(const std::string& token, nlohmann::json& materialsOut, std::string& error)
+{
+    return GetJson("/v2/account/materials", token, materialsOut, error);
+}
+
+bool Gw2Api::FetchWallet(const std::string& token, nlohmann::json& walletOut, std::string& error)
+{
+    return GetJson("/v2/account/wallet", token, walletOut, error);
+}
+
+bool Gw2Api::FetchBank(const std::string& token, nlohmann::json& bankOut, std::string& error)
+{
+    return GetJson("/v2/account/bank", token, bankOut, error);
+}
+
+bool Gw2Api::FetchInventory(const std::string& token, const std::string& characterName, nlohmann::json& bagsOut, std::string& error)
+{
+    // Character name must be URL-encoded for spaces.
+    std::string encoded;
+    encoded.reserve(characterName.size());
+    for (unsigned char c : characterName)
+    {
+        if (isalnum(c) || c == '-' || c == '_' || c == '.')
+            encoded += static_cast<char>(c);
+        else if (c == ' ')
+            encoded += "%20";
+        else
+        {
+            char buf[4];
+            snprintf(buf, sizeof(buf), "%%%02X", c);
+            encoded += buf;
+        }
+    }
+    return GetJson("/v2/characters/" + encoded + "/inventory", token, bagsOut, error);
+}
+
+bool Gw2Api::FetchSharedInventory(const std::string& token, nlohmann::json& sharedOut, std::string& error)
+{
+    return GetJson("/v2/account/inventory", token, sharedOut, error);
+}
+
+bool Gw2Api::FetchCharacters(const std::string& token, nlohmann::json& charactersOut, std::string& error)
+{
+    return GetJson("/v2/characters?ids=all", token, charactersOut, error);
+}
+
 // Debug logging implementation
 void Gw2Api::Log(const std::string& message, const std::string& type)
 {

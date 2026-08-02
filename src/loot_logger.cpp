@@ -256,15 +256,19 @@ namespace
                 std::swap(batch, s_Queue);
             }
 
-            // Read current settings (format, map/buff flags) once per batch
+            // Read current settings OUTSIDE s_Mutex to prevent lock-order
+            // inversion (s_Mutex → SettingsMutex would be reversed).
+            // Only basePath (s_CurrentSessionBase) is protected by s_Mutex.
             int         format;
             bool        includeMap;
-            std::string basePath;
             {
-                std::lock_guard<std::mutex> lock(s_Mutex);
                 std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
                 format       = g_Settings.lootLogFormat;
                 includeMap   = g_Settings.lootLogIncludeMap;
+            }
+            std::string basePath;
+            {
+                std::lock_guard<std::mutex> lock(s_Mutex);
                 basePath     = s_CurrentSessionBase;
             }
 
@@ -524,12 +528,13 @@ std::vector<DropEntry> GetCurrentSessionEntries()
 
 std::string GetCurrentSessionPath()
 {
-    std::lock_guard<std::mutex> lock(s_Mutex);
+    // Read format BEFORE acquiring s_Mutex to prevent lock-order inversion.
     int format;
     {
         std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
         format = g_Settings.lootLogFormat;
     }
+    std::lock_guard<std::mutex> lock(s_Mutex);
     if (s_CurrentSessionBase.empty()) return "";
     return s_CurrentSessionBase + (format == 1 ? ".json" : ".csv");
 }

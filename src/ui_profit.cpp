@@ -13,6 +13,7 @@
 #include "ui_tooltips.h"
 #include "ui_tab_icons.h"
 #include "magnetite_tracker.h"
+#include "gaeting_tracker.h"
 #include <chrono>
 
 #define NOMINMAX
@@ -260,6 +261,110 @@ static void RenderSparkline(float width, float height)
     }
 }
 
+static void DrawTrackerHeaderBg(ImVec2 min, ImVec2 max, ImVec4 top, ImVec4 bottom, ImVec4 accentBar)
+{
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    dl->AddRectFilledMultiColor(min, max,
+        ImGui::ColorConvertFloat4ToU32(top), ImGui::ColorConvertFloat4ToU32(top),
+        ImGui::ColorConvertFloat4ToU32(bottom), ImGui::ColorConvertFloat4ToU32(bottom));
+    dl->AddRectFilled(min, {min.x + 2.f, max.y}, ImGui::ColorConvertFloat4ToU32(accentBar));
+}
+
+static void DrawTrackerProgressBar(float width, float height, float frac, ImVec4 light, ImVec4 dark)
+{
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    ImVec2 p0 = ImGui::GetCursorScreenPos();
+    ImVec2 p1 = {p0.x + width, p0.y + height};
+    dl->AddRectFilled(p0, p1, IM_COL32(40,40,40,255), height * 0.5f);
+    float fillW = width * std::clamp(frac, 0.f, 1.f);
+    if (fillW > 1.f)
+    {
+        ImU32 cL = ImGui::ColorConvertFloat4ToU32(light);
+        ImU32 cD = ImGui::ColorConvertFloat4ToU32(dark);
+        dl->AddRectFilledMultiColor(p0, {p0.x + fillW, p1.y}, cD, cL, cL, cD);
+    }
+    ImGui::Dummy(ImVec2(width, height));
+}
+
+// Compact, unified weekly-tracker card: gradient header with left accent bar + icon,
+// collapsible on click, body shows earned/cap, remaining, and a gradient progress bar.
+static void RenderWeeklyTrackerCard(const char* title, const char* iconKey,
+                                     ImVec4 headerTop, ImVec4 headerBottom, ImVec4 accentBar,
+                                     ImVec4 fillLight, ImVec4 fillDark,
+                                     int earned, int cap, bool& expanded,
+                                     const char* toggleTooltip, float width)
+{
+    const float headerH = 24.f;
+    const float bodyH   = 44.f;
+    float totalH = expanded ? headerH + bodyH : headerH;
+
+    ImVec2 cardMin = ImGui::GetCursorScreenPos();
+    ImVec2 cardMax = ImVec2(cardMin.x + width, cardMin.y + totalH);
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+
+    dl->AddRectFilled(cardMin, cardMax, IM_COL32(22,22,22,255), 6.f);
+    dl->AddRect(cardMin, cardMax, ImGui::ColorConvertFloat4ToU32(ImVec4(1.f,1.f,1.f,0.07f)), 6.f, 0, 1.f);
+
+    ImVec2 hMax = ImVec2(cardMin.x + width, cardMin.y + headerH);
+    DrawTrackerHeaderBg(cardMin, hMax, headerTop, headerBottom, accentBar);
+
+    float iconSize = 12.f;
+    float iconX = cardMin.x + 10.f;
+    float iconY = cardMin.y + (headerH - iconSize) * 0.5f;
+    void* iconTex = UITabIcons::GetIcon(iconKey);
+    if (iconTex)
+        dl->AddImage((ImTextureID)iconTex, {iconX, iconY}, {iconX + iconSize, iconY + iconSize},
+                     {0,0}, {1,1}, ImGui::ColorConvertFloat4ToU32(ImVec4(0.92f,0.90f,0.87f,1.f)));
+
+    float textX = iconX + iconSize + 6.f;
+    float textY = cardMin.y + (headerH - ImGui::GetTextLineHeight()) * 0.5f;
+    dl->AddText({textX, textY}, ImGui::ColorConvertFloat4ToU32(ImVec4(0.95f,0.93f,0.9f,1.f)), title);
+
+    ImGui::SetCursorScreenPos(cardMin);
+    ImGui::PushID(title);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0,0,0,0));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0,0,0,0));
+    if (ImGui::Button("##trkhdr", ImVec2(width, headerH)))
+        expanded = !expanded;
+    if (ImGui::IsItemHovered() && toggleTooltip)
+        ImGui::SetTooltip("%s", toggleTooltip);
+    ImGui::PopStyleColor(3);
+    ImGui::PopID();
+
+    if (expanded)
+    {
+        const float pad = 10.f;
+        ImGui::SetCursorScreenPos(ImVec2(cardMin.x + pad, cardMin.y + headerH + 8.f));
+        ImGui::BeginGroup();
+
+        int remaining = std::max(0, cap - earned);
+        float progress = cap > 0 ? (float)earned / (float)cap : 0.f;
+
+        char valBuf[16]; snprintf(valBuf, sizeof(valBuf), "%d", earned);
+        char capBuf[24]; snprintf(capBuf, sizeof(capBuf), " / %d", cap);
+        char remBuf[24];
+        if (remaining <= 0) snprintf(remBuf, sizeof(remBuf), "Fertig");
+        else                snprintf(remBuf, sizeof(remBuf), "Rest: %d", remaining);
+
+        ImGui::TextColored(fillLight, "%s", valBuf);
+        ImGui::SameLine(0, 2);
+        ImGui::TextColored(ImVec4(0.55f,0.55f,0.55f,1.f), "%s", capBuf);
+        ImGui::SameLine(0, 10);
+        ImGui::TextColored(remaining <= 0 ? ImVec4(0.4f,0.85f,0.45f,1.f) : ImVec4(0.62f,0.62f,0.62f,1.f), "%s", remBuf);
+
+        ImGui::Spacing();
+        DrawTrackerProgressBar(width - pad * 2.f, 7.f, progress, fillLight, fillDark);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("%d / %d  (%.1f%%)", earned, cap, progress * 100.f);
+
+        ImGui::EndGroup();
+    }
+
+    ImGui::SetCursorScreenPos(ImVec2(cardMin.x, cardMax.y));
+    ImGui::Dummy(ImVec2(width, 0.f));
+}
+
 void RenderProfitTab()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.f, 8.f));
@@ -296,8 +401,8 @@ void RenderProfitTab()
     long long lostP  = ItemTracker::GetOpportunityCostProfit();
     long long lostPh = ItemTracker::GetOpportunityCostProfitPerHour(duration);
     int  mf          = ItemTracker::GetMagicFind();
-    auto items       = ItemTracker::GetFilteredItems();
-    auto currencies  = ItemTracker::GetFilteredCurrencies();
+    const auto& items       = ItemTracker::GetFilteredItemsView();
+    const auto& currencies  = ItemTracker::GetFilteredCurrenciesView();
     float avail      = ImGui::GetContentRegionAvail().x - 8.f;
     float iconSz     = (float)g_Settings.profitIconSize;
     char buf[128];
@@ -307,14 +412,14 @@ void RenderProfitTab()
 
     char subBuf[128];
 
-    snprintf(buf, sizeof(buf), "%s", UICommon::FormatCoin(profit).c_str());
+    snprintf(buf, sizeof(buf), "%s", UICommon::FormatCoin(profit));
     snprintf(subBuf, sizeof(subBuf), "%zu items · %zu currencies", items.size(), currencies.size());
     KpiCard("##k1", Localization::GetText("total_profit_label_simple"), buf, ProfitColor(profit), Localization::GetText("dashboard"), kw, 114.f, subBuf);
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("total_profit_tooltip"));
     ImGui::SameLine();
 
-    snprintf(buf, sizeof(buf), "%s", UICommon::FormatCoin(profPh).c_str());
-    snprintf(subBuf, sizeof(subBuf), "%s", UICommon::FormatDuration(duration.count()).c_str());
+    snprintf(buf, sizeof(buf), "%s", UICommon::FormatCoin(profPh));
+    snprintf(subBuf, sizeof(subBuf), "%s", UICommon::FormatDuration(duration.count()));
     KpiCard("##k2", Localization::GetText("profit_per_hour_label_simple"), buf, ProfitColor(profPh), Localization::GetText("session_duration_label_simple"), kw, 114.f, subBuf);
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("profit_per_hour_tooltip"));
     ImGui::SameLine();
@@ -333,19 +438,19 @@ void RenderProfitTab()
 
     // KPI Row 2
     char lostSub[64];
-    snprintf(lostSub, sizeof(lostSub), "%s/h", UICommon::FormatCoin(lostPh).c_str());
+    snprintf(lostSub, sizeof(lostSub), "%s/h", UICommon::FormatCoin(lostPh));
 
-    snprintf(buf, sizeof(buf), "%s", UICommon::FormatCoin(tpSell).c_str());
+    snprintf(buf, sizeof(buf), "%s", UICommon::FormatCoin(tpSell));
     KpiCard("##k5", Localization::GetText("approx_trading_profits_listings_label"), buf, ProfitColor(tpSell), Localization::GetText("column_value"), kw, 80.f);
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("approx_trading_profits_listings_tooltip"));
     ImGui::SameLine();
 
-    snprintf(buf, sizeof(buf), "%s", UICommon::FormatCoin(tpInst).c_str());
+    snprintf(buf, sizeof(buf), "%s", UICommon::FormatCoin(tpInst));
     KpiCard("##k6", Localization::GetText("approx_trading_profits_instant_label"), buf, ProfitColor(tpInst), Localization::GetText("column_value"), kw, 80.f);
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("approx_trading_profits_instant_tooltip"));
     ImGui::SameLine();
 
-    snprintf(buf, sizeof(buf), "%s", UICommon::FormatCoin(lostP).c_str());
+    snprintf(buf, sizeof(buf), "%s", UICommon::FormatCoin(lostP));
     KpiCard("##k7", Localization::GetText("lost_profit_vs_tp_sell_label"), buf, ProfitColor(lostP), lostSub, kw, 80.f);
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("lost_profit_vs_tp_sell_tooltip"));
     ImGui::SameLine();
@@ -507,137 +612,30 @@ void RenderProfitTab()
     if (magnetiteEnabled)
     {
         ImGui::Spacing();
-        
-        // Magnetite Shards Section (Collapsible)
+
         static bool magnetiteExpanded = true;
-        
-        ImVec2 cursor = ImGui::GetCursorScreenPos();
-        ImVec2 regionAvail = ImGui::GetContentRegionAvail();
-        float headerHeight = 35.0f;
-        
-        // Draw custom header
-        ImDrawList* drawList = ImGui::GetWindowDrawList();
-        
-        // Background gradient (matching active main tab design)
-        ImVec2 headerMin = cursor;
-        ImVec2 headerMax = ImVec2(cursor.x + regionAvail.x, cursor.y + headerHeight);
 
         const float acR = g_Settings.accentColorR;
         const float acG = g_Settings.accentColorG;
         const float acB = g_Settings.accentColorB;
+        ImVec4 magHeaderTop = ImVec4(std::min(1.f, acR * 2.0f), std::min(1.f, acG * 2.0f), std::min(1.f, acB * 2.0f), 1.f);
+        ImVec4 magHeaderBot = ImVec4(acR * 0.5f, acG * 0.5f, acB * 0.5f, 1.f);
+        ImVec4 magAccentBar = ImVec4(std::min(1.f, acR * 1.5f), std::min(1.f, acG * 1.5f), std::min(1.f, acB * 1.5f), 1.f);
+        ImVec4 magFillLight = ImVec4(0.72f, 0.60f, 1.0f, 1.f);
+        ImVec4 magFillDark  = ImVec4(0.42f, 0.30f, 0.75f, 1.f);
 
-        // Active tab gradient colors
-        ImU32 bgColorTop = ImGui::ColorConvertFloat4ToU32(ImVec4(acR * 2.0f, acG * 2.0f, acB * 2.0f, 1.0f));
-        ImU32 bgColorBottom = ImGui::ColorConvertFloat4ToU32(ImVec4(acR * 0.5f, acG * 0.5f, acB * 0.5f, 1.0f));
+        int earned = MagnetiteTracker::GetWeeklyEarned();
+        int cap    = MagnetiteTracker::WEEKLY_CAP;
 
-        drawList->AddRectFilledMultiColor(headerMin, headerMax, bgColorTop, bgColorTop, bgColorBottom, bgColorBottom);
+        RenderWeeklyTrackerCard("Magnetit-Scherben", "magnetite",
+                                 magHeaderTop, magHeaderBot, magAccentBar,
+                                 magFillLight, magFillDark,
+                                 earned, cap, magnetiteExpanded,
+                                 Localization::GetText("toggle_magnetite_tooltip"), mainW);
 
-        // Border (matching active tab border)
-        ImU32 borderColor = ImGui::ColorConvertFloat4ToU32(ImVec4(acR * 1.5f, acG * 1.5f, acB * 1.5f, 1.0f));
-        drawList->AddRect(headerMin, headerMax, borderColor, 4.0f, 0, 0.5f);
-        
-        // Active state indicator (left bar) - full accent color
         if (magnetiteExpanded)
         {
-            ImU32 activeColor = ImGui::ColorConvertFloat4ToU32(ImVec4(acR, acG, acB, 1.0f));
-            ImVec2 barMin = ImVec2(headerMin.x, headerMin.y);
-            ImVec2 barMax = ImVec2(headerMin.x + 3.0f, headerMax.y);
-            drawList->AddRectFilled(barMin, barMax, activeColor, 2.0f);
-        }
-        
-        // Icon
-        float iconSize = 16.0f;
-        float iconX = cursor.x + 12.0f;
-        float iconY = cursor.y + (headerHeight - iconSize) * 0.5f;
-        void* iconTex = UITabIcons::GetIcon("magnetite");
-        if (iconTex)
-        {
-            drawList->AddImage((ImTextureID)iconTex,
-                             ImVec2(iconX, iconY),
-                             ImVec2(iconX + iconSize, iconY + iconSize),
-                             ImVec2(0,0), ImVec2(1,1),
-                             ImGui::ColorConvertFloat4ToU32(ImVec4(0.82f, 0.796f, 0.757f, 1.0f)));
-        }
-        
-        // Header text
-        float textX = iconX + iconSize + 8.0f;
-        float textY = cursor.y + (headerHeight - ImGui::GetTextLineHeight()) * 0.5f;
-        
-        // Draw text directly for left alignment
-        drawList->AddText(ImVec2(textX, textY), 
-                         ImGui::ColorConvertFloat4ToU32(ImVec4(0.82f, 0.796f, 0.757f, 1.0f)),
-                         "Magnetite Shards");
-        
-        // Invisible button for click detection
-        ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y));
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
-        
-        if (ImGui::Button("##MagnetiteHeaderButton", ImVec2(regionAvail.x, headerHeight)))
-        {
-            magnetiteExpanded = !magnetiteExpanded;
-        }
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("%s", Localization::GetText("toggle_magnetite_tooltip"));
-
-        ImGui::PopStyleColor(3);
-        
-        ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y + headerHeight + 8.0f));
-        
-        if (magnetiteExpanded)
-        {
-            ImGui::Spacing();
-            ImGui::Indent(4.0f);
-
-            int earned = MagnetiteTracker::GetWeeklyEarned();
-            int cap    = MagnetiteTracker::WEEKLY_CAP;
-            float progress = cap > 0 ? static_cast<float>(earned) / static_cast<float>(cap) : 0.f;
-
-            // Progress bar
-            char progressOverlay[64];
-            snprintf(progressOverlay, sizeof(progressOverlay), "%d / %d", earned, cap);
-
-            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.55f, 0.35f, 0.75f, 1.f)); // purple tint
-            ImGui::ProgressBar(
-                progress,
-                ImVec2(300.f, 18.f),
-                progressOverlay
-            );
-            ImGui::PopStyleColor();
-
-            if (ImGui::IsItemHovered())
-            {
-                ImGui::SetTooltip(
-                    "Magnetite Shards earned this week\n"
-                    "%d / %d  (%.1f%%)",
-                    earned, cap, progress * 100.f
-                );
-            }
-
-            ImGui::Spacing();
-
-            // Remaining shards and percentage labels
-            int remaining = std::max(0, cap - earned);
-            ImGui::Text("%s", Localization::GetText("earned_this_week"));
-            ImGui::SameLine();
-            ImGui::TextColored(ImVec4(0.75f, 0.55f, 1.f, 1.f), "%d", earned);
-
-            ImGui::Text("%s", Localization::GetText("remaining"));
-            ImGui::SameLine();
-            ImGui::TextColored(remaining > 0
-                ? ImVec4(1.f, 1.f, 1.f, 1.f)
-                : ImVec4(0.4f, 0.9f, 0.4f, 1.f),
-                "%d", remaining
-            );
-
-            // Weekly cap completed indicator
-            if (earned >= cap)
-            {
-                ImGui::SameLine();
-                ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.f), " ✓ Weekly cap reached!");
-            }
-
+            ImGui::Indent(10.0f);
             ImGui::Spacing();
 
             // Last API check timestamp
@@ -661,22 +659,109 @@ void RenderProfitTab()
                 ImGui::TextDisabled("Wallet API not yet queried this session.");
             }
 
-            ImGui::Unindent(4.0f);
+            // API discrepancy warning (only shown when flagged)
+            if (MagnetiteTracker::HasApiDiscrepancy())
+            {
+                ImGui::Spacing();
+                int gap = MagnetiteTracker::GetLastApiDiscrepancy();
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.78f, 0.15f, 1.f));
+                ImGui::TextUnformatted(Localization::GetText("warning_missed_shards"));
+                ImGui::PopStyleColor();
+                ImGui::TextWrapped(Localization::GetText("warning_missed_shards_message"), gap);
+                if (ImGui::SmallButton(Localization::GetText("dismiss_api_warning")))
+                {
+                    MagnetiteTracker::ClearApiDiscrepancy();
+                }
+            }
+
+            ImGui::Unindent(10.0f);
+            ImGui::Spacing();
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Gaeting Crystal Weekly Tracker
+    // Only shown when the tracker is enabled in Settings.
+    // ---------------------------------------------------------------------------
+    bool gaetingEnabled;
+    {
+        std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+        gaetingEnabled = g_Settings.enableGaetingTracker;
+    }
+
+    if (gaetingEnabled)
+    {
+        ImGui::Spacing();
+
+        static bool gaetingExpanded = true;
+
+        ImVec4 gaeHeaderTop = ImVec4(0.16f, 0.62f, 0.63f, 1.f);
+        ImVec4 gaeHeaderBot = ImVec4(0.05f, 0.23f, 0.24f, 1.f);
+        ImVec4 gaeAccentBar = ImVec4(0.37f, 0.88f, 0.88f, 1.f);
+        ImVec4 gaeFillLight = ImVec4(0.44f, 0.91f, 0.89f, 1.f);
+        ImVec4 gaeFillDark  = ImVec4(0.12f, 0.69f, 0.68f, 1.f);
+
+        int earned = GaetingTracker::GetWeeklyEarned();
+        int cap    = GaetingTracker::WEEKLY_CAP;
+
+        RenderWeeklyTrackerCard("Gaet-Kristalle", "magnetite",
+                                 gaeHeaderTop, gaeHeaderBot, gaeAccentBar,
+                                 gaeFillLight, gaeFillDark,
+                                 earned, cap, gaetingExpanded,
+                                 "Toggle Gaeting Crystal weekly tracker (Visions of Eternity raids)", mainW);
+
+        if (gaetingExpanded)
+        {
+            ImGui::Indent(10.0f);
+            ImGui::Spacing();
+
+            // Last API check
+            std::string lastCheck;
+            {
+                std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+                lastCheck = g_Settings.gaetingLastApiCheckUtc;
+            }
+            if (!lastCheck.empty())
+            {
+                std::string lastCheckLocal = GaetingTracker::UtcToLocal(lastCheck);
+                ImGui::TextDisabled("Last wallet check: %s", lastCheckLocal.c_str());
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip(
+                        "Last time the GW2 wallet API was queried\n"
+                        "to verify the Gaeting Crystal total."
+                    );
+            }
+            else
+            {
+                ImGui::TextDisabled("Wallet API not yet queried this session.");
+            }
+
+            // API discrepancy warning
+            if (GaetingTracker::HasApiDiscrepancy())
+            {
+                ImGui::Spacing();
+                int gap = GaetingTracker::GetLastApiDiscrepancy();
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.78f, 0.15f, 1.f));
+                ImGui::TextUnformatted(Localization::GetText("warning_missed_crystals"));
+                ImGui::PopStyleColor();
+                ImGui::TextWrapped(Localization::GetText("warning_missed_crystals_message"), gap);
+                if (ImGui::SmallButton(Localization::GetText("dismiss_api_warning")))
+                {
+                    GaetingTracker::ClearApiDiscrepancy();
+                }
+            }
+
+            ImGui::Unindent(10.0f);
             ImGui::Spacing();
         }
     }
 
     // Top Items by Profit (Items only, no currencies)
-    std::vector<std::pair<int, Stat>> topItems;
-    {
-        auto sItems = ItemTracker::GetSortedItems(ItemTracker::SortMode::ProfitDesc);
-        for (const auto& pair : sItems) topItems.push_back(pair);
-    }
-
     long long maxIV = 0;
     { 
         int c = 0; 
-        for (auto& [id, st] : topItems) 
+        const auto& sItems = ItemTracker::GetSortedItemsView(ItemTracker::SortMode::ProfitDesc);
+        for (const auto& [id, st] : sItems) 
         { 
             if (c >= 5) break; 
             if (!st.count) continue; 
@@ -696,18 +781,19 @@ void RenderProfitTab()
         ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthStretch);
         ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 70.f);
         ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 80.f);
-        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 90.f);
-        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 100.f);
+        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 110.f);
+        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 120.f);
         int cnt = 0;
-        for (auto& [id, st] : topItems)
+        const auto& topItems = ItemTracker::GetSortedItemsView(ItemTracker::SortMode::ProfitDesc);
+        for (const auto& [id, st] : topItems)
         {
             if (cnt >= 5) break; if (!st.count) continue;
             long long p = ItemTracker::GetStatProfit(st); if (p <= 0) continue;
             std::string nm = st.details.loaded ? st.details.name : Localization::GetText("loading");
-            
+
             char profitStr[64];
-            snprintf(profitStr, sizeof(profitStr), "%s", UICommon::FormatCoin(p).c_str());
-            
+            snprintf(profitStr, sizeof(profitStr), "%s", UICommon::FormatCoin(p));
+
             float rowH = UICommon::CalcTableRowHeight(iconSz);
             ImGui::TableNextRow(0, rowH);
 
@@ -760,7 +846,7 @@ void RenderProfitTab()
     ImGui::EndChild(); PopCard(); ImGui::Spacing();
 
     // Top Currencies
-    auto sCurr = ItemTracker::GetSortedCurrencies(ItemTracker::SortMode::CountDesc);
+    const auto& sCurr = ItemTracker::GetSortedCurrenciesView(ItemTracker::SortMode::CountDesc);
     long long maxCV = 0;
     { int c=0; for (auto& [id,st]:sCurr) { if(c>=5)break; if(st.count>0){maxCV=std::max(maxCV,st.count);c++;} } }
 
@@ -788,9 +874,9 @@ void RenderProfitTab()
             long long customProfit = CustomProfitManager::GetCustomProfit(id);
             char cb[64];
             if (id == 1) {
-                snprintf(cb, sizeof(cb), "%s", UICommon::FormatCoin(st.count).c_str());
+                snprintf(cb, sizeof(cb), "%s", UICommon::FormatCoin(st.count));
             } else if (customProfit != 0) {
-                snprintf(cb, sizeof(cb), "%s", UICommon::FormatCoin(customProfit * st.count).c_str());
+                snprintf(cb, sizeof(cb), "%s", UICommon::FormatCoin(customProfit * st.count));
             } else {
                 cb[0] = '\0';
             }
@@ -908,7 +994,7 @@ void RenderProfitTab()
     ImGui::BeginChild("##sess", ImVec2(sideW, 102.f), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     SecLabel(Localization::GetText("session_duration_label_simple"));
     ImGui::TextColored(ImVec4(1.f, 1.f, 1.f, 1.f),"%s",Localization::GetText("session_duration_label_simple")); ImGui::SameLine();
-    ImGui::Text("%s", UICommon::FormatDuration(duration.count()).c_str());
+    ImGui::Text("%s", UICommon::FormatDuration(duration.count()));
     ImGui::TextColored(ImVec4(1.f, 1.f, 1.f, 1.f),"%s",Localization::GetText("next_reset_label_simple")); ImGui::SameLine();
     ImGui::TextColored({1.f,0.5f,0.f,1.f},"%s", AutoReset::GetNextResetDisplayUtc().c_str());
     ImGui::EndChild(); PopCard();
@@ -921,7 +1007,7 @@ void RenderProfitTab()
     if (g_Settings.enableSessionHistory)
     {
         ImGui::TextColored(ImVec4(1.f, 1.f, 1.f, 1.f),"%s",Localization::GetText("show_summaries")); ImGui::SameLine();
-        if (ImGui::Checkbox("##showSum",&g_Settings.enableSummariesInProfitTab)) SettingsManager::Save();
+        if (ImGui::Checkbox("##showSum",&g_Settings.enableSummariesInProfitTab)) BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s",Localization::GetText("show_summaries_tooltip"));
 
         if (g_Settings.enableSummariesInProfitTab)
@@ -941,15 +1027,15 @@ void RenderProfitTab()
             float sw = (avail - 4*ImGui::GetStyle().ItemSpacing.x) / 5.f;
             char sv[64];
 
-            snprintf(sv,sizeof(sv),"%s",UICommon::FormatCoin(sum.totalProfit).c_str());
+            snprintf(sv,sizeof(sv),"%s",UICommon::FormatCoin(sum.totalProfit));
             KpiCard("##s1",Localization::GetText("total_profit"),sv,ProfitColor(sum.totalProfit),"",sw,52.f); ImGui::SameLine();
-            snprintf(sv,sizeof(sv),"%s",UICommon::FormatCoin(sum.profitPerHour).c_str());
+            snprintf(sv,sizeof(sv),"%s",UICommon::FormatCoin(sum.profitPerHour));
             KpiCard("##s2",Localization::GetText("profit_per_hour"),sv,ProfitColor(sum.profitPerHour),"",sw,52.f); ImGui::SameLine();
             snprintf(sv,sizeof(sv),"%d",sum.totalDrops);
             KpiCard("##s3",Localization::GetText("total_drops"),sv,{1,1,1,1},"",sw,52.f); ImGui::SameLine();
             snprintf(sv,sizeof(sv),"%d",sum.sessionCount);
             KpiCard("##s4",Localization::GetText("session_count"),sv,{1,1,1,1},"",sw,52.f); ImGui::SameLine();
-            snprintf(sv,sizeof(sv),"%s",UICommon::FormatDuration(sum.totalDurationSeconds).c_str());
+            snprintf(sv,sizeof(sv),"%s",UICommon::FormatDuration(sum.totalDurationSeconds));
             KpiCard("##s5",Localization::GetText("total_duration"),sv,{1,1,1,1},"",sw,52.f);
 
             if (sum.previousPeriodProfit != 0)
@@ -958,7 +1044,7 @@ void RenderProfitTab()
                 long long diff = sum.totalProfit - sum.previousPeriodProfit;
                 float pct = (float)diff / (float)sum.previousPeriodProfit * 100.f;
                 ImGui::TextColored(ImVec4(1.f, 1.f, 1.f, 1.f),"%s",Localization::GetText("comparison_previous_period")); ImGui::SameLine();
-                ImGui::TextColored(diff>=0?kGreen:kRed, "%s (%.1f%%)", UICommon::FormatCoin(diff).c_str(), pct);
+                ImGui::TextColored(diff>=0?kGreen:kRed, "%s (%.1f%%)", UICommon::FormatCoin(diff), pct);
             }
 
             if (!sum.topDrops.empty())
@@ -997,7 +1083,7 @@ void RenderProfitTab()
                             else UITooltips::RenderItemTooltipFallback(drop.itemName,drop.rarity,drop.itemId,opt);
                         }
                         ImGui::TableSetColumnIndex(2); UICommon::AlignTableCellText(rh); ImGui::Text("%d",drop.count);
-                        ImGui::TableSetColumnIndex(3); UICommon::AlignTableCellText(rh); ImGui::Text("%s",UICommon::FormatCoin(drop.totalValue).c_str());
+                        ImGui::TableSetColumnIndex(3); UICommon::AlignTableCellText(rh); ImGui::Text("%s",UICommon::FormatCoin(drop.totalValue));
                     }
                     UIContextMenu::RenderItemContextMenu("SumDrop",UIContextMenu::ContextMenuType::General);
                     ImGui::EndTable();

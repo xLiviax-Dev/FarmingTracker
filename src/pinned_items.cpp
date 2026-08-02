@@ -111,13 +111,51 @@ void PinnedItemsManager::MoveDown(int apiId, StatType type)
     }
 }
 
+void PinnedItemsManager::MoveToIndex(int apiId, StatType type, size_t newIndex)
+{
+    std::lock_guard<std::mutex> lock(s_Mutex);
+    
+    // Find current index
+    size_t currentIndex = -1;
+    for (size_t i = 0; i < s_PinnedItems.size(); ++i)
+    {
+        if (s_PinnedItems[i].apiId == apiId && s_PinnedItems[i].type == type)
+        {
+            currentIndex = i;
+            break;
+        }
+    }
+    
+    if (currentIndex == -1 || currentIndex == newIndex || newIndex >= s_PinnedItems.size())
+        return;
+    
+    // Remove from current position
+    PinnedItemEntry entry = s_PinnedItems[currentIndex];
+    s_PinnedItems.erase(s_PinnedItems.begin() + currentIndex);
+    
+    // Insert at new position
+    if (newIndex > currentIndex)
+        newIndex--; // Adjust index since we removed the element
+    s_PinnedItems.insert(s_PinnedItems.begin() + newIndex, entry);
+}
+
 void PinnedItemsManager::ImportFromJson(const nlohmann::json& j)
 {
     std::vector<PinnedItemEntry> newItems;
 
-    if (j.is_object() && j.contains("pinnedItems") && j["pinnedItems"].is_array())
+    const nlohmann::json* arrayToParse = nullptr;
+    if (j.is_array())
     {
-        for (const auto& v : j["pinnedItems"])
+        arrayToParse = &j;
+    }
+    else if (j.is_object() && j.contains("pinnedItems") && j["pinnedItems"].is_array())
+    {
+        arrayToParse = &j["pinnedItems"];
+    }
+
+    if (arrayToParse)
+    {
+        for (const auto& v : *arrayToParse)
         {
             if (v.is_object())
             {
@@ -140,7 +178,6 @@ void PinnedItemsManager::ImportFromJson(const nlohmann::json& j)
 nlohmann::json PinnedItemsManager::ExportToJson()
 {
     std::lock_guard<std::mutex> lock(s_Mutex);
-    nlohmann::json j;
     nlohmann::json pinnedArray = nlohmann::json::array();
     
     for (const auto& entry : s_PinnedItems)
@@ -151,6 +188,5 @@ nlohmann::json PinnedItemsManager::ExportToJson()
         pinnedArray.push_back(item);
     }
     
-    j["pinnedItems"] = pinnedArray;
-    return j;
+    return pinnedArray;
 }

@@ -296,7 +296,7 @@ void RenderDebugTab()
         const char* drfText  = UICommon::StatusText(drfSt);
 
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
-        ImGui::TextUnformatted("DRF");
+        ImGui::TextUnformatted(Localization::GetText("drf"));
         ImGui::PopStyleColor();
 
         ImGui::SameLine();
@@ -335,7 +335,7 @@ void RenderDebugTab()
         }
 
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
-        ImGui::TextUnformatted("GW2 API");
+        ImGui::TextUnformatted(Localization::GetText("gw2_api"));
         ImGui::PopStyleColor();
 
         ImGui::SameLine();
@@ -362,8 +362,8 @@ void RenderDebugTab()
     // ====================================================================
     SectionHeader(Localization::GetText("debug_session_snapshot"));
 
-    auto items      = ItemTracker::GetFilteredItems();
-    auto currencies = ItemTracker::GetFilteredCurrencies();
+    const auto& items      = ItemTracker::GetFilteredItemsView();
+    const auto& currencies = ItemTracker::GetFilteredCurrenciesView();
     auto duration   = ItemTracker::GetSessionDuration();
 
     std::string durStr   = UICommon::FormatDuration(duration.count());
@@ -454,7 +454,7 @@ void RenderDebugTab()
     char cpBuf[32];      snprintf(cpBuf,      sizeof(cpBuf),      "%d items", cpCount);
 
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
-    ImGui::TextUnformatted("Ignored Items");
+    ImGui::TextUnformatted(Localization::GetText("ignored_items"));
     ImGui::PopStyleColor();
     ImGui::SameLine(colW);
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
@@ -464,7 +464,7 @@ void RenderDebugTab()
         ImGui::SetTooltip("%s", Localization::GetText("ignored_items_debug_tooltip"));
 
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
-    ImGui::TextUnformatted("Favorites");
+    ImGui::TextUnformatted(Localization::GetText("favorites"));
     ImGui::PopStyleColor();
     ImGui::SameLine(colW);
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
@@ -472,7 +472,7 @@ void RenderDebugTab()
     ImGui::PopStyleColor();
 
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
-    ImGui::TextUnformatted("First 5 Custom Profit");
+    ImGui::TextUnformatted(Localization::GetText("first_5_custom_profit"));
     ImGui::PopStyleColor();
     ImGui::SameLine(colW);
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
@@ -482,43 +482,43 @@ void RenderDebugTab()
         ImGui::SetTooltip("%s", Localization::GetText("first_5_custom_profit_tooltip"));
 
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
-    ImGui::TextUnformatted("API Key");
+    ImGui::TextUnformatted(Localization::GetText("api_key"));
     ImGui::PopStyleColor();
     ImGui::SameLine(colW);
     if (apiKeySet)
     {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.20f, 0.75f, 0.35f, 1.f));
-        ImGui::TextUnformatted("Set");
+        ImGui::TextUnformatted(Localization::GetText("set"));
     }
     else
     {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.25f, 0.25f, 1.f));
-        ImGui::TextUnformatted("Not Set");
+        ImGui::TextUnformatted(Localization::GetText("not_set"));
     }
     ImGui::PopStyleColor();
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("%s", Localization::GetText("api_key_tooltip"));
 
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
-    ImGui::TextUnformatted("DRF Token");
+    ImGui::TextUnformatted(Localization::GetText("drf_token"));
     ImGui::PopStyleColor();
     ImGui::SameLine(colW);
     if (drfTokSet)
     {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.20f, 0.75f, 0.35f, 1.f));
-        ImGui::TextUnformatted("Set");
+        ImGui::TextUnformatted(Localization::GetText("set"));
     }
     else
     {
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.25f, 0.25f, 1.f));
-        ImGui::TextUnformatted("Not Set");
+        ImGui::TextUnformatted(Localization::GetText("not_set"));
     }
     ImGui::PopStyleColor();
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("%s", Localization::GetText("drf_token_tooltip"));
 
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
-    ImGui::TextUnformatted("Next Reset");
+    ImGui::TextUnformatted(Localization::GetText("next_reset"));
     ImGui::PopStyleColor();
     ImGui::SameLine(colW);
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
@@ -646,13 +646,6 @@ void RenderDebugTab()
     // ====================================================================
     // SECTION 6 — Developer Options
     // ====================================================================
-    SectionHeader(Localization::GetText("fake_drf_server_label"));
-
-    if (ImGui::Checkbox(Localization::GetText("use_fake_drf_server"), &g_Settings.useFakeDrfServer))
-        SettingsManager::Save();
-    if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("%s", Localization::GetText("use_fake_drf_server_tooltip"));
-
     ImGui::Spacing();
 
     // Danger-coloured reset button — red gradient design

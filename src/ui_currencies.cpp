@@ -123,15 +123,15 @@ static void DrawGridCurrencyCount(int id, long long count, float iconSz)
         cs = UICommon::FormatCompact(count);
     }
     const char* countStr = cs.c_str();
-    
-    // Origin holen
+
+    // Get origin
     ImVec2 origin   = ImGui::GetItemRectMin();
-    
-    // Basis-Schriftgröße berechnen - 10% kleiner!
+
+    // Calculate base font size - 10% smaller!
     const float desiredPixelSize = id == 1 ? iconSz * 0.495f : iconSz * 0.54f;
     ImFont* font = ImGui::GetFont();
-    
-    // Text Größe berechnen MIT der gewünschten Schriftgröße
+
+    // Calculate text size WITH the desired font size
     ImVec2 textSize = font->CalcTextSizeA(desiredPixelSize, FLT_MAX, 0.0f, countStr);
     
     const float rightPush = (id == 1) ? 35.0f : 0.0f;
@@ -140,8 +140,8 @@ static void DrawGridCurrencyCount(int id, long long count, float iconSz)
     ImVec4 col = count < 0 ? ImVec4(0.9f,0.3f,0.3f,1.f)
                            : ImVec4(0.95f,0.7f,0.1f,1.f);
     ImDrawList* dl = ImGui::GetWindowDrawList();
-    
-    // 1. Sehr dünner weißer Outline (außen 5 Pixel)
+
+    // 1. Very thin white outline (outer 5 pixels)
     static const ImVec2 kOffWhiteOuter[] = {
         {-5,-5}, {-4,-5}, {-3,-5}, {-2,-5}, {-1,-5}, {0,-5}, {1,-5}, {2,-5}, {3,-5}, {4,-5}, {5,-5},
         {-5,-4}, {5,-4},
@@ -266,12 +266,13 @@ void RenderCurrenciesTab()
     {
         ImGui::Spacing();
 
-        auto currencies = ItemTracker::GetFavoriteCurrencies();
+        const auto& currencies = ItemTracker::GetFavoriteCurrenciesView();
         std::vector<std::pair<int, Stat>> favoriteCurrencies;
         for (auto& [id, st] : currencies)
         {
-            if (!st.isIgnored && st.IsCurrency() && st.count > 0)
-                favoriteCurrencies.push_back({id, st});
+            if (!st.IsCurrency()) continue;
+            if (st.count == 0) continue;
+            favoriteCurrencies.push_back({id, st});
         }
 
         if (g_Settings.currenciesFavoritesAsGrid)
@@ -387,6 +388,7 @@ void RenderCurrenciesTab()
 
                     ImGui::TableNextRow();
                     ImGui::TableSetColumnIndex(0);
+                    UICommon::AlignTableCellIcon(UICommon::CalcTableRowHeight(32.0f), 32.0f);
                     std::string iconUrl = st.details.iconUrl;
                     if (id == 1 && iconUrl.empty())
                         iconUrl = "https://wiki.guildwars2.com/images/e/eb/Copper_coin.png";
@@ -406,32 +408,36 @@ void RenderCurrenciesTab()
                 }
 
                     ImGui::TableSetColumnIndex(1);
+                    UICommon::AlignTableCellText(UICommon::CalcTableRowHeight(32.0f));
                     ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : (id == 1 ? Localization::GetText("coin") : Localization::GetText("loading")));
 
                     ImGui::TableSetColumnIndex(2);
+                    UICommon::AlignTableCellText(UICommon::CalcTableRowHeight(32.0f));
                     ImGui::Text("%lld", st.count);
 
                     ImGui::TableSetColumnIndex(3);
+                    UICommon::AlignTableCellText(UICommon::CalcTableRowHeight(32.0f));
                     if (id == 1)
                     {
-                        ImGui::Text("%s", UICommon::FormatCoin(st.count).c_str());
+                        ImGui::Text("%s", UICommon::FormatCoin(st.count));
                     }
                     else
                     {
                         long long customProfit = CustomProfitManager::GetCustomProfit(id);
                         if (customProfit != 0)
-                            ImGui::Text("%s", UICommon::FormatCoin(customProfit * st.count).c_str());
+                            ImGui::Text("%s", UICommon::FormatCoin(customProfit * st.count));
                         else
                             ImGui::Text("-");
                     }
 
                     ImGui::TableSetColumnIndex(4);
+                    UICommon::AlignTableCellText(UICommon::CalcTableRowHeight(32.0f));
                     if (id == 1) 
-                        ImGui::Text("%s", UICommon::FormatCoin(st.count).c_str());
+                        ImGui::Text("%s", UICommon::FormatCoin(st.count));
                     else if (profit != 0)
-                        ImGui::Text("%s", UICommon::FormatCoin(profit).c_str());
+                        ImGui::Text("%s", UICommon::FormatCoin(profit));
                     else
-                        ImGui::Text("%s", UICommon::FormatCompact(st.count).c_str());
+                        ImGui::Text("%s", UICommon::FormatCompact(st.count));
                 }
                 ImGui::EndTable();
             }
@@ -445,19 +451,17 @@ void RenderCurrenciesTab()
     ImGui::Spacing();
 
     // Search bar
-    if (ImGui::InputTextWithHint("##SearchCurrencies", Localization::GetText("search_currencies_hint"), UICommon::s_SearchBuf, sizeof(UICommon::s_SearchBuf)))
+    if (ImGui::InputTextWithHint("##SearchCurrencies", Localization::GetText("search_currencies_hint"), UICommon::s_CurrenciesSearchBuf, sizeof(UICommon::s_CurrenciesSearchBuf)))
     {
-        g_Settings.searchTerm = UICommon::s_SearchBuf;
-        SettingsManager::Save();
+        BackgroundJobs::EnqueueDebouncedSettingsSave();
     }
     ImGui::SameLine();
     char clearSearchCurrencies[256];
     snprintf(clearSearchCurrencies, sizeof(clearSearchCurrencies), "%s##ClearSearchCurrencies", Localization::GetText("clear_search"));
     if (ImGui::Button(clearSearchCurrencies))
     {
-        memset(UICommon::s_SearchBuf, 0, sizeof(UICommon::s_SearchBuf));
-        g_Settings.searchTerm = "";
-        SettingsManager::Save();
+        memset(UICommon::s_CurrenciesSearchBuf, 0, sizeof(UICommon::s_CurrenciesSearchBuf));
+        BackgroundJobs::EnqueueDebouncedSettingsSave();
     }
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("%s", Localization::GetText("clear_search_tooltip"));
@@ -520,29 +524,36 @@ void RenderCurrenciesTab()
 
     ImGui::Spacing();
 
-    auto sortedCurrencies = ItemTracker::GetSortedCurrencies(static_cast<ItemTracker::SortMode>(g_Settings.itemSortMode));
-    // Filter out ignored currencies
+    // Use cached sorted view with filters
+    ItemTracker::SortFilterOptions filter;
+    filter.excludeIgnored = true;
+    filter.excludeZeroCount = true;
+    filter.excludeCurrencies = false; // We want currencies
+    filter.searchTerm = UICommon::s_CurrenciesSearchBuf;
+
+    const auto& sortedCurrencies = ItemTracker::GetSortedCurrenciesView(
+        static_cast<ItemTracker::SortMode>(g_Settings.itemSortMode),
+        filter
+    );
+    
+    // Separate coin (id == 1) from other currencies
     std::vector<std::pair<int, Stat>> filteredSortedCurrencies;
     std::optional<std::pair<int, Stat>> coin;
     for (auto& [id, st] : sortedCurrencies)
     {
-        if (!st.isIgnored && st.count != 0 && st.IsCurrency())
+        if (id == 1)
         {
-            if (id == 1)
-            {
-                coin = {id, st};
-            }
-            else
-            {
-                filteredSortedCurrencies.push_back({id, st});
-            }
+            coin = {id, st};
+        }
+        else
+        {
+            filteredSortedCurrencies.push_back({id, st});
         }
     }
     if (coin.has_value())
     {
         filteredSortedCurrencies.insert(filteredSortedCurrencies.begin(), coin.value());
     }
-    sortedCurrencies.swap(filteredSortedCurrencies);
 
     if (g_Settings.currenciesEnableGridView)
     {
@@ -581,7 +592,7 @@ void RenderCurrenciesTab()
                         {
                             // Check if category has any currencies with count > 0
                             bool hasItems = false;
-                            for (auto& [id, st] : sortedCurrencies)
+                            for (auto& [id, st] : filteredSortedCurrencies)
                             {
                                 if (ItemTracker::GetCurrencyCategory(id) == cat && st.count > 0)
                                 {
@@ -595,7 +606,7 @@ void RenderCurrenciesTab()
                             {
                                 int columns = getColumns(ImGui::GetContentRegionAvail().x, 20.0f);
                                 int col = 0;
-                                for (auto& [id, st] : sortedCurrencies)
+                                for (auto& [id, st] : filteredSortedCurrencies)
                                 {
                                     if (ItemTracker::GetCurrencyCategory(id) != cat) continue;
                                     if (st.count == 0) continue;
@@ -662,14 +673,14 @@ void RenderCurrenciesTab()
                     for (const auto& cat : categories)
                     {
                         bool hasItems = false;
-                        for (const auto& [id, st] : sortedCurrencies) { if (ItemTracker::GetCurrencyCategory(id) == cat && st.count > 0) { hasItems = true; break; } }
+                        for (const auto& [id, st] : filteredSortedCurrencies) { if (ItemTracker::GetCurrencyCategory(id) == cat && st.count > 0) { hasItems = true; break; } }
                         if (!hasItems) continue;
 
                         if (CollapsingHeaderWithIcon(cat.c_str(), "currencies", ImVec4(0.40f,0.75f,0.90f,1.f), ImGuiTreeNodeFlags_DefaultOpen))
                         {
                             int columns = getColumns(ImGui::GetContentRegionAvail().x, 10.0f);
                             int col = 0;
-                            for (auto& [id, st] : sortedCurrencies)
+                            for (auto& [id, st] : filteredSortedCurrencies)
                             {
                                 if (ItemTracker::GetCurrencyCategory(id) != cat) continue;
                                 if (st.count == 0) continue;
@@ -733,7 +744,7 @@ void RenderCurrenciesTab()
                 // No grouping
                 int columns = getColumns(ImGui::GetContentRegionAvail().x, 10.0f);
                 int col = 0;
-                for (auto& [id, st] : sortedCurrencies)
+                for (auto& [id, st] : filteredSortedCurrencies)
                 {
                     if (st.count == 0) continue;
 
@@ -842,7 +853,7 @@ void RenderCurrenciesTab()
             if (ImGui::IsItemHovered())
             {
                 if (id == 1)
-                    ImGui::SetTooltip("%s", UICommon::FormatCoin(st.count).c_str());
+                    ImGui::SetTooltip("%s", UICommon::FormatCoin(st.count));
                 else
                     ImGui::SetTooltip("%lld", st.count);
             }
@@ -851,13 +862,13 @@ void RenderCurrenciesTab()
             UICommon::AlignTableCellText(rowH);
             if (id == 1)
             {
-                ImGui::Text("%s", UICommon::FormatCoin(st.count).c_str());
+                ImGui::Text("%s", UICommon::FormatCoin(st.count));
             }
             else
             {
                 long long customProfit = CustomProfitManager::GetCustomProfit(id);
                 if (customProfit != 0)
-                    ImGui::Text("%s", UICommon::FormatCoin(customProfit * st.count).c_str());
+                    ImGui::Text("%s", UICommon::FormatCoin(customProfit * st.count));
                 else
                     ImGui::Text("-");
             }
@@ -893,7 +904,7 @@ void RenderCurrenciesTab()
                                 ImGui::TableSetupColumn(Localization::GetText("profit"), ImGuiTableColumnFlags_WidthStretch);
                                 ImGui::TableHeadersRow();
 
-                                for (auto& [id, st] : sortedCurrencies)
+                                for (auto& [id, st] : filteredSortedCurrencies)
                                 {
                                     if (ItemTracker::GetCurrencyCategory(id) == cat)
                                     {
@@ -914,7 +925,7 @@ void RenderCurrenciesTab()
                 for (const auto& cat : categories)
                 {
                     bool hasItems = false;
-                    for (const auto& [id, st] : sortedCurrencies) { if (ItemTracker::GetCurrencyCategory(id) == cat) { hasItems = true; break; } }
+                    for (const auto& [id, st] : filteredSortedCurrencies) { if (ItemTracker::GetCurrencyCategory(id) == cat) { hasItems = true; break; } }
                     if (!hasItems) continue;
 
                     if (CollapsingHeaderWithIcon(cat.c_str(), "currencies", ImVec4(0.40f,0.75f,0.90f,1.f), ImGuiTreeNodeFlags_DefaultOpen))
@@ -928,7 +939,7 @@ void RenderCurrenciesTab()
                             ImGui::TableSetupColumn(Localization::GetText("profit"), ImGuiTableColumnFlags_WidthStretch);
                             ImGui::TableHeadersRow();
 
-                            for (auto& [id, st] : sortedCurrencies)
+                            for (auto& [id, st] : filteredSortedCurrencies)
                             {
                                 if (ItemTracker::GetCurrencyCategory(id) == cat)
                                 {
@@ -955,7 +966,7 @@ void RenderCurrenciesTab()
                 ImGui::TableSetupColumn(Localization::GetText("profit"), ImGuiTableColumnFlags_WidthStretch);
                 ImGui::TableHeadersRow();
 
-                for (auto& [id, st] : sortedCurrencies)
+                for (auto& [id, st] : filteredSortedCurrencies)
                 {
                     if (st.count == 0) continue;
                     renderCurrencyRow(id, st);

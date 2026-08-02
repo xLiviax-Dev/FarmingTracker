@@ -80,6 +80,9 @@ void UICommon::InitIconCache(const char* addonDir)
             WinHttpSetOption(s_HttpSession, WINHTTP_OPTION_RECEIVE_TIMEOUT, &receiveMs, sizeof(receiveMs));
         }
     }
+
+    // Pre-fetch icons for frequently used items
+    PreFetchFrequentIcons();
 }
 
 // Returns the full path for a cached icon file: icon_cache\\FTi_<itemId>.png
@@ -97,6 +100,137 @@ static bool IsCached(int itemId)
     std::string path = GetCachePath(itemId);
     DWORD attr = GetFileAttributesA(path.c_str());
     return (attr != INVALID_FILE_ATTRIBUTES && !(attr & FILE_ATTRIBUTE_DIRECTORY));
+}
+
+// Pre-fetch icons for frequently used items (coins, common materials, etc.)
+void UICommon::PreFetchFrequentIcons()
+{
+    // Common GW2 items that are frequently used
+    static const int frequentItemIds[] = {
+        1,    // Coin
+        2,    // Karma
+        3,    // Laurel
+        4,    // Gem
+        5,    // Spirit Shard
+        6,    // Test Token
+        9,    // Badge of Honor
+        11,   // Geode
+        15,   // Bandit Crest
+        16,   // Airship Part
+        17,   // Lumps of Mithrillium
+        18,   // Thermionic Catlyst
+        19,   // Glob of Elder Spirit Residue
+        20,   // Pile of Lucent Residue
+        21,   // Empyreal Fragment
+        22,   // Dragonite Ore
+        23,   // Empyreal Star
+        24,   // Obsidian Shard
+        25,   // Mystic Coin
+        26,   // Crystal
+        27,   // Fractal Token
+        28,   // Magnetite Shard
+        29,   // Pristine Fractal Relic
+        30,   // Fractal Relic
+        31,   // Ancient Fractal Relic
+        32,   // Stabilizing Matrix
+        33,   // Fractal Encryption
+        34,   // Pristine Fractal Encryption
+        35,   // Fractal Encryption
+        36,   // Gaeting Crystal
+        19684, // Volatile Magic
+        19709, // Ley-Line Crystal
+        19976, // Unbound Magic
+        24277, // Bag of Coins
+        24300, // Bag of Gems
+        46178, // Trade Contract
+        68425, // Spirit Shards
+        70831, // Eternal Ice
+        71662, // Mistborn Mote
+        72687, // Winterberry
+        72688, // Ancient Bark
+        72689, // Orrian Pearls
+        72690, // Amber Chunks
+        72691, // Freshwater Pearls
+        72692, // Giant Eyes
+        72693, // Karka Shells
+        72694, // Onyx Lobsters
+        72695, // Vials of Blood
+        72696, // Vials of Powerful Blood
+        72697, // Venom Sacs
+        72698, // Powerful Venom Sacs
+        72699, // Ancient Bones
+        72700, // Ancient Fangs
+        72701, // Elaborate Totems
+        72702, // Heavy Skulls
+        72703, // Large Claws
+        72704, // Large Scales
+        72705, // Vicious Fangs
+        72706, // Vicious Claws
+        72707, // Armored Scales
+        72708, // Piles of Crystalline Dust
+        72709, // Piles of Imbued Dust
+        72710, // Piles of Radiant Dust
+        72711, // Piles of Luminous Dust
+        72712, // Piles of Glittering Dust
+        72713, // Piles of Shimmering Dust
+        72714, // Piles of Sparkling Dust
+        72715, // Piles of Dust
+        72716, // Bone Shards
+        72717, // Bloodstone Dust
+        72718, // Demon's Breath
+        72719, // Dragon Scales
+        72720, // Destroyer Lodestones
+        72721, // Dread Shards
+        72722, // Eternal Ice Shards
+        72723, // Glacial Lodestones
+        72724, // Imbued Shards
+        72725, // Large Bones
+        72726, // Large Fangs
+        72727, // Large Scales
+        72728, // Large Skulls
+        72729, // Large Totems
+        72730, // Molten Lodestones
+        72731, // Obsidian Shards
+        72732, // Onyx Shards
+        72733, // Piles of Ash
+        72734, // Piles of Bone
+        72735, // Piles of Blood
+        72736, // Piles of Crystal
+        72737, // Piles of Dust
+        72738, // Piles of Fang
+        72739, // Piles of Scales
+        72740, // Piles of Shards
+        72741, // Piles of Skull
+        72742, // Piles of Totem
+        72743, // Piles of Venom
+        72744, // Pristine Bloodstone Dust
+        72745, // Pristine Demon's Breath
+        72746, // Pristine Dragon Scales
+        72747, // Pristine Dread Shards
+        72748, // Pristine Eternal Ice Shards
+        72749, // Pristine Glacial Lodestones
+        72750, // Pristine Imbued Shards
+        72751, // Pristine Molten Lodestones
+        72752, // Pristine Onyx Shards
+        72753, // Pristine Relic Fragments
+        72754, // Pristine Vile Blood
+        72755, // Relic Fragments
+        72756, // Vile Blood
+        83143, // Mistborn Motes
+        83554, // Volatile Magic
+        93968, // Ley-Line Crystals
+        94020, // Unbound Magic
+    };
+
+    for (int itemId : frequentItemIds)
+    {
+        if (!IsCached(itemId))
+        {
+            // Trigger async download for these frequent items
+            std::lock_guard<std::mutex> lock(s_PendingMutex);
+            s_PendingDownloads.insert(itemId);
+        }
+    }
 }
 
 // Download raw PNG bytes from a GW2 render URL and write to disk
@@ -239,6 +373,8 @@ namespace UICommon
 {
     // Shared UI state variables
     char s_SearchBuf[256] = {};
+    char s_ItemsSearchBuf[256] = {};
+    char s_CurrenciesSearchBuf[256] = {};
     bool s_ShowMainWindow = true;
     char s_AccountNameBuf[128] = "";
     char s_AccountDrfBuf[512] = "";
@@ -272,16 +408,10 @@ namespace UICommon
             // If not verified yet, check disk (only once per session)
             if (!isOnDisk && IsCached(itemId)) {
                 isOnDisk = true;
-                std::lock_guard<std::mutex> lock(s_PendingMutex);
-                s_VerifiedDiskCache.insert(itemId);
-            }
-
-            std::string cachePath = GetCachePath(itemId);
-
-            if (isOnDisk)
-            {
-                // Touch the file so EnforceIconCacheLimit keeps recently-used ones
-                HANDLE hFile = CreateFileA(cachePath.c_str(), FILE_WRITE_ATTRIBUTES,
+                std::string cachePathForTouch = GetCachePath(itemId);
+                // Touch the file ONCE PER SESSION (not per frame) so EnforceIconCacheLimit
+                // still knows approximate recency, without issuing Win32 file syscalls 60x/s.
+                HANDLE hFile = CreateFileA(cachePathForTouch.c_str(), FILE_WRITE_ATTRIBUTES,
                     FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
                 if (hFile != INVALID_HANDLE_VALUE)
                 {
@@ -290,7 +420,16 @@ namespace UICommon
                     SetFileTime(hFile, nullptr, nullptr, &ft);
                     CloseHandle(hFile);
                 }
+                std::lock_guard<std::mutex> lock(s_PendingMutex);
+                s_VerifiedDiskCache.insert(itemId);
+            }
 
+            std::string cachePath = GetCachePath(itemId);
+
+            if (isOnDisk)
+            {
+                // (Touch removed from the hot render-path: now happens once-per-session above,
+                //  or implicitly when a file is freshly downloaded.)
                 // Load from disk — Nexus handles the GPU upload
                 if (!APIDefs->Textures_GetOrCreateFromFile(texId, cachePath.c_str()))
                 {
@@ -487,32 +626,43 @@ namespace UICommon
         return ImVec4(0.7f, 0.7f, 0.7f, 1.f);
     }
 
-    std::string FormatCoin(long long copper)
+    const char* FormatCoin(long long copper)
     {
+        static thread_local char buf[64];
         bool neg     = copper < 0;
         long long ac = copper < 0 ? -copper : copper;
-        std::ostringstream oss;
-        if (neg) oss << "-";
-        
-        // Standard format: 1g 23s 45c
+
         int g = (int)(ac / 10000);
         int s = (int)((ac % 10000) / 100);
         int c = (int)(ac % 100);
-        if (g > 0)       oss << g << "g ";
-        if (s > 0 || g > 0) oss << s << "s ";
-        oss << c << "c";
-        return oss.str();
+
+        size_t written = 0;
+        if (neg)
+        {
+            buf[written++] = '-';
+            buf[written] = '\0';
+        }
+
+        // Match original ostringstream format exactly:
+        //   if (g > 0)       oss << g << "g ";
+        //   if (s > 0 || g > 0) oss << s << "s ";
+        //   oss << c << "c";
+        if (g > 0)
+            written += (size_t)snprintf(buf + written, sizeof(buf) - written, "%dg ", g);
+        if (s > 0 || g > 0)
+            written += (size_t)snprintf(buf + written, sizeof(buf) - written, "%ds ", s);
+        snprintf(buf + written, sizeof(buf) - written, "%dc", c);
+        return buf;
     }
 
-    std::string FormatCompact(long long value)
+    const char* FormatCompact(long long value)
     {
-        char buf[32];
+        static thread_local char buf[32];
         long long av = value < 0 ? -value : value;
         const char* sign = value < 0 ? "-" : "";
         if (av >= 1000000LL)
         {
             double d = (double)av / 1000000.0;
-            // Use one decimal unless it's a round number
             if (d == (long long)d)
                 snprintf(buf, sizeof(buf), "%s%lldM", sign, (long long)d);
             else
@@ -566,16 +716,24 @@ namespace UICommon
         ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.f), "c");
     }
 
-    std::string FormatDuration(long long seconds)
+    const char* FormatDuration(long long seconds)
     {
+        static thread_local char buf[64];
         long long h = seconds / 3600;
         long long m = (seconds % 3600) / 60;
         long long s = seconds % 60;
-        std::ostringstream oss;
-        if (h > 0) oss << h << "h ";
-        if (m > 0 || h > 0) oss << m << "m ";
-        oss << s << "s";
-        return oss.str();
+
+        size_t written = 0;
+        // Match original ostringstream format exactly:
+        //   if (h > 0) oss << h << "h ";
+        //   if (m > 0 || h > 0) oss << m << "m ";
+        //   oss << s << "s";
+        if (h > 0)
+            written += (size_t)snprintf(buf + written, sizeof(buf) - written, "%lldh ", h);
+        if (m > 0 || h > 0)
+            written += (size_t)snprintf(buf + written, sizeof(buf) - written, "%lldm ", m);
+        snprintf(buf + written, sizeof(buf) - written, "%llds", s);
+        return buf;
     }
 
     void TextWithTooltip(const char* text, float maxWidth, const ImVec4& color)
@@ -650,6 +808,8 @@ namespace UICommon
 
     void AlignTableCellText(float rowHeight)
     {
+        // Horizontales Padding: Schrift nicht direkt am Zellrand (User-Wunsch: +10px nach rechts)
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 10.0f);
         AlignTableCell(rowHeight, ImGui::GetTextLineHeight());
     }
 
@@ -808,5 +968,90 @@ namespace UICommon
         dl->AddText(textPos, IM_COL32(255, 255, 255, 255), label); // #ffffff
 
         return clicked;
+    }
+
+    void DrawTextWithOutline(ImDrawList* dl, ImFont* font, float font_size, ImVec2 pos, ImU32 text_color,
+                              ImU32 outline_color1, float outline_width1,
+                              ImU32 outline_color2, float outline_width2,
+                              const char* text)
+    {
+        // Helper function to generate optimized outline offsets
+        auto GetOptimizedOffsets = [](float width) -> std::vector<ImVec2>
+        {
+            std::vector<ImVec2> offsets;
+            if (width <= 0.0f) return offsets;
+
+            // Use only cardinal directions (no diagonals) for efficiency, covers most of the outline
+            for (float w = 1.0f; w <= width; w += 1.0f)
+            {
+                offsets.emplace_back(-w, 0.0f);
+                offsets.emplace_back(w, 0.0f);
+                offsets.emplace_back(0.0f, -w);
+                offsets.emplace_back(0.0f, w);
+            }
+            return offsets;
+        };
+
+        // Draw first outline (if enabled)
+        if (outline_width1 > 0.0f)
+        {
+            auto offsets = GetOptimizedOffsets(outline_width1);
+            for (const auto& off : offsets)
+                dl->AddText(font, font_size, ImVec2(pos.x + off.x, pos.y + off.y), outline_color1, text);
+        }
+
+        // Draw second outline (if enabled)
+        if (outline_width2 > 0.0f)
+        {
+            auto offsets = GetOptimizedOffsets(outline_width2);
+            for (const auto& off : offsets)
+                dl->AddText(font, font_size, ImVec2(pos.x + off.x, pos.y + off.y), outline_color2, text);
+        }
+
+        // Draw actual text last on top
+        dl->AddText(font, font_size, pos, text_color, text);
+    }
+
+    void TextColoredWithOutline(const ImVec4& text_color, const ImVec4& outline_color, const char* fmt, ...)
+    {
+        va_list args;
+        va_start(args, fmt);
+        char buf[1024];
+        vsnprintf(buf, sizeof(buf), fmt, args);
+        va_end(args);
+
+        ImVec2 cursor = ImGui::GetCursorPos();
+
+        // Optimized 4-way outline instead of 8-way
+        ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y));
+        ImGui::TextColored(outline_color, "%s", buf);
+        ImGui::SetCursorPos(ImVec2(cursor.x + 1, cursor.y));
+        ImGui::TextColored(outline_color, "%s", buf);
+        ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y - 1));
+        ImGui::TextColored(outline_color, "%s", buf);
+        ImGui::SetCursorPos(ImVec2(cursor.x, cursor.y + 1));
+        ImGui::TextColored(outline_color, "%s", buf);
+
+        // Actual text
+        ImGui::SetCursorPos(cursor);
+        ImGui::TextColored(text_color, "%s", buf);
+    }
+
+    void TextColoredWithSimpleOutline(const ImVec4& text_color, const ImVec4& outline_color, const char* fmt, ...)
+    {
+        va_list args;
+        va_start(args, fmt);
+        char buf[1024];
+        vsnprintf(buf, sizeof(buf), fmt, args);
+        va_end(args);
+
+        ImVec2 cursor = ImGui::GetCursorPos();
+
+        // Simple 2x outline: 1x outline + 1x text (maximum performance)
+        ImGui::SetCursorPos(ImVec2(cursor.x - 1, cursor.y - 1));
+        ImGui::TextColored(outline_color, "%s", buf);
+
+        ImGui::SetCursorPos(cursor);
+        ImGui::TextColored(text_color, "%s", buf);
     }
 }

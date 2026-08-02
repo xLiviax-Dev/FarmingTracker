@@ -184,6 +184,15 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     j["miniWindowShowSessionDuration"] = s.miniWindowShowSessionDuration;
     j["miniWindowClickThrough"] = s.miniWindowClickThrough;
     j["miniWindowAllowRightClickUnpin"] = s.miniWindowAllowRightClickUnpin;
+    j["miniWindowShowMaterialStorageCount"] = s.miniWindowShowMaterialStorageCount;
+    j["miniWindowShowWalletCount"] = s.miniWindowShowWalletCount;
+    j["miniWindowShowBankCount"] = s.miniWindowShowBankCount;
+    j["miniWindowShowInventoryCount"] = s.miniWindowShowInventoryCount;
+    j["miniWindowHideCountLabels"] = s.miniWindowHideCountLabels;
+    j["miniWindowShortCountLabels"] = s.miniWindowShortCountLabels;
+    j["miniWindowHideZeroDropStats"] = s.miniWindowHideZeroDropStats;
+    j["miniWindowHideTextLabels"] = s.miniWindowHideTextLabels;
+    j["miniWindowHideIcons"] = s.miniWindowHideIcons;
     j["miniWindowPinnedIconSize"] = s.miniWindowPinnedIconSize;
     j["mainWindowFontSize"] = s.mainWindowFontSize;
     j["tabContentFontSize"] = s.tabContentFontSize;
@@ -259,11 +268,22 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
 
     // Magnetite Shard Weekly Tracker
     j["magnetiteTracker"] = {
-        {"enabled",         s.enableMagnetiteTracker},
-        {"weeklyEarned",    s.magnetiteWeeklyEarned},
-        {"lastWalletTotal", s.magnetiteLastWalletTotal},
-        {"lastApiCheckUtc", s.magnetiteLastApiCheckUtc},
-        {"cooldownMin",     s.magnetiteApiCheckCooldownMin},
+        {"enabled",                 s.enableMagnetiteTracker},
+        {"weeklyEarned",            s.magnetiteWeeklyEarned},
+        {"weeklyEarnedAtLastCheck", s.magnetiteWeeklyEarnedAtLastCheck},
+        {"lastWalletTotal",         s.magnetiteLastWalletTotal},
+        {"lastApiCheckUtc",         s.magnetiteLastApiCheckUtc},
+        {"cooldownMin",             s.magnetiteApiCheckCooldownMin},
+    };
+
+    // Gaeting Crystal Weekly Tracker
+    j["gaetingTracker"] = {
+        {"enabled",                 s.enableGaetingTracker},
+        {"weeklyEarned",            s.gaetingWeeklyEarned},
+        {"weeklyEarnedAtLastCheck", s.gaetingWeeklyEarnedAtLastCheck},
+        {"lastWalletTotal",         s.gaetingLastWalletTotal},
+        {"lastApiCheckUtc",         s.gaetingLastApiCheckUtc},
+        {"cooldownMin",             s.gaetingApiCheckCooldownMin},
     };
 
     // Loot Log
@@ -397,7 +417,6 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
     j["showTopItems"] = s.showTopItems;
     j["showTopCurrencies"] = s.showTopCurrencies;
     j["enableDebugTab"] = s.enableDebugTab;
-    j["useFakeDrfServer"] = s.useFakeDrfServer;
     j["gw2ApiConnectTimeout"] = s.gw2ApiConnectTimeout;
     j["gw2ApiReceiveTimeout"] = s.gw2ApiReceiveTimeout;
     
@@ -536,6 +555,15 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     if (j.contains("miniWindowShowSessionDuration")) s.miniWindowShowSessionDuration = j["miniWindowShowSessionDuration"].get<bool>();
     if (j.contains("miniWindowClickThrough")) s.miniWindowClickThrough = j["miniWindowClickThrough"].get<bool>();
     if (j.contains("miniWindowAllowRightClickUnpin")) s.miniWindowAllowRightClickUnpin = j["miniWindowAllowRightClickUnpin"].get<bool>();
+    if (j.contains("miniWindowShowMaterialStorageCount")) s.miniWindowShowMaterialStorageCount = j["miniWindowShowMaterialStorageCount"].get<bool>();
+    if (j.contains("miniWindowShowWalletCount")) s.miniWindowShowWalletCount = j["miniWindowShowWalletCount"].get<bool>();
+    if (j.contains("miniWindowShowBankCount")) s.miniWindowShowBankCount = j["miniWindowShowBankCount"].get<bool>();
+    if (j.contains("miniWindowShowInventoryCount")) s.miniWindowShowInventoryCount = j["miniWindowShowInventoryCount"].get<bool>();
+    if (j.contains("miniWindowHideCountLabels")) s.miniWindowHideCountLabels = j["miniWindowHideCountLabels"].get<bool>();
+    if (j.contains("miniWindowShortCountLabels")) s.miniWindowShortCountLabels = j["miniWindowShortCountLabels"].get<bool>();
+    if (j.contains("miniWindowHideZeroDropStats")) s.miniWindowHideZeroDropStats = j["miniWindowHideZeroDropStats"].get<bool>();
+    if (j.contains("miniWindowHideTextLabels")) s.miniWindowHideTextLabels = j["miniWindowHideTextLabels"].get<bool>();
+    if (j.contains("miniWindowHideIcons")) s.miniWindowHideIcons = j["miniWindowHideIcons"].get<bool>();
     if (j.contains("miniWindowPinnedIconSize")) s.miniWindowPinnedIconSize = j["miniWindowPinnedIconSize"].get<float>();
     if (j.contains("mainWindowFontSize")) s.mainWindowFontSize = j["mainWindowFontSize"].get<float>();
     if (j.contains("tabContentFontSize")) s.tabContentFontSize = j["tabContentFontSize"].get<float>();
@@ -627,11 +655,24 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     if (j.contains("magnetiteTracker"))
     {
         auto& mt = j["magnetiteTracker"];
-        s.enableMagnetiteTracker       = mt.value("enabled",         false);
-        s.magnetiteWeeklyEarned        = mt.value("weeklyEarned",    0);
-        s.magnetiteLastWalletTotal     = mt.value("lastWalletTotal", -1);
-        s.magnetiteLastApiCheckUtc     = mt.value("lastApiCheckUtc", std::string{});
-        s.magnetiteApiCheckCooldownMin = mt.value("cooldownMin",     10);
+        s.enableMagnetiteTracker           = mt.value("enabled",                 false);
+        s.magnetiteWeeklyEarned            = mt.value("weeklyEarned",            0);
+        s.magnetiteWeeklyEarnedAtLastCheck = mt.value("weeklyEarnedAtLastCheck", 0);
+        s.magnetiteLastWalletTotal         = mt.value("lastWalletTotal",         -1);
+        s.magnetiteLastApiCheckUtc         = mt.value("lastApiCheckUtc",         std::string{});
+        s.magnetiteApiCheckCooldownMin     = mt.value("cooldownMin",             10);
+    }
+
+    // Gaeting Crystal Weekly Tracker
+    if (j.contains("gaetingTracker"))
+    {
+        auto& gt = j["gaetingTracker"];
+        s.enableGaetingTracker             = gt.value("enabled",                 false);
+        s.gaetingWeeklyEarned              = gt.value("weeklyEarned",            0);
+        s.gaetingWeeklyEarnedAtLastCheck   = gt.value("weeklyEarnedAtLastCheck", 0);
+        s.gaetingLastWalletTotal           = gt.value("lastWalletTotal",         -1);
+        s.gaetingLastApiCheckUtc           = gt.value("lastApiCheckUtc",         std::string{});
+        s.gaetingApiCheckCooldownMin       = gt.value("cooldownMin",             10);
     }
     if (j.contains("filterSellableToVendor")) s.filterSellableToVendor = j["filterSellableToVendor"].get<bool>();
     if (j.contains("filterSellableOnTp")) s.filterSellableOnTp = j["filterSellableOnTp"].get<bool>();
@@ -754,7 +795,6 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     if (j.contains("showTopItems")) s.showTopItems = j["showTopItems"].get<bool>();
     if (j.contains("showTopCurrencies")) s.showTopCurrencies = j["showTopCurrencies"].get<bool>();
     if (j.contains("enableDebugTab")) s.enableDebugTab = j["enableDebugTab"].get<bool>();
-    if (j.contains("useFakeDrfServer")) s.useFakeDrfServer = j["useFakeDrfServer"].get<bool>();
     if (j.contains("gw2ApiConnectTimeout")) s.gw2ApiConnectTimeout = j["gw2ApiConnectTimeout"].get<int>();
     if (j.contains("gw2ApiReceiveTimeout")) s.gw2ApiReceiveTimeout = j["gw2ApiReceiveTimeout"].get<int>();
     
@@ -1232,6 +1272,12 @@ void SettingsManager::ResetToDefaults()
     std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
     g_Settings = Settings();
     Save();
+}
+
+Settings SettingsManager::GetSnapshot()
+{
+    std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
+    return g_Settings;
 }
 
 void SettingsManager::CreateProfile(const std::string& name)

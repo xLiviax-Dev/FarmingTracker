@@ -2,6 +2,7 @@
 #include "settings.h"
 #include "item_tracker.h"
 #include "localization.h"
+#include "shared.h"
 #include "ui_common.h"
 #include "ui_tab_icons.h"
 #include "ignored_items.h"
@@ -174,63 +175,32 @@ namespace UIOverview
             cs = UICommon::FormatCompact(count);
         }
         const char* countStr = cs.c_str();
-        
-        // Origin holen
+
+        // Get origin
         ImVec2 origin   = ImGui::GetItemRectMin();
-        
-        // Basis-Schriftgröße berechnen - 10% kleiner!
+
+        // Calculate base font size - 10% smaller!
         const float desiredPixelSize = isCoin ? iconSz * 0.495f : iconSz * 0.54f;
         ImFont* font = ImGui::GetFont();
-        
-        // Text Größe berechnen MIT der gewünschten Schriftgröße
+
+        // Calculate text size WITH the desired font size
         ImVec2 textSize = font->CalcTextSizeA(desiredPixelSize, FLT_MAX, 0.0f, countStr);
-        
-        // Position: nur bei Coin weiter nach rechts!
+
+        // Position: push further right only for Coin
         const float rightPush = (isCurrency && currencyId == 1) ? 35.0f : 0.0f;
         ImVec2 pos = ImVec2(origin.x + iconSz - textSize.x + rightPush,
                           origin.y + iconSz - textSize.y - 2.0f);
-        
-        // Farben
+
+        // Colors
         ImVec4 col = count < 0 ? ImVec4(0.9f,0.3f,0.3f,1.f)
                               : ImVec4(0.95f,0.7f,0.1f,1.f);
         ImDrawList* dl = ImGui::GetWindowDrawList();
-        
-        // 1. Sehr dünner weißer Outline (außen 5 Pixel)
-        static const ImVec2 kOffWhiteOuter[] = {
-            {-5,-5}, {-4,-5}, {-3,-5}, {-2,-5}, {-1,-5}, {0,-5}, {1,-5}, {2,-5}, {3,-5}, {4,-5}, {5,-5},
-            {-5,-4}, {5,-4},
-            {-5,-3}, {5,-3},
-            {-5,-2}, {5,-2},
-            {-5,-1}, {5,-1},
-            {-5,0}, {5,0},
-            {-5,1}, {5,1},
-            {-5,2}, {5,2},
-            {-5,3}, {5,3},
-            {-5,4}, {5,4},
-            {-5,5}, {-4,5}, {-3,5}, {-2,5}, {-1,5}, {0,5}, {1,5}, {2,5}, {3,5}, {4,5}, {5,5}
-        };
-        for (const auto& off : kOffWhiteOuter) {
-            dl->AddText(font, desiredPixelSize, ImVec2(pos.x + off.x, pos.y + off.y), IM_COL32(255,255,255,255), countStr);
-        }
-        
-        // 2. Dickerer schwarzer Outline (4 Pixel)
-        static const ImVec2 kOffBlack[] = {
-            {-4,-4}, {-3,-4}, {-2,-4}, {-1,-4}, {0,-4}, {1,-4}, {2,-4}, {3,-4}, {4,-4},
-            {-4,-3}, {4,-3},
-            {-4,-2}, {4,-2},
-            {-4,-1}, {4,-1},
-            {-4,0}, {4,0},
-            {-4,1}, {4,1},
-            {-4,2}, {4,2},
-            {-4,3}, {4,3},
-            {-4,4}, {-3,4}, {-2,4}, {-1,4}, {0,4}, {1,4}, {2,4}, {3,4}, {4,4}
-        };
-        for (const auto& off : kOffBlack) {
-            dl->AddText(font, desiredPixelSize, ImVec2(pos.x + off.x, pos.y + off.y), IM_COL32(0,0,0,255), countStr);
-        }
-        
-        // 3. Eigentlicher Text
-        dl->AddText(font, desiredPixelSize, pos, ImGui::ColorConvertFloat4ToU32(col), countStr);
+
+        UICommon::DrawTextWithOutline(dl, font, desiredPixelSize, pos,
+                                      ImGui::ColorConvertFloat4ToU32(col),
+                                      IM_COL32(255,255,255,255), 5.0f,
+                                      IM_COL32(0,0,0,255), 4.0f,
+                                      countStr);
     }
 
     static void DrawGridItemCount(long long count, float iconSz)
@@ -447,8 +417,8 @@ namespace UIOverview
                         st = ItemTracker::GetItemStat(id);
 
                     if (st.isIgnored) continue;
-                // Only show if count > 0 for both items and currencies
-                if (st.count == 0) continue;
+                // Show favorites even if count == 0
+                // if (st.count == 0) continue;
 
                     float rowH = UICommon::CalcTableRowHeight(32.0f);
                     ImGui::TableNextRow(0, rowH);
@@ -493,6 +463,7 @@ namespace UIOverview
                     }
 
                     ImGui::TableSetColumnIndex(1);
+                    UICommon::AlignTableCellText(rowH);
                     ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : Localization::GetText("loading"));
                     if (ImGui::IsItemHovered())
                     {
@@ -528,6 +499,7 @@ namespace UIOverview
                     }
 
                     ImGui::TableSetColumnIndex(2);
+                    UICommon::AlignTableCellText(rowH);
                     ImGui::Text("%lld", st.count);
                     if (ImGui::IsItemHovered())
                     {
@@ -563,11 +535,12 @@ namespace UIOverview
                     }
 
                     ImGui::TableSetColumnIndex(3);
+                    UICommon::AlignTableCellText(rowH);
                     if (isCurrency)
                     {
                         if (id == 1)
                         {
-                            ImGui::Text("%s", UICommon::FormatCoin(st.count).c_str());
+                            ImGui::Text("%s", UICommon::FormatCoin(st.count));
                         }
                         else
                         {
@@ -578,7 +551,7 @@ namespace UIOverview
                                 ImVec4 pc = totalProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f)
                                           : totalProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f)
                                           : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
-                                ImGui::TextColored(pc, "%s", UICommon::FormatCoin(totalProfit).c_str());
+                                ImGui::TextColored(pc, "%s", UICommon::FormatCoin(totalProfit));
                             }
                             else
                                 ImGui::Text("-");
@@ -590,7 +563,7 @@ namespace UIOverview
                         ImVec4 pc = profit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f)
                                   : profit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f)
                                   : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
-                        ImGui::TextColored(pc, "%s", UICommon::FormatCoin(profit).c_str());
+                        ImGui::TextColored(pc, "%s", UICommon::FormatCoin(profit));
                     }
                     if (ImGui::IsItemHovered())
                     {
@@ -644,9 +617,9 @@ namespace UIOverview
 
     static void RenderFavoritesSection()
     {
-        // Holen wir uns alle Favoriten-IDs, UNABHÄNGIG von der aktuellen Count!
-        auto favoriteItemsMap = ItemTracker::GetFavoriteItems();
-        auto favoriteCurrenciesMap = ItemTracker::GetFavoriteCurrencies();
+        // Get all favorite IDs, INDEPENDENT of current count!
+        const auto& favoriteItemsMap = ItemTracker::GetFavoriteItemsView();
+        const auto& favoriteCurrenciesMap = ItemTracker::GetFavoriteCurrenciesView();
 
         std::vector<int> favoriteItems;
         for (auto& [id, st] : favoriteItemsMap)
@@ -831,8 +804,8 @@ namespace UIOverview
                 }
                 if (!otherCurrencies.empty())
                 {
-                    // Nur eine sichtbare Lücke einfügen, wenn die Favoriten-Zeile(n) exakt voll waren -
-                    // sonst würde ein Umbruch erzwungen, obwohl in der aktuellen Zeile noch Platz ist.
+                    // Only insert a visible gap if the favorite row(s) were exactly full -
+                    // otherwise a line break would be forced even though there's still space in the current row.
                     if (!favoriteCurrencies.empty() && count % columns == 0)
                         ImGui::Spacing();
                     renderCurrencyGridGroup(otherCurrencies);
@@ -905,15 +878,18 @@ namespace UIOverview
                     }
 
                     ImGui::TableSetColumnIndex(1);
+                    UICommon::AlignTableCellText(rowH);
                     ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : Localization::GetText("loading"));
 
                     ImGui::TableSetColumnIndex(2);
+                    UICommon::AlignTableCellText(rowH);
                     ImGui::Text("%lld", st.count);
 
                     ImGui::TableSetColumnIndex(3);
+                    UICommon::AlignTableCellText(rowH);
                     if (id == 1)
                     {
-                        ImGui::Text("%s", UICommon::FormatCoin(st.count).c_str());
+                        ImGui::Text("%s", UICommon::FormatCoin(st.count));
                     }
                     else
                     {
@@ -924,7 +900,7 @@ namespace UIOverview
                             ImVec4 pc = totalProfit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f)
                                       : totalProfit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f)
                                       : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
-                            ImGui::TextColored(pc, "%s", UICommon::FormatCoin(totalProfit).c_str());
+                            ImGui::TextColored(pc, "%s", UICommon::FormatCoin(totalProfit));
                         }
                         else
                             ImGui::Text("-");
@@ -958,7 +934,7 @@ namespace UIOverview
             Localization::GetText("sort_rarity_low")
         };
         if (ImGui::Combo("##OvSortItems", &g_Settings.overviewItemSortMode, sortLabels, 10))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("%s", Localization::GetText("sort_tooltip"));
 
@@ -978,7 +954,7 @@ namespace UIOverview
         if (ImGui::Combo("##OvRarityF", &rarityCombo, rarityLabels, 8))
         {
             g_Settings.overviewItemRarityFilterMin = rarityCombo;
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("%s", Localization::GetText("rarity_tooltip"));
@@ -999,7 +975,7 @@ namespace UIOverview
                     for (const auto& [id, st] : items)
                         if (st.details.rarity == rarityName)
                             IgnoredItemsManager::IgnoreItem(id);
-                    SettingsManager::Save();
+                    BackgroundJobs::EnqueueDebouncedSettingsSave();
                 }
             };
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.f)); renderMenuItem("mass_actions_ignore_junk", "Junk"); ImGui::PopStyleColor();
@@ -1011,38 +987,23 @@ namespace UIOverview
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.85f, 0.20f, 0.50f, 1.f)); renderMenuItem("mass_actions_ignore_ascended", "Ascended"); ImGui::PopStyleColor();
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.20f, 0.90f, 1.f)); renderMenuItem("mass_actions_ignore_legendary", "Legendary"); ImGui::PopStyleColor();
             ImGui::Separator();
-            if (ImGui::MenuItem(Localization::GetText("mass_actions_clear_ignore"))) { IgnoredItemsManager::ClearAll(); SettingsManager::Save(); }
+            if (ImGui::MenuItem(Localization::GetText("mass_actions_clear_ignore"))) { IgnoredItemsManager::ClearAll(); BackgroundJobs::EnqueueDebouncedSettingsSave(); }
             ImGui::EndPopup();
         }
 
         ImGui::Spacing();
 
-        auto sortedItems = ItemTracker::GetSortedItems(static_cast<ItemTracker::SortMode>(g_Settings.overviewItemSortMode));
-        // Filter out ignored items and apply rarity filter
-        std::vector<std::pair<int, Stat>> filteredSortedItems;
-        for (auto& [id, st] : sortedItems)
-        {
-            if (!st.isIgnored && st.count != 0 && !st.IsCurrency())
-            {
-                if (g_Settings.overviewItemRarityFilterMin > 0)
-                {
-                    // Check rarity
-                    std::string rarity = st.details.loaded ? st.details.rarity : "";
-                    int rarityRank = 0;
-                    if (rarity == "Junk") rarityRank = 1;
-                    else if (rarity == "Basic") rarityRank = 2;
-                    else if (rarity == "Fine") rarityRank = 3;
-                    else if (rarity == "Masterwork") rarityRank = 4;
-                    else if (rarity == "Rare") rarityRank = 5;
-                    else if (rarity == "Exotic") rarityRank = 6;
-                    else if (rarity == "Ascended") rarityRank = 7;
-                    else if (rarity == "Legendary") rarityRank = 8;
-                    if (rarityRank < g_Settings.overviewItemRarityFilterMin) continue;
-                }
-                filteredSortedItems.push_back({id, st});
-            }
-        }
-        sortedItems.swap(filteredSortedItems);
+        // Use cached sorted view with filters
+        ItemTracker::SortFilterOptions filter;
+        filter.excludeIgnored = true;
+        filter.excludeZeroCount = true;
+        filter.excludeCurrencies = true;
+        filter.rarityFilterMin = g_Settings.overviewItemRarityFilterMin;
+        
+        const auto& sortedItems = ItemTracker::GetSortedItemsView(
+            static_cast<ItemTracker::SortMode>(g_Settings.overviewItemSortMode),
+            filter
+        );
 
         if (sortedItems.empty())
         {
@@ -1291,17 +1252,20 @@ namespace UIOverview
                     }
 
                     ImGui::TableSetColumnIndex(1);
+                    UICommon::AlignTableCellText(rowH);
                     ImGui::Text("%s", st.details.loaded ? st.details.name.c_str() : Localization::GetText("loading"));
 
                     ImGui::TableSetColumnIndex(2);
+                    UICommon::AlignTableCellText(rowH);
                     ImGui::Text("%lld", st.count);
 
                     ImGui::TableSetColumnIndex(3);
+                    UICommon::AlignTableCellText(rowH);
                     long long profit = ItemTracker::GetStatProfit(st);
                     ImVec4 pc = profit > 0 ? ImVec4(1.f, 0.84f, 0.f, 1.f)
                               : profit < 0 ? ImVec4(0.9f, 0.2f, 0.2f, 1.f)
                               : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
-                    ImGui::TextColored(pc, "%s", UICommon::FormatCoin(profit).c_str());
+                    ImGui::TextColored(pc, "%s", UICommon::FormatCoin(profit));
 
                     ImGui::TableSetColumnIndex(4);
                     if (st.lastMagicFind >= 0)

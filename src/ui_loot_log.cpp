@@ -651,7 +651,7 @@ namespace
         {
             std::lock_guard<std::recursive_mutex> lock(Settings::s_SettingsMutex);
             g_Settings.lootLogFolder.clear();
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
 
         ImGui::Spacing();
@@ -709,17 +709,17 @@ namespace
         CardHeader("sword", "Items");
 
         if (IconToggleRow("toggle-left", "Enable Item Logging", &g_Settings.lootLogItems, colW))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Log item drops.");
 
         if (IconToggleRow("star", "Favorites First", &g_Settings.itemsFavoritesFirst, colW))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Show favorite items first.");
 
         if (IconToggleRow("filter", "Apply Active Filters", &g_Settings.filterFavorite, colW))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Apply active loot filter settings.");
 
@@ -740,7 +740,7 @@ namespace
         CardHeader("coin", "Currencies");
 
         if (IconToggleRow("toggle-left", "Enable Currency Logging", &g_Settings.lootLogCurrencies, colW))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Log currency gains.");
 
@@ -761,15 +761,15 @@ namespace
 
         CardHeader("file-description", "Format");
 
-        ImGui::TextUnformatted("Output");
+        ImGui::TextUnformatted(Localization::GetText("output"));
         ImGui::SameLine(colW - 100.f);
         const char* formats[] = { "CSV", "JSON", "Both" };
         ImGui::SetNextItemWidth(90.f);
         if (ImGui::Combo("##LootFormat", &g_Settings.lootLogFormat, formats, 3))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
 
         ImGui::Spacing();
-        ImGui::TextUnformatted("Folder");
+        ImGui::TextUnformatted(Localization::GetText("folder"));
         ImGui::SameLine(colW - 100.f);
         const char* folders[] = { "Per day", "Per session", "Both" };
         ImGui::SetNextItemWidth(90.f);
@@ -792,25 +792,25 @@ namespace
 
         CardHeader("database", "Storage");
 
-        ImGui::TextUnformatted("Max size (MB)");
+        ImGui::TextUnformatted(Localization::GetText("max_size_mb"));
         ImGui::SameLine(colW - 110.f);
         ImGui::SetNextItemWidth(100.f);
         static int maxSize = 50;
         ImGui::InputInt("##MaxSize", &maxSize, 1, 10);
 
         ImGui::Spacing();
-        ImGui::TextUnformatted("Delete after (days)");
+        ImGui::TextUnformatted(Localization::GetText("delete_after_days"));
         ImGui::SameLine(colW - 110.f);
         ImGui::SetNextItemWidth(100.f);
         if (ImGui::InputInt("##LootMaxDays", &g_Settings.lootLogMaxDays, 1, 10))
         {
             g_Settings.lootLogMaxDays = std::max(0, g_Settings.lootLogMaxDays);
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
 
         ImGui::Spacing();
         if (IconToggleRow("history", "Persist after reset", &g_Settings.enableSessionHistory, colW))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
 
         ImGui::EndChild();
         ImGui::EndGroup();
@@ -827,12 +827,12 @@ namespace
         CardHeader("settings", "General");
 
         if (IconToggleRow("map-pin", "Include map name", &g_Settings.lootLogIncludeMap, panelW))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Add map_id and map_name to each row.");
 
         if (IconToggleRow("wand", "Include Magic Find", &g_Settings.lootLogIncludeMagicFind, panelW))
-            SettingsManager::Save();
+            BackgroundJobs::EnqueueDebouncedSettingsSave();
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Add magic_find to each row.");
 
