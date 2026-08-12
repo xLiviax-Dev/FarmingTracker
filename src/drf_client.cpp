@@ -42,6 +42,7 @@ using json = nlohmann::json;
 static std::function<void(DrfStatus)> s_OnStatus;
 static std::atomic<DrfStatus>         s_Status{ DrfStatus::Disconnected };
 static std::atomic<bool>              s_Shutdown{ false };
+static std::atomic<bool>              s_WorkerFinished{ false };
 static std::atomic<int>               s_ReconnectCount{ 0 };
 static std::thread                    s_WorkerThread;
 
@@ -616,6 +617,7 @@ static void WorkerThread()
     }
 
     SetStatus(DrfStatus::Disconnected);
+    s_WorkerFinished.store(true, std::memory_order_release);
 }
 
 // ---------------------------------------------------------------------------
@@ -625,6 +627,7 @@ void DrfClient::Init(std::function<void(DrfStatus)> onStatusChange)
 {
     s_OnStatus = std::move(onStatusChange);
     s_Shutdown.store(false);
+    s_WorkerFinished.store(false, std::memory_order_release);
     s_ReconnectCount.store(0); // Reset on init for fresh start
     s_LastConnectionAttempt = std::chrono::steady_clock::time_point{}; // Reset cooldown timer
     s_WorkerThread = std::thread(WorkerThread);
@@ -682,21 +685,23 @@ void DrfClient::Shutdown()
         }
     }
 
-    // Give the thread a moment to exit gracefully
+    // Give the thread a moment to exit gracefully. Poll the completion flag
+    // (set by WorkerThread right before it returns) instead of blindly
+    // sleeping the full duration — joinable() alone can't tell us whether
+    // the thread function has actually returned.
     if (s_WorkerThread.joinable())
     {
-        // Wait longer for graceful shutdown to avoid use-after-free
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(2000);
+        while (!s_WorkerFinished.load(std::memory_order_acquire) && std::chrono::steady_clock::now() < deadline)
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-        // Final attempt to join
-        if (s_WorkerThread.joinable())
+        if (s_WorkerFinished.load(std::memory_order_acquire))
         {
             s_WorkerThread.join();
         }
-
-        // Only detach as last resort to prevent crash during DLL unload
-        if (s_WorkerThread.joinable())
+        else
         {
+            // Only detach as last resort to prevent crash during DLL unload
             DrfClient::Log("Warning: Force detaching DRF worker thread - potential resource leak", "warning");
             s_WorkerThread.detach();
         }

@@ -224,11 +224,18 @@ void UICommon::PreFetchFrequentIcons()
 
     for (int itemId : frequentItemIds)
     {
-        if (!IsCached(itemId))
+        // NOTE: We intentionally do NOT add the itemId to s_PendingDownloads here,
+        // because PreFetch has no icon URL and cannot start the download thread.
+        // Marking it as "pending" without actually starting the thread would
+        // permanently block the real EnsureItemIconTexture() call later (it
+        // returns early when s_PendingDownloads.count(itemId) is true),
+        // leaving the icon blank forever without any error message.
+        // Instead we only populate the verified disk cache if the file is
+        // already cached, which saves a future GetFileAttributesA call.
+        if (IsCached(itemId))
         {
-            // Trigger async download for these frequent items
             std::lock_guard<std::mutex> lock(s_PendingMutex);
-            s_PendingDownloads.insert(itemId);
+            s_VerifiedDiskCache.insert(itemId);
         }
     }
 }
@@ -449,7 +456,7 @@ namespace UICommon
                         size_t sl = url.find('/', p);
                         if (sl != std::string::npos)
                         {
-                            std::string host = url.substr(0, sl);
+                            std::string host = url.substr(p, sl - p);
                             std::string path = url.substr(sl);
                             APIDefs->Textures_LoadFromURL(texId, host.c_str(), path.c_str(), nullptr);
                         }
@@ -506,7 +513,7 @@ namespace UICommon
                                 size_t sl = ctx->url.find('/', p);
                                 if (sl != std::string::npos)
                                 {
-                                    std::string host = ctx->url.substr(0, sl);
+                                    std::string host = ctx->url.substr(p, sl - p);
                                     std::string path = ctx->url.substr(sl);
                                     apiDefs->Textures_LoadFromURL(ctx->texId, host.c_str(), path.c_str(), nullptr);
                                 }
@@ -531,7 +538,7 @@ namespace UICommon
             p += 3;
             size_t sl = url.find('/', p);
             if (sl == std::string::npos) return;
-            std::string host = url.substr(0, sl);
+            std::string host = url.substr(p, sl - p);
             std::string path = url.substr(sl);
             APIDefs->Textures_LoadFromURL(texId, host.c_str(), path.c_str(),
                 [](const char* aIdentifier, Texture_t* aTexture)

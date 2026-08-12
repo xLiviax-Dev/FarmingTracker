@@ -60,15 +60,23 @@ namespace
                 WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
             if (!s_hSession) { error = "WinHttpOpen"; return false; }
 
-            // Set timeouts from settings
-            DWORD connectTimeoutMs, receiveTimeoutMs;
+            // Set timeouts from settings. Resolve / Send / Receive all need explicit
+            // per-request headroom; longer timeouts beat repeated 12002 resets that
+            // never recover because the session stays poisoned.
+            DWORD connectTimeoutMs, receiveTimeoutMs, resolveTimeoutMs, sendTimeoutMs;
             {
                 std::lock_guard<std::recursive_mutex> sLock(Settings::s_SettingsMutex);
                 connectTimeoutMs = static_cast<DWORD>(g_Settings.gw2ApiConnectTimeout);
                 receiveTimeoutMs = static_cast<DWORD>(g_Settings.gw2ApiReceiveTimeout);
             }
-            WinHttpSetOption(s_hSession, WINHTTP_OPTION_CONNECT_TIMEOUT, &connectTimeoutMs, sizeof(connectTimeoutMs));
-            WinHttpSetOption(s_hSession, WINHTTP_OPTION_RECEIVE_TIMEOUT, &receiveTimeoutMs, sizeof(receiveTimeoutMs));
+            // Resolve and Send also have their own timeouts (default 0 = infinite or
+            // too short depending on WinHTTP build). Set explicit safe values.
+            resolveTimeoutMs = connectTimeoutMs;
+            sendTimeoutMs    = connectTimeoutMs;
+            WinHttpSetOption(s_hSession, WINHTTP_OPTION_CONNECT_TIMEOUT,  &connectTimeoutMs, sizeof(connectTimeoutMs));
+            WinHttpSetOption(s_hSession, WINHTTP_OPTION_RECEIVE_TIMEOUT,  &receiveTimeoutMs, sizeof(receiveTimeoutMs));
+            WinHttpSetOption(s_hSession, WINHTTP_OPTION_RESOLVE_TIMEOUT,  &resolveTimeoutMs, sizeof(resolveTimeoutMs));
+            WinHttpSetOption(s_hSession, WINHTTP_OPTION_SEND_TIMEOUT,     &sendTimeoutMs, sizeof(sendTimeoutMs));
         }
 
         if (!s_hConnect)
@@ -84,14 +92,32 @@ namespace
 
         BOOL ok = WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0,
             WINHTTP_NO_REQUEST_DATA, 0, 0, 0);
-        
+
         if (!ok || !WinHttpReceiveResponse(hRequest, nullptr))
         {
-            error = "WinHttpSend/Receive (" + std::to_string(GetLastError()) + ")";
+            DWORD lastErr = GetLastError();
+            error = "WinHttpSend/Receive (" + std::to_string(lastErr) + ")";
             WinHttpCloseHandle(hRequest);
-            // If connection failed, reset connect handle to try a fresh one next time
-            WinHttpCloseHandle(s_hConnect);
-            s_hConnect = nullptr;
+
+            // Timeout / name-resolution / connection-abort errors often leave the
+            // shared SESSION handle poisoned in WinHTTP. A fresh connect-handle is
+            // not enough; we must recreate the whole session so the DNS cache, TCP
+            // pool and TLS state start clean.
+            // 12002 = ERROR_WINHTTP_TIMEOUT, 12007 = ERROR_WINHTTP_NAME_NOT_RESOLVED,
+            // 12152 = ERROR_WINHTTP_INVALID_SERVER_RESPONSE, 12031 = ERROR_WINHTTP_CONNECTION_RESET
+            if (lastErr == 12002 || lastErr == 12007 || lastErr == 12152 || lastErr == 12031)
+            {
+                WinHttpCloseHandle(s_hConnect);
+                s_hConnect = nullptr;
+                WinHttpCloseHandle(s_hSession);
+                s_hSession = nullptr;
+            }
+            else
+            {
+                // Lesser error: only recycle the connect handle as before.
+                WinHttpCloseHandle(s_hConnect);
+                s_hConnect = nullptr;
+            }
             return false;
         }
 
@@ -117,12 +143,33 @@ namespace
         if (status != 200 && status != 206)
         {
             error = "HTTP " + std::to_string(status) + " " + body.substr(0, 200);
+
+            // HTTP-level errors that usually indicate API or CDN-level throttling /
+            // bad state: recycle session + connect completely so the next request
+            // starts with fresh DNS, TLS and no lingering connection pool state.
+            // 400 = CDN/backend "bad request" that is often transient (rate-limit mask),
+            // 429 = Too Many Requests (explicit rate limit),
+            // 5xx = Server Error (upstream timeout)
+            if (status == 400 || status == 429 || status >= 500)
+            {
+                WinHttpCloseHandle(s_hConnect);
+                s_hConnect = nullptr;
+                WinHttpCloseHandle(s_hSession);
+                s_hSession = nullptr;
+            }
+            else
+            {
+                WinHttpCloseHandle(s_hConnect);
+                s_hConnect = nullptr;
+            }
             return false;
         }
 
         if (body.empty())
         {
             error = "Empty response body";
+            WinHttpCloseHandle(s_hConnect);
+            s_hConnect = nullptr;
             return false;
         }
 
@@ -192,6 +239,93 @@ bool Gw2Api::GetJson(const std::string& pathAndQuery, const std::string& accessT
     }
 }
 
+// Fetch a /v2/commerce/prices batch, automatically splitting into sub-batches if the
+// first attempt fails with HTTP 400 / timeout, which the GW2 CDN often returns
+// for "too many ids" or transient backend issues. Batches are halved until success
+// until the leaf size reaches a minimum of 25.
+static bool FetchPricesWithFallback(const std::vector<int>& ids, size_t begin, size_t end,
+                                 const std::string& token,
+                                 nlohmann::json& pricesOut, std::string& error)
+{
+    size_t count = end - begin;
+    if (count == 0) return true;
+
+    // Try sizes: up to 100 first (well below /v2/items' 200 limit since /commerce/prices
+    // is more rate-limited. If that fails with 400/timeout/5xx -> 50 -> 25, then give up.
+    constexpr size_t kPriceBatchSizes[] = { 100, 50, 25 };
+
+    for (size_t b = begin; b < end; )
+    {
+        bool chunkDone = false;
+        for (size_t bsIdx = 0; bsIdx < sizeof(kPriceBatchSizes)/sizeof(kPriceBatchSizes[0]); ++bsIdx)
+        {
+            size_t curBatch = kPriceBatchSizes[bsIdx];
+            size_t chunkEnd = (std::min)(b + curBatch, end);
+
+            std::string idlist = JoinIds(ids, b, chunkEnd);
+            nlohmann::json jPrices;
+            std::string q = "/v2/commerce/prices?ids=" + idlist;
+            std::string subErr;
+
+            if (Gw2Api::GetJson(q, token, jPrices, subErr))
+            {
+                if (jPrices.is_array())
+                    for (auto& el : jPrices) pricesOut.push_back(el);
+                b = chunkEnd;
+                chunkDone = true;
+                break;
+            }
+
+            if (subErr.find("HTTP 206") != std::string::npos)
+            {
+                // HTTP 206 Partial Content is acceptable partial batch response
+                if (jPrices.is_array())
+                    for (auto& el : jPrices) pricesOut.push_back(el);
+                b = chunkEnd;
+                chunkDone = true;
+                break;
+            }
+
+            if (subErr.find("HTTP 404") != std::string::npos && subErr.find("all ids provided are invalid") != std::string::npos)
+            {
+                // All of these IDs are not tradable — move on.
+                b = chunkEnd;
+                chunkDone = true;
+                break;
+            }
+
+            // Fatal error for this chunk: HTTP 400, 429, 5xx, timeout: try smaller batch
+            // (only worth retrying smaller if we aren't already at leaf size.
+            bool isRecoverable = (subErr.find("HTTP 400") != std::string::npos) ||
+                                 (subErr.find("HTTP 429") != std::string::npos) ||
+                                 (subErr.find("HTTP 5")  != std::string::npos) ||
+                                 (subErr.find("WinHttpSend/Receive") != std::string::npos);
+
+            if (isRecoverable && bsIdx + 1 < sizeof(kPriceBatchSizes)/sizeof(kPriceBatchSizes[0]))
+            {
+                // Leave b unchanged, move to a smaller batch size for the next iteration.
+                if (curBatch > 25)
+                {
+                    // Small delay before retry: the next attempt.
+                    Sleep(200);
+                    continue;
+                }
+            }
+
+            // Unrecoverable or leaf error (not recoverable at all: log warning for this chunk
+            Gw2Api::Log("Failed to fetch prices for sub-batch ["
+                         + std::to_string(ids[b]) + ".." + std::to_string(ids[chunkEnd - 1])
+                         + "]: " + subErr, "warning");
+            error = subErr; // last error seen (caller can clear it if desired
+            b = chunkEnd;
+            chunkDone = true;
+            break;
+        }
+        if (!chunkDone) break;
+    }
+    return true; // Never abort the whole items run just because a prices had issues.
+}
+
 bool Gw2Api::FetchItemsMany(const std::vector<int>& ids, const std::string& token,
                             nlohmann::json& itemsOut, nlohmann::json& pricesOut, std::string& error)
 {
@@ -202,23 +336,23 @@ bool Gw2Api::FetchItemsMany(const std::vector<int>& ids, const std::string& toke
 
     std::string langCode = GetLanguageCode();
 
-    constexpr size_t kBatch = 200;
-    constexpr int kRateLimitDelayMs = 100; // 100ms delay between batches to avoid rate limits
-    for (size_t i = 0; i < ids.size(); i += kBatch)
+    // Items endpoint handles ~200 officially; keep at 150 to leave headroom for &lang=xx and URL overhead
+    constexpr size_t kItemsBatch = 150;
+    // Base delay between item batches (commerce items endpoint is also rate limited
+    constexpr int kRateLimitDelayMs = 250; // increased from 100
+
+    for (size_t i = 0; i < ids.size(); i += kItemsBatch)
     {
-        size_t j = (std::min)(i + kBatch, ids.size());
+        size_t j = (std::min)(i + kItemsBatch, ids.size());
         std::string idlist = JoinIds(ids, i, j);
-        nlohmann::json jItems, jPrices;
+        nlohmann::json jItems;
 
         std::string q = "/v2/items?ids=" + idlist + "&lang=" + langCode;
         if (!GetJson(q, token, jItems, error))
         {
-            // If the error is a 404 (all IDs invalid), we treat it as success but with empty results.
-            // This allows ApplyItemsFromApi to mark those IDs as unknown and stop the retry loop.
             if (error.find("404") != std::string::npos || error.find("invalid") != std::string::npos)
             {
                 jItems = nlohmann::json::array();
-                jPrices = nlohmann::json::array();
             }
             else
             {
@@ -226,45 +360,15 @@ bool Gw2Api::FetchItemsMany(const std::vector<int>& ids, const std::string& toke
                 return false;
             }
         }
-        else
-        {
-            if (jItems.is_array())
-                for (auto& el : jItems) itemsOut.push_back(el);
 
-            q = "/v2/commerce/prices?ids=" + idlist;
-            if (!GetJson(q, token, jPrices, error))
-            {
-                // Check if error is due to HTTP 206 (Partial Content) - this is not an error
-                if (error.find("HTTP 206") != std::string::npos)
-                {
-                    // HTTP 206 is normal for batch requests, continue processing
-                    if (jPrices.is_array())
-                        for (auto& el : jPrices) pricesOut.push_back(el);
-                }
-                else
-                {
-                    // Real error - skip this batch
-                    // HTTP 404 with "all ids provided are invalid" is normal for non-tradable items
-                    if (error.find("HTTP 404") != std::string::npos && error.find("all ids provided are invalid") != std::string::npos)
-                    {
-                        Log("Items not tradable on TP (no prices available)", "data");
-                    }
-                    else
-                    {
-                        Log("Failed to fetch prices for batch: " + error, "warning");
-                    }
-                    error.clear();
-                }
-            }
-            else
-            {
-                if (jPrices.is_array())
-                    for (auto& el : jPrices) pricesOut.push_back(el);
-            }
-        }
+        if (jItems.is_array())
+            for (auto& el : jItems) itemsOut.push_back(el);
+
+        FetchPricesWithFallback(ids, i, j, token, pricesOut, error);
+        error.clear(); // Prices errors were already logged per chunk.
 
         // Rate limiting: delay between batches
-        if (i + kBatch < ids.size())
+        if (i + kItemsBatch < ids.size())
             Sleep(kRateLimitDelayMs);
     }
 

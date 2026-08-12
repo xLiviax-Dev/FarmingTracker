@@ -79,6 +79,9 @@ struct PersistedStatSaveView
     long long   count;
     bool        isFavorite;
     int         lastMagicFind;
+    std::string iconUrl;
+    std::string itemName;
+    std::string rarity;
 };
 
 struct SaveSnapshot
@@ -147,6 +150,13 @@ static void WriteSnapshotToDisk(const SaveSnapshot& snap)
             item["count"] = sv.count;
             item["isFavorite"] = sv.isFavorite;
             item["lastMagicFind"] = sv.lastMagicFind;
+            // Save item details for instant icon display on load
+            if (!sv.iconUrl.empty())
+            {
+                item["iconUrl"] = sv.iconUrl;
+                item["itemName"] = sv.itemName;
+                item["rarity"] = sv.rarity;
+            }
             itemsArray.push_back(item);
         }
         data["items"] = itemsArray;
@@ -159,6 +169,13 @@ static void WriteSnapshotToDisk(const SaveSnapshot& snap)
             cur["count"] = sv.count;
             cur["isFavorite"] = sv.isFavorite;
             cur["lastMagicFind"] = sv.lastMagicFind;
+            // Save currency details for instant icon display on load
+            if (!sv.iconUrl.empty())
+            {
+                cur["iconUrl"] = sv.iconUrl;
+                cur["itemName"] = sv.itemName;
+                cur["rarity"] = sv.rarity;
+            }
             currenciesArray.push_back(cur);
         }
         data["currencies"] = currenciesArray;
@@ -529,6 +546,9 @@ static void CheckAndTriggerNotification(int apiId, Stat& st)
     if (st.count == 0) { st.notificationPending = false; return; }
     if (!st.details.loaded) { return; }
     if (!st.notificationPending) return;
+    // Already fired once for the last drop; don't re-trigger on subsequent API refreshes
+    // (language-change reloads, price-only updates, periodic refetches).
+    if (st.hasNotified) { st.notificationPending = false; return; }
 
     // Exclude items from notification blacklist
     {
@@ -579,17 +599,31 @@ static void CheckAndTriggerNotification(int apiId, Stat& st)
         std::string lowerDesc = st.details.description;
         std::transform(lowerDesc.begin(), lowerDesc.end(), lowerDesc.begin(), ::tolower);
 
-        // Precursor search terms in different languages
-        bool containsPrecursor = (lowerName.find("precursor") != std::string::npos || lowerDesc.find("precursor") != std::string::npos ||
-                                 lowerName.find("präkursor") != std::string::npos || lowerDesc.find("präkursor") != std::string::npos ||
-                                 lowerName.find("précurseur") != std::string::npos || lowerDesc.find("précurseur") != std::string::npos ||
-                                 lowerName.find("прекурсор") != std::string::npos || lowerDesc.find("прекурсор") != std::string::npos ||
-                                 lowerName.find("前置") != std::string::npos || lowerDesc.find("前置") != std::string::npos);
+        // Precursor search terms in different languages — check name and description separately
+        bool nameContainsPrecursor = (lowerName.find("precursor") != std::string::npos ||
+                                      lowerName.find("präkursor") != std::string::npos ||
+                                      lowerName.find("précurseur") != std::string::npos ||
+                                      lowerName.find("прекурсор") != std::string::npos ||
+                                      lowerName.find("前置") != std::string::npos);
+        bool descContainsPrecursor = (lowerDesc.find("precursor") != std::string::npos ||
+                                      lowerDesc.find("präkursor") != std::string::npos ||
+                                      lowerDesc.find("précurseur") != std::string::npos ||
+                                      lowerDesc.find("прекурсор") != std::string::npos ||
+                                      lowerDesc.find("前置") != std::string::npos);
 
-        if ((containsPrecursor ||
+        // A description-only hit ("used in precursor crafting") catches materials, trophies, etc.
+        // that are USED for precursor crafting — they are not precursors themselves.
+        // Only flag a description-only hit if the item is truly a Weapon (matches the heuristic).
+        bool containsPrecursor = nameContainsPrecursor ||
+                                 (descContainsPrecursor && st.details.itemType == ItemType::Weapon);
+
+        // Known non-precursor false-positive IDs (blacklist)
+        bool isBlacklisted = (apiId == 68063); // Amalgamated Gemstone (Exotic Trophy, used in precursor crafting)
+
+        if (!isBlacklisted &&
+            (containsPrecursor ||
               (st.details.rarity == "Exotic" && st.details.itemType == ItemType::Weapon &&
-               st.details.level == 80 && st.details.vendorValue == 0 && !st.details.accountBound)) &&
-             apiId != 76179) // Amalgamated Gemstone
+               st.details.level == 80 && st.details.vendorValue == 0 && !st.details.accountBound)))
          {
             shouldNotify = true;
             specialText  = Localization::GetText("precursor_drop_label");
@@ -642,7 +676,10 @@ static void CheckAndTriggerNotification(int apiId, Stat& st)
     }
 
     if (shouldNotify)
+    {
         UINotifications::AddNotification(apiId, st, specialText);
+        st.hasNotified = true;  // Remember we fired for this drop; suppress future stale re-notifies
+    }
     st.notificationPending = false;
 }
 
@@ -663,6 +700,7 @@ static void UpdateOrInsert(std::map<int, Stat>& map,
             if (delta > 0)
             {
                 it->second.notificationPending = true;
+                it->second.hasNotified = false; // New drop: allow notification again even if it fired before
             }
         }
     }
@@ -674,7 +712,7 @@ static void UpdateOrInsert(std::map<int, Stat>& map,
             s.apiId = apiId;
             s.type  = type;
             s.count = skipDelta ? 0 : delta;
-            if (delta > 0 && !skipDelta) s.notificationPending = true;
+            if (delta > 0 && !skipDelta) { s.notificationPending = true; s.hasNotified = false; }
 
             // Re-apply persistent flags (passed as parameters to avoid deadlock)
             s.isFavorite = isFavorite;
@@ -3033,6 +3071,13 @@ static std::unique_ptr<SaveSnapshot> CreateSaveSnapshot(const char* addonDir)
             sv.count = stat.count;
             sv.isFavorite = stat.isFavorite;
             sv.lastMagicFind = stat.lastMagicFind;
+            // Save item details for instant icon display on load
+            if (stat.details.loaded)
+            {
+                sv.iconUrl = stat.details.iconUrl;
+                sv.itemName = stat.details.name;
+                sv.rarity = stat.details.rarity;
+            }
             snap->items.emplace(id, sv);
         }
 
@@ -3042,6 +3087,13 @@ static std::unique_ptr<SaveSnapshot> CreateSaveSnapshot(const char* addonDir)
             sv.count = stat.count;
             sv.isFavorite = stat.isFavorite;
             sv.lastMagicFind = stat.lastMagicFind;
+            // Save currency details for instant icon display on load
+            if (stat.details.loaded)
+            {
+                sv.iconUrl = stat.details.iconUrl;
+                sv.itemName = stat.details.name;
+                sv.rarity = stat.details.rarity;
+            }
             snap->currencies.emplace(id, sv);
         }
 
@@ -3201,7 +3253,7 @@ void ItemTracker::LoadData(const char* addonDir)
                 int apiId = itemJson["apiId"].get<int>();
                 long long count = itemJson["count"].get<long long>();
                 int lastMF = itemJson.value("lastMagicFind", -1);
-                
+
                 // Check persistent store for favorite status (pLock already held)
                 bool isFavorite = itemJson.value("isFavorite", false);
                 if (s_PersistentFavoriteItems.count(apiId) > 0)
@@ -3213,8 +3265,19 @@ void ItemTracker::LoadData(const char* addonDir)
                 s.count = count;
                 s.isFavorite = isFavorite;
                 s.lastMagicFind = lastMF;
+
+                // Load item details if available (iconUrl, itemName, rarity)
+                if (itemJson.contains("iconUrl") && itemJson.contains("itemName") && itemJson.contains("rarity"))
+                {
+                    s.details.iconUrl = itemJson["iconUrl"].get<std::string>();
+                    s.details.name = itemJson["itemName"].get<std::string>();
+                    s.details.rarity = itemJson["rarity"].get<std::string>();
+                    s.details.loaded = true;
+                    s.details.knownByApi = true;
+                }
+
                 s_Items[apiId] = s;
-                
+
                 // Ensure it's in the persistent store if it was marked favorite in the item list (migration)
                 if (isFavorite)
                 {
@@ -3247,9 +3310,20 @@ void ItemTracker::LoadData(const char* addonDir)
                 s.count = count;
                 s.isFavorite = isFavorite;
                 s.lastMagicFind = lastMF;
+
+                // Load currency details if available (iconUrl, itemName, rarity)
+                if (currencyJson.contains("iconUrl") && currencyJson.contains("itemName") && currencyJson.contains("rarity"))
+                {
+                    s.details.iconUrl = currencyJson["iconUrl"].get<std::string>();
+                    s.details.name = currencyJson["itemName"].get<std::string>();
+                    s.details.rarity = currencyJson["rarity"].get<std::string>();
+                    s.details.loaded = true;
+                    s.details.knownByApi = true;
+                }
+
                 s_Currencies[apiId] = s;
 
-                // Ensure it's in the persistent store if it was marked favorite in the item list (migration)
+                // Ensure it's in the persistent store if it was marked favorite in the currency list (migration)
                 if (isFavorite)
                 {
                     s_PersistentFavoriteCurrencies.insert(apiId);
@@ -3668,12 +3742,20 @@ void ItemTracker::ApplyItemsFromApi(const std::vector<int>& requestedIds, const 
                 }
             }
 
-            // Mark for notification — will be processed after locks are released
-            if (st->notificationPending)
-                st->notificationPending = true; // already set, keep it
-            // Details are now loaded; allow notification to fire
-            st->notificationPending = true;
+            // Details are now loaded; if a drop occurred earlier (notificationPending was
+            // already set by UpdateOrInsert at drop-time), the notification system will now
+            // be able to fire it on the next ProcessPendingNotifications tick. We do NOT
+            // set notificationPending here — otherwise we'd get stale "spam" notifications
+            // for every API reload / language change / price refresh.
         }
+
+        // --- 1st State-Version bump (Details arrived) ---
+        // Make icons/names/rarity show up in Overview/Items ASAP, matching the behavior of
+        // the Timeline tab (which heals its snapshot lazily). This way users don't have to
+        // wait for the /v2/commerce/prices response (which is serialised after /v2/items in
+        // FetchItemsMany). A 2nd bump happens after prices are applied to refresh profit values.
+        if (modified || !receivedItemIds.empty())
+            s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
 
         // --- Handle missing IDs (those that weren't returned by the API) ---
         for (int id : requestedIds)
@@ -3752,11 +3834,18 @@ void ItemTracker::ApplyItemsFromApi(const std::vector<int>& requestedIds, const 
                 }
             }
 
-            // Prices updated — re-mark for notification
-            st->notificationPending = true;
+            // Prices updated; do NOT re-trigger notificationPending here — otherwise any
+            // periodic price refetch would cause a notification spam storm. Notifications
+            // are exclusively gated by UpdateOrInsert on actual drops (delta > 0).
+            (void)hasSellPrice; (void)hasBuyPrice;
         }
 
-        if (modified)
+        // Critical: Also bump the state version when DETAILS are loaded for EXISTING
+        // entries (not only when new entries are created). Without this, GetFilteredItemsView
+        // / GetSortedItemsView keep returning stale thread-local caches with empty name/icon/
+        // rarity (loaded=false), which causes the "stuck on loading" bug in Overview/Items.
+        // Timeline doesn't have this bug because it does lazy cache healing in the draw path.
+        if (modified || !receivedItemIds.empty() || !pricesArray.empty())
             s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
     } // ← All locks released here
 
@@ -3793,6 +3882,40 @@ void ItemTracker::ApplyItemsFromApi(const std::vector<int>& requestedIds, const 
                     e.sellPriceTp = it->second;
             }
         }
+    }
+
+    // --- Icon preload: kick off downloads NOW (from fetcher thread), not on first UI render ---
+    // We collect (id, iconUrl) pairs while holding s_Mutex briefly, then release lock before
+    // calling EnsureItemIconTexture (which has its own mutex and may spawn download threads).
+    {
+        std::vector<std::pair<int, std::string>> iconsToPreload;
+        iconsToPreload.reserve(requestedIds.size());
+        {
+            std::lock_guard<std::mutex> lock(s_Mutex);
+            for (int id : requestedIds)
+            {
+                auto it = s_Items.find(id);
+                if (it != s_Items.end() &&
+                    it->second.details.loaded &&
+                    !it->second.details.iconUrl.empty())
+                {
+                    iconsToPreload.emplace_back(id, it->second.details.iconUrl);
+                }
+            }
+            // Also salvage kits tracked as currencies
+            for (auto& [id, _] : s_SalvageKits)
+            {
+                auto curIt = s_Currencies.find(id);
+                if (curIt != s_Currencies.end() &&
+                    curIt->second.details.loaded &&
+                    !curIt->second.details.iconUrl.empty())
+                {
+                    iconsToPreload.emplace_back(id, curIt->second.details.iconUrl);
+                }
+            }
+        }
+        for (auto& [id, url] : iconsToPreload)
+            UICommon::EnsureItemIconTexture(id, url);
     }
 
     // Process notifications AFTER releasing all locks to avoid deadlock with UINotifications
@@ -3845,13 +3968,11 @@ void ItemTracker::ForceReloadAll()
     std::lock_guard<std::mutex> lock(s_Mutex);
     for (auto& [id, st] : s_Items)
     {
-        if (st.count != 0)
-            st.details.loaded = false;
+        st.details.loaded = false;
     }
     for (auto& [id, st] : s_Currencies)
     {
-        if (st.count != 0)
-            st.details.loaded = false;
+        st.details.loaded = false;
     }
 }
 
@@ -3859,64 +3980,83 @@ void ItemTracker::ApplyCurrencyTable(const json& currenciesArray)
 {
     if (!currenciesArray.is_array()) return;
 
-    // Global Lock Order: 1. s_PersistentMutex, 5. s_Mutex
-    std::lock_guard<std::mutex> pLock(s_PersistentMutex);
-    std::lock_guard<std::mutex> lock(s_Mutex);
+    std::vector<std::pair<int, std::string>> iconsToPreload;
 
-    bool modified = false;
-
-    for (auto& c : currenciesArray)
     {
-        if (!c.contains("id")) continue;
-        int id = c["id"].get<int>();
-        
-        // Remove this ID from items map if present (so currencies aren't shown in items tab!)
-        s_Items.erase(id);
-        
-        auto it = s_Currencies.find(id);
-        
-        Stat* st = nullptr;
-        if (it == s_Currencies.end())
-        {
-            // Only add currencies that are persistent (favorites, ignored, custom profit)
-            // or if they are basic coins (ID 1)
-            bool isPersistent = false;
-            if (s_PersistentFavoriteCurrencies.count(id) > 0) isPersistent = true;
-            if (IgnoredItemsManager::IsCurrencyIgnored(id)) isPersistent = true;
-            if (CustomProfitManager::HasCustomProfit(id) && CustomProfitManager::GetType(id) == StatType::Currency) isPersistent = true;
-            
-            if (id == 1 || isPersistent)
-            {
-                Stat s;
-                s.apiId = id;
-                s.type = StatType::Currency;
-                s.count = 0;
-                s_Currencies[id] = s;
-                st = &s_Currencies[id];
-                modified = true;
+        // Global Lock Order: 1. s_PersistentMutex, 5. s_Mutex
+        std::lock_guard<std::mutex> pLock(s_PersistentMutex);
+        std::lock_guard<std::mutex> lock(s_Mutex);
 
-                // Re-apply flags
-                st->isFavorite = s_PersistentFavoriteCurrencies.count(id) > 0;
-                st->isIgnored = IgnoredItemsManager::IsCurrencyIgnored(id);
+        bool modified = false;
+
+        for (auto& c : currenciesArray)
+        {
+            if (!c.contains("id")) continue;
+            int id = c["id"].get<int>();
+            
+            // Remove this ID from items map if present (so currencies aren't shown in items tab!)
+            s_Items.erase(id);
+            
+            auto it = s_Currencies.find(id);
+            
+            Stat* st = nullptr;
+            if (it == s_Currencies.end())
+            {
+                // Only add currencies that are persistent (favorites, ignored, custom profit)
+                // or if they are basic coins (ID 1)
+                bool isPersistent = false;
+                if (s_PersistentFavoriteCurrencies.count(id) > 0) isPersistent = true;
+                if (IgnoredItemsManager::IsCurrencyIgnored(id)) isPersistent = true;
+                if (CustomProfitManager::HasCustomProfit(id) && CustomProfitManager::GetType(id) == StatType::Currency) isPersistent = true;
+                
+                if (id == 1 || isPersistent)
+                {
+                    Stat s;
+                    s.apiId = id;
+                    s.type = StatType::Currency;
+                    s.count = 0;
+                    s_Currencies[id] = s;
+                    st = &s_Currencies[id];
+                    modified = true;
+
+                    // Re-apply flags
+                    st->isFavorite = s_PersistentFavoriteCurrencies.count(id) > 0;
+                    st->isIgnored = IgnoredItemsManager::IsCurrencyIgnored(id);
+                }
+            }
+            else
+            {
+                st = &it->second;
+            }
+
+            if (!st) continue;
+
+            st->details.name = c.value("name", "");
+            st->details.description = c.value("description", "");
+            if (c.contains("icon") && c["icon"].is_string())
+                st->details.iconUrl = BuildIconUrl(c["icon"].get<std::string>());
+            st->details.loaded = true;
+            st->details.knownByApi = true;
+
+            // Collect icons for preloading
+            if (!st->details.iconUrl.empty())
+            {
+                iconsToPreload.emplace_back(id, st->details.iconUrl);
             }
         }
-        else
-        {
-            st = &it->second;
-        }
 
-        if (!st) continue;
+        // Critical: Bump state version not only for NEW entries (modified) but also when
+        // details are loaded for EXISTING currencies (!iconsToPreload.empty() indicates we
+        // updated metadata for entries already tracked in s_Currencies). Same stale-cache
+        // issue as in ApplyItemsFromApi: GetFilteredCurrenciesView would otherwise keep
+        // returning thread-local cache entries with empty name/icon for many seconds.
+        if (modified || !iconsToPreload.empty())
+            s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
+    } // All locks released
 
-        st->details.name = c.value("name", "");
-        st->details.description = c.value("description", "");
-        if (c.contains("icon") && c["icon"].is_string())
-            st->details.iconUrl = BuildIconUrl(c["icon"].get<std::string>());
-        st->details.loaded = true;
-        st->details.knownByApi = true;
-    }
-
-    if (modified)
-        s_ItemsStateVersion.fetch_add(1, std::memory_order_relaxed);
+    // --- Icon preload AFTER releasing locks to avoid any deadlock with UICommon ---
+    for (auto& [id, url] : iconsToPreload)
+        UICommon::EnsureItemIconTexture(id, url);
 }
 
 ItemTracker::CoinSplit ItemTracker::SplitCoin(long long copperValue)

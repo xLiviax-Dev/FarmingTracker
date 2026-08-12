@@ -21,6 +21,7 @@ namespace
 
     // Worker thread stuff
     std::atomic<bool> s_Shutdown{true};
+    std::atomic<bool> s_WorkerFinished{false};
     std::thread s_WorkerThread;
     std::mutex s_CvMutex;
     std::condition_variable s_Cv;
@@ -257,6 +258,8 @@ namespace
 
             BackgroundJobs::EnqueueDebouncedSettingsSave();
         }
+
+        s_WorkerFinished.store(true, std::memory_order_release);
     }
 
 } // anonymous namespace
@@ -272,6 +275,7 @@ void Init()
     if (!s_WorkerThread.joinable())
     {
         s_Shutdown.store(false);
+        s_WorkerFinished.store(false, std::memory_order_release);
         s_WorkerThread = std::thread(WorkerLoop);
     }
 
@@ -298,10 +302,14 @@ void Shutdown()
     if (s_WorkerThread.joinable())
     {
         auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
-        while (s_WorkerThread.joinable() && std::chrono::steady_clock::now() < deadline)
+        while (!s_WorkerFinished.load(std::memory_order_acquire) && std::chrono::steady_clock::now() < deadline)
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-        if (s_WorkerThread.joinable())
+        if (s_WorkerFinished.load(std::memory_order_acquire))
+        {
+            s_WorkerThread.join();
+        }
+        else
         {
             Gw2Api::Log("MagnetiteTracker: worker thread didn't shutdown quickly — detaching", "warning");
             s_WorkerThread.detach();

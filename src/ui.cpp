@@ -929,4 +929,5 @@ void UI::Shutdown()
     APIDefs->QuickAccess_RemoveContextMenu("QAS_FT");
     APIDefs->InputBinds_Deregister("FT_TOGGLE_MAIN");
     APIDefs->InputBinds_Deregister("FT_TOGGLE_MINI");
+    APIDefs->InputBinds_Deregister("FT_RESET");
 }

@@ -47,6 +47,7 @@ struct Stat
     bool        isFavorite = false;
     bool        isIgnored  = false;
     bool        notificationPending = false;
+    bool        hasNotified = false;  // Already fired once this session; prevent stale re-notifies
     int         lastMagicFind = -1;
 
     bool IsItem()     const { return type == StatType::Item; }

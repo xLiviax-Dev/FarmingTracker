@@ -15,6 +15,7 @@
 using namespace Gw2Fetcher;
 
 static std::atomic<bool> s_Shutdown{ true };
+static std::atomic<bool> s_WorkerFinished{ false };
 static std::thread       s_Thread;
 static std::mutex        s_CvMutex;
 static std::condition_variable s_Cv;
@@ -129,6 +130,7 @@ static void WorkerLoop()
         std::vector<int> pending = ItemTracker::CollectPendingItemIds();
 
         // Throttle only when there is nothing to fetch right now.
+        // Always fetch pending items immediately on first start, regardless of interval
         if (!forceUpdate &&
             elapsedMin < priceUpdateIntervalMin &&
             !needCurrencyTable &&
@@ -137,8 +139,16 @@ static void WorkerLoop()
             continue;
         }
 
-        if (elapsedMin >= priceUpdateIntervalMin)
+        // If we have pending items to load, fetch them immediately even if interval hasn't passed
+        // This ensures icons and details are available right after game start
+        if (!pending.empty() && elapsedMin < priceUpdateIntervalMin)
+        {
+            // Don't update s_LastPriceUpdate for pending items - keep regular schedule intact
+        }
+        else if (elapsedMin >= priceUpdateIntervalMin)
+        {
             s_LastPriceUpdate = now;
+        }
 
         // Set status to Connected if we have a valid API key
         s_Status.store(Gw2Status::Connected);
@@ -148,6 +158,32 @@ static void WorkerLoop()
             s_LastLoggedStatus = Gw2Status::Connected;
         }
 
+        // --- ITEMS FIRST (Priority): Fetch item metadata immediately to make ---
+        // --- names/rarities/icons available fast in Drops/Overview/Items tabs. ---
+        // --- Currency table is loaded afterwards, so it no longer blocks items. ---
+        if (!pending.empty())
+        {
+            nlohmann::json items, prices;
+            std::string err;
+            if (!Gw2Api::FetchItemsMany(pending, token, items, prices, err))
+            {
+                Gw2Api::Log("Failed to fetch item data: " + err, "error");
+                s_Status.store(Gw2Status::Error);
+                s_ReconnectCount.fetch_add(1);
+                s_BackoffLevel = (std::min)(12, s_BackoffLevel + 1); // Max 2^12 = 4096s
+            }
+            else
+            {
+                ItemTracker::ApplyItemsFromApi(pending, items, prices);
+                s_Status.store(Gw2Status::Connected);
+                s_ReconnectCount.store(0);
+                s_BackoffLevel = 0; // Success!
+            }
+        }
+
+        // --- CURRENCIES SECOND: Now load the currency table (no longer blocks items). ---
+        // ApplyCurrencyTable may move entries from s_Items to s_Currencies; if that
+        // happens we take care of it on the next worker tick.
         if (needCurrencyTable)
         {
             auto& cache = s_CurrencyJsonCache[currentLanguage];
@@ -178,30 +214,14 @@ static void WorkerLoop()
                 }
             }
             if (cache.is_array())
+            {
                 ItemTracker::ApplyCurrencyTable(cache);
+            }
         }
-
-        if (pending.empty())
-            continue;
-
-        nlohmann::json items, prices;
-        std::string err;
-        if (!Gw2Api::FetchItemsMany(pending, token, items, prices, err))
-        {
-            Gw2Api::Log("Failed to fetch item data: " + err, "error");
-            s_Status.store(Gw2Status::Error);
-            s_ReconnectCount.fetch_add(1);
-            s_BackoffLevel = (std::min)(12, s_BackoffLevel + 1);
-            continue;
-        }
-
-        ItemTracker::ApplyItemsFromApi(pending, items, prices);
-        s_Status.store(Gw2Status::Connected);
-        s_ReconnectCount.store(0);
-        s_BackoffLevel = 0; // Success!
     }
 
     s_Status.store(Gw2Status::Disconnected);
+    s_WorkerFinished.store(true, std::memory_order_release);
 }
 
 void Gw2Fetcher::Init()
@@ -210,6 +230,7 @@ void Gw2Fetcher::Init()
         return;
 
     s_Shutdown.store(false);
+    s_WorkerFinished.store(false, std::memory_order_release);
     s_FirstRun = true; // ensure force-refresh on first iteration after restart
     s_Thread = std::thread(WorkerLoop);
 }
@@ -228,10 +249,14 @@ void Gw2Fetcher::Shutdown()
 
         // Wait a reasonable amount of time (max 2s) for the thread to notice shutdown
         auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
-        while (s_Thread.joinable() && std::chrono::steady_clock::now() < deadline)
+        while (!s_WorkerFinished.load(std::memory_order_acquire) && std::chrono::steady_clock::now() < deadline)
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-        if (s_Thread.joinable())
+        if (s_WorkerFinished.load(std::memory_order_acquire))
+        {
+            s_Thread.join();
+        }
+        else
         {
             Gw2Api::Log("GW2 fetcher thread didn't shutdown quickly — detaching", "warning");
             s_Thread.detach();

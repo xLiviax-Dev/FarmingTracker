@@ -65,6 +65,7 @@ bool IsInCombat()
 namespace BackgroundJobs
 {
     static std::atomic<bool>        s_Shutdown{ true };
+    static std::atomic<bool>        s_WorkerFinished{ false };
     static std::thread              s_WorkerThread;
     static std::mutex               s_QueueMutex;
     static std::condition_variable  s_Cv;
@@ -84,7 +85,10 @@ namespace BackgroundJobs
                     return !s_Queue.empty() || s_Shutdown.load(std::memory_order_acquire);
                 });
                 if (s_Shutdown.load(std::memory_order_acquire) && s_Queue.empty())
+                {
+                    s_WorkerFinished.store(true, std::memory_order_release);
                     return;
+                }
                 job = std::move(s_Queue.front());
                 s_Queue.pop_front();
             }
@@ -100,6 +104,7 @@ namespace BackgroundJobs
     void Init()
     {
         s_Shutdown.store(false, std::memory_order_release);
+        s_WorkerFinished.store(false, std::memory_order_release);
         if (!s_WorkerThread.joinable())
             s_WorkerThread = std::thread(WorkerLoop);
     }
@@ -115,10 +120,14 @@ namespace BackgroundJobs
         if (s_WorkerThread.joinable())
         {
             auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
-            while (s_WorkerThread.joinable() && std::chrono::steady_clock::now() < deadline)
+            while (!s_WorkerFinished.load(std::memory_order_acquire) && std::chrono::steady_clock::now() < deadline)
                 std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-            if (s_WorkerThread.joinable())
+            if (s_WorkerFinished.load(std::memory_order_acquire))
+            {
+                s_WorkerThread.join();
+            }
+            else
             {
                 if (APIDefs)
                     APIDefs->Log(LOGL_WARNING, "FarmingTracker", "BackgroundJobs: worker didn't exit within 3s — detaching");
