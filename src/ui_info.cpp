@@ -25,7 +25,7 @@ namespace UIInfo
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-static constexpr const char* VERSION       = "2.0.1.3";
+static constexpr const char* VERSION       = "2.0.1.4";
 static constexpr const char* AUTHOR        = "x Livia x";
 static constexpr const char* GITHUB_URL    = "https://github.com/xLiviax-Dev/FarmingTracker";
 static constexpr const char* GITHUB_ISSUES = "https://github.com/xLiviax-Dev/FarmingTracker/issues";
@@ -399,11 +399,11 @@ void Render()
     ImGui::Separator();
     ImGui::Spacing();
 
-    // v2.0.1.3
+    // v2.0.1.4
     {
         ImDrawList* dl  = ImGui::GetWindowDrawList();
         ImVec2      pos = ImGui::GetCursorScreenPos();
-        std::string vLabel = "v2.0.1.3";
+        std::string vLabel = "v2.0.1.4";
         float bw = ImGui::CalcTextSize(vLabel.c_str()).x + 10.f, bh = ImGui::GetTextLineHeight() + 4.f;
         dl->AddRectFilled(pos, { pos.x + bw, pos.y + bh }, COL_VERSION_BG, 3.f);
         dl->AddRect(pos, { pos.x + bw, pos.y + bh }, COL_VERSION_BORDER, 3.f, 0, 0.5f);
@@ -415,14 +415,14 @@ void Render()
         ImGui::TextColored(COL_TEXT_DIM, "latest");
     }
 
-    static const char* notes_v2013[] =
+    static const char* notes_v2014[] =
     {
         "Several bug fixes.",
-        "Item icon display improvements.",
-        "Large performance update.",
+        "Icon cache now unlimited by default.",
+        "Item details now saved for instant icon display after restart.",
     };
     ImGui::Spacing();
-    for (auto& n : notes_v2013)
+    for (auto& n : notes_v2014)
     {
         ImGui::TextColored(COL_TEXT_DIM, "  \xe2\x80\xa2");
         ImGui::SameLine(0, 5.f);

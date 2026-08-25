@@ -6,6 +6,7 @@
 #include <cstring>
 #include <fstream>
 #include <vector>
+#include <deque>
 #include <string>
 #include <chrono>
 #include <thread>
@@ -20,6 +21,31 @@
 static long long AbsLL(long long x)
 {
     return x < 0 ? -x : x;
+}
+
+// Icon cache log system (analogous to Gw2Api/DRF logs, not sent to Nexus log to avoid spam)
+static constexpr size_t s_MaxCacheLogEntries = 200;
+static std::deque<UICommon::IconCacheLogEntry> s_IconCacheLogs;
+static std::mutex s_IconCacheLogMutex;
+
+void UICommon::IconCacheLog(const std::string& message, const std::string& type)
+{
+    std::lock_guard<std::mutex> lock(s_IconCacheLogMutex);
+    s_IconCacheLogs.push_back({ std::chrono::system_clock::now(), message, type });
+    if (s_IconCacheLogs.size() > s_MaxCacheLogEntries)
+        s_IconCacheLogs.pop_front();
+}
+
+std::vector<UICommon::IconCacheLogEntry> UICommon::GetIconCacheLogs()
+{
+    std::lock_guard<std::mutex> lock(s_IconCacheLogMutex);
+    return { s_IconCacheLogs.begin(), s_IconCacheLogs.end() };
+}
+
+void UICommon::ClearIconCacheLogs()
+{
+    std::lock_guard<std::mutex> lock(s_IconCacheLogMutex);
+    s_IconCacheLogs.clear();
 }
 
 // ---------------------------------------------------------------------------
@@ -287,6 +313,9 @@ static bool DownloadIconToDisk(const std::string& url, const std::string& destPa
         WINHTTP_HEADER_NAME_BY_INDEX, &status, &sz, WINHTTP_NO_HEADER_INDEX);
     if (status != 200)
     {
+        std::string msg = "HTTP " + std::to_string(status) + " downloading: " + destPath;
+        if (status == 429) msg += " (API Rate Limited!)";
+        UICommon::IconCacheLog(msg, status == 429 ? "error" : "warn");
         WinHttpCloseHandle(hRequest); WinHttpCloseHandle(hConnect);
         return false;
     }
@@ -370,9 +399,26 @@ void UICommon::EnforceIconCacheLimit()
     int toDelete = count - maxIcons;
     for (int i = 0; i < toDelete; i++)
     {
-        DeleteFileA(files[i].second.c_str());
-        if (apiDefs)
-            apiDefs->Log(LOGL_INFO, "FarmingTracker", ("Icon cache: evicted " + files[i].second).c_str());
+        // Also extract the itemId so we can remove it from s_VerifiedDiskCache!
+        // BUGFIX: Previously, deleting the file without removing the itemId from
+        // s_VerifiedDiskCache caused "Failed to load icon from disk" warnings on
+        // every subsequent EnsureItemIconTexture() call for that item.
+        const std::string& fullPath = files[i].second;
+        size_t slashPos = fullPath.find_last_of("\\/");
+        std::string filename = (slashPos != std::string::npos) ? fullPath.substr(slashPos + 1) : fullPath;
+        int evictedId = 0;
+        if (strncmp(filename.c_str(), "FTi_", 4) == 0)
+            evictedId = atoi(filename.c_str() + 4);
+
+        DeleteFileA(fullPath.c_str());
+
+        if (evictedId > 0)
+        {
+            std::lock_guard<std::mutex> lock(s_PendingMutex);
+            s_VerifiedDiskCache.erase(evictedId);
+        }
+
+        UICommon::IconCacheLog("Evicted: " + fullPath, "evict");
     }
 }
 
@@ -447,8 +493,7 @@ namespace UICommon
                         s_VerifiedDiskCache.erase(itemId);
                     }
                     CreateDirectoryA(s_IconCacheDir.c_str(), NULL);
-                    APIDefs->Log(LOGL_WARNING, "FarmingTracker",
-                        ("Failed to load icon from disk: " + cachePath + ", re-downloading").c_str());
+                    UICommon::IconCacheLog("Failed to load icon from disk: " + cachePath + " — re-downloading", "warn");
                     size_t p = url.find("://");
                     if (p != std::string::npos)
                     {
@@ -490,6 +535,7 @@ namespace UICommon
                     bool ok = DownloadIconToDisk(ctx->url, ctx->cachePath);
                     if (ok)
                     {
+                        UICommon::IconCacheLog("Downloaded: FTi_" + std::to_string(ctx->itemId), "download");
                         if (apiDefs)
                         {
                             apiDefs->Textures_GetOrCreateFromFile(ctx->texId, ctx->cachePath.c_str());
@@ -504,6 +550,7 @@ namespace UICommon
                     else if (!ok)
                     {
                         // Download failed — fall back to Nexus URL loader so the icon still shows
+                        UICommon::IconCacheLog("Download failed for FTi_" + std::to_string(ctx->itemId) + ", falling back to URL loader", "warn");
                         if (apiDefs)
                         {
                             size_t p = ctx->url.find("://");
@@ -544,8 +591,7 @@ namespace UICommon
                 [](const char* aIdentifier, Texture_t* aTexture)
                 {
                     if (APIDefs && aTexture)
-                        APIDefs->Log(LOGL_INFO, "FarmingTracker",
-                            ("Icon loaded: " + std::string(aIdentifier)).c_str());
+                        UICommon::IconCacheLog(std::string("Icon loaded (cache disabled): ") + aIdentifier, "info");
                 });
         }
     }

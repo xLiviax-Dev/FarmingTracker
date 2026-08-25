@@ -605,8 +605,9 @@ void RenderDebugTab()
         ImGui::SameLine(0, 4);
     };
 
-    TabBtn(Localization::GetText("drf_logs_label"),     0);
-    TabBtn(Localization::GetText("gw2_api_logs_label"), 1);
+    TabBtn(Localization::GetText("drf_logs_label"),           0);
+    TabBtn(Localization::GetText("gw2_api_logs_label"),       1);
+    TabBtn(Localization::GetText("icon_cache_logs_label"),    2);
     ImGui::NewLine();
     ImGui::Spacing();
 
@@ -626,7 +627,7 @@ void RenderDebugTab()
         ImGui::Spacing();
         RenderLogPanel("##DRFLogs", DrfClient::GetLogs());
     }
-    else
+    else if (s_ActiveLogTab == 1)
     {
         if (UICommon::RedGradientButton(Localization::GetText("clear_gw2_logs"), "##clear_gw2_logs"))
             Gw2Api::ClearLogs();
@@ -641,6 +642,22 @@ void RenderDebugTab()
         ImGui::PopStyleColor();
         ImGui::Spacing();
         RenderLogPanel("##GW2Logs", Gw2Api::GetLogs());
+    }
+    else
+    {
+        if (UICommon::RedGradientButton(Localization::GetText("clear_icon_cache_logs"), "##clear_icon_cache_logs"))
+            UICommon::ClearIconCacheLogs();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("%s", Localization::GetText("clear_icon_cache_logs_tooltip"));
+        ImGui::SameLine(0, 6);
+        if (UICommon::OrangeGradientButton(Localization::GetText("export_logs"), "##export_icon_cache_logs"))
+            ExportLogs(UICommon::GetIconCacheLogs(), "icon_cache_logs.txt", "Icon Cache");
+        ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+        ImGui::TextUnformatted(Localization::GetText("last_200_entries"));
+        ImGui::PopStyleColor();
+        ImGui::Spacing();
+        RenderLogPanel("##CACHELogs", UICommon::GetIconCacheLogs());
     }
 
     // ====================================================================

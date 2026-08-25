@@ -150,13 +150,17 @@ void RenderMiniWindow()
         if (g_Settings.miniWindowShowBestDropSingle)
         {
             auto bestDrop = ItemTracker::GetBestDrop();
+
+            // Always show the section now instead of hiding it completely.
+            // This avoids the "slot is just non-existent" user complaint.
+            // If nothing found, we render a placeholder so the layout stays consistent.
+            ImGui::Separator();
+
+            // Best Drop Label
+            UICommon::TextColoredWithSimpleOutline(textColor, ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
+
             if (bestDrop.first != 0 && bestDrop.second.count > 0)
             {
-                ImGui::Separator();
-
-                // Best Drop Label
-                UICommon::TextColoredWithSimpleOutline(textColor, ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_single"));
-                
                 // New line for icon and item name
                 // Show icon if enabled
                 if (g_Settings.miniWindowShowBestDropIcons)
@@ -174,8 +178,13 @@ void RenderMiniWindow()
                 
                 ImVec4 bestDropColor = unitProfit > 0 ? ImVec4(1.f, 0.9f, 0.2f, 1.f) : (unitProfit < 0 ? ImVec4(1.f, 0.3f, 0.3f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
                 
-                // Best Drop Name
-                std::string bestDropName = bestDrop.second.details.loaded ? bestDrop.second.details.name.c_str() : Localization::GetText("loading");
+                // Best Drop Name — show Item #<id> as a FALLBACK instead of a generic
+                // "Loading..." so users can at least identify the item while API is busy.
+                std::string bestDropName;
+                if (bestDrop.second.details.loaded && !bestDrop.second.details.name.empty())
+                    bestDropName = bestDrop.second.details.name;
+                else
+                    bestDropName = std::string("Item #") + std::to_string(bestDrop.first);
                 UICommon::TextColoredWithSimpleOutline(bestDropColor, ImVec4(0, 0, 0, 1.0f), "%s", bestDropName.c_str());
                 
                 // Add small gap
@@ -191,18 +200,27 @@ void RenderMiniWindow()
                 
                 showSingle = true;
             }
+            else
+            {
+                // Placeholder: no data yet
+                ImGui::Spacing();
+                ImGui::TextDisabled("  — %s", "No drops yet");
+                ImGui::Spacing();
+            }
         }
 
         if (g_Settings.miniWindowShowBestDropTotalValue)
         {
             auto bestTotal = ItemTracker::GetBestDropTotalValue();
+
+            // Consistent layout: always show the section header
+            if (!showSingle) ImGui::Separator();
+
+            // Best Drop Total Label
+            UICommon::TextColoredWithSimpleOutline(textColor, ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
+
             if (bestTotal.first != 0 && bestTotal.second.count > 0)
             {
-                if (!showSingle) ImGui::Separator();
-
-                // Best Drop Total Label
-                UICommon::TextColoredWithSimpleOutline(textColor, ImVec4(0, 0, 0, 1.0f), "%s: ", Localization::GetText("best_drop_total"));
-                
                 // New line for icon and item name
                 
                 // Show icon if enabled
@@ -218,8 +236,12 @@ void RenderMiniWindow()
                 long long bestTotalProfit = ItemTracker::GetStatProfit(bestTotal.second);
                 ImVec4 bestTotalColor = bestTotalProfit > 0 ? ImVec4(1.f, 0.9f, 0.2f, 1.f) : (bestTotalProfit < 0 ? ImVec4(1.f, 0.3f, 0.3f, 1.f) : ImVec4(1.f, 1.f, 1.f, 1.f));
 
-                // Best Drop Total Name
-                std::string bestTotalName = bestTotal.second.details.loaded ? bestTotal.second.details.name.c_str() : Localization::GetText("loading");
+                // Best Drop Total Name — same fallback as Single.
+                std::string bestTotalName;
+                if (bestTotal.second.details.loaded && !bestTotal.second.details.name.empty())
+                    bestTotalName = bestTotal.second.details.name;
+                else
+                    bestTotalName = std::string("Item #") + std::to_string(bestTotal.first);
                 UICommon::TextColoredWithSimpleOutline(bestTotalColor, ImVec4(0, 0, 0, 1.0f), "%s", bestTotalName.c_str());
                 
                 // Add small gap
@@ -233,6 +255,13 @@ void RenderMiniWindow()
                 // Total Value
                 std::string totalProfitStr = UICommon::FormatCoin(bestTotalProfit);
                 UICommon::TextColoredWithSimpleOutline(bestTotalColor, ImVec4(0, 0, 0, 1.0f), "%s", totalProfitStr.c_str());
+            }
+            else
+            {
+                // Placeholder: no data yet
+                ImGui::Spacing();
+                ImGui::TextDisabled("  — %s", "No drops yet");
+                ImGui::Spacing();
             }
         }
 

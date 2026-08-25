@@ -129,6 +129,7 @@ static std::string FromHexString(const std::string& hex)
 nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
 {
     nlohmann::json j;
+    j["settingsVersion"] = s.settingsVersion;
     j["language"] = s.language;
     j["currentAccountIndex"] = s.currentAccountIndex;
     
@@ -483,6 +484,10 @@ nlohmann::json SettingsManager::ToSettingsJson(const Settings& s)
 
 void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
 {
+    // Load settings version for migration
+    int loadedSettingsVersion = 0; // Default to old version (no settingsVersion field = old settings)
+    if (j.contains("settingsVersion")) loadedSettingsVersion = j["settingsVersion"].get<int>();
+
     if (j.contains("language")) s.language = j["language"].get<std::string>();
     if (j.contains("currentAccountIndex")) s.currentAccountIndex = j["currentAccountIndex"].get<int>();
 
@@ -763,7 +768,19 @@ void SettingsManager::FromSettingsJson(const nlohmann::json& j, Settings& s)
     if (j.contains("searchTerm")) s.searchTerm = j["searchTerm"].get<std::string>();
     if (j.contains("enableIgnoredItems")) s.enableIgnoredItems = j["enableIgnoredItems"].get<bool>();
     if (j.contains("enableIconCache")) s.enableIconCache = j["enableIconCache"].get<bool>();
-    if (j.contains("iconCacheMaxIcons")) s.iconCacheMaxIcons = j["iconCacheMaxIcons"].get<int>();
+    if (j.contains("iconCacheMaxIcons"))
+    {
+        s.iconCacheMaxIcons = j["iconCacheMaxIcons"].get<int>();
+        // Migration: If settings version < 3, force unlimited (0)
+        if (loadedSettingsVersion < 3) {
+            s.iconCacheMaxIcons = 0;
+        }
+        // Clamp immediately on load (same rules as ValidateAll) so legacy/invalid values never propagate.
+        if (s.iconCacheMaxIcons < 0) s.iconCacheMaxIcons = 0;
+        else if (s.iconCacheMaxIcons == 0) { /* unlimited */ }
+        else if (s.iconCacheMaxIcons < 2000) s.iconCacheMaxIcons = 2000;
+        else if (s.iconCacheMaxIcons > 5000) s.iconCacheMaxIcons = 0;
+    }
     if (j.contains("maxHistoryItems")) s.maxHistoryItems = j["maxHistoryItems"].get<int>();
     if (j.contains("priceUpdateIntervalMin")) s.priceUpdateIntervalMin = j["priceUpdateIntervalMin"].get<int>();
     if (j.contains("disableComplexVisualsOnLowPerf")) s.disableComplexVisualsOnLowPerf = j["disableComplexVisualsOnLowPerf"].get<bool>();
@@ -912,6 +929,20 @@ static void ClampSettings()
     // Clamp API timeouts (1 second to 2 minutes)
     g_Settings.gw2ApiConnectTimeout = std::clamp(g_Settings.gw2ApiConnectTimeout, 1000, 120000);
     g_Settings.gw2ApiReceiveTimeout = std::clamp(g_Settings.gw2ApiReceiveTimeout, 1000, 120000);
+
+    // Icon cache size clamping rules:
+    //   0 = unlimited (valid, passthrough)
+    //   1..1999 → clamp up to 2000 (minimum enforced value)
+    //   2000..5000 → ok, passthrough
+    //   5001+ → clamp to 0 (unlimited). The UI intentionally jumps to unlimited at the slider's upper bound.
+    if (g_Settings.iconCacheMaxIcons < 0)
+        g_Settings.iconCacheMaxIcons = 0;
+    else if (g_Settings.iconCacheMaxIcons == 0)
+        { /* unlimited, keep */ }
+    else if (g_Settings.iconCacheMaxIcons < 2000)
+        g_Settings.iconCacheMaxIcons = 2000;
+    else if (g_Settings.iconCacheMaxIcons > 5000)
+        g_Settings.iconCacheMaxIcons = 0;
 }
 
 void SettingsManager::Init(const char* addonDir)

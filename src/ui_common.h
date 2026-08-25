@@ -8,9 +8,17 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <chrono>
 
 namespace UICommon
 {
+    struct IconCacheLogEntry
+    {
+        std::chrono::system_clock::time_point timestamp;
+        std::string message;
+        std::string type; // "info", "warn", "error", "evict", "download"
+    };
+
     // Shared UI state variables
     extern char s_SearchBuf[256];
     extern char s_ItemsSearchBuf[256];
@@ -30,6 +38,9 @@ namespace UICommon
 
     void EnsureItemIconTexture(int itemId, const std::string& url);
     void PreFetchFrequentIcons(); // Pre-load icons for frequently used items
+    void IconCacheLog(const std::string& message, const std::string& type = "info");
+    std::vector<IconCacheLogEntry> GetIconCacheLogs();
+    void ClearIconCacheLogs();
     void DrawItemIconCell(int itemId, const std::string& url, float sz, const std::string& rarity = "", bool forceShow = false);
     const char* StatusText(DrfStatus s);
     ImVec4 StatusColor(DrfStatus s);

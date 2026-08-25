@@ -37,6 +37,9 @@ enum class MainWindowVisibilityMode : int
 
 struct Settings
 {
+    // Settings version for migration (increment when settings structure changes)
+    int settingsVersion = 3;
+
     // Language (stored as string for JSON serialization)
     std::string language = "English";
     
@@ -376,7 +379,7 @@ struct Settings
 
     // Performance Settings
     bool enableIconCache = true;
-    int iconCacheMaxIcons = 2000;
+    int iconCacheMaxIcons = 0; // 0 = unlimited
     int maxHistoryItems = 500; // 0 = unlimited
     int priceUpdateIntervalMin = 5; // 5 to 15 minutes
     bool disableComplexVisualsOnLowPerf = false;

@@ -57,7 +57,9 @@ static void WorkerLoop()
         // Check price update interval
         auto now = std::chrono::steady_clock::now();
         auto elapsedMin = std::chrono::duration_cast<std::chrono::minutes>(now - s_LastPriceUpdate).count();
-        bool forceUpdate = s_FirstRun || s_ForceRefresh.exchange(false); // Force update on first run or manual refresh
+        // Cache isFirstRun BEFORE resetting s_FirstRun, so we can decide later whether ForceReloadAll is needed
+        bool isFirstRun = s_FirstRun;
+        bool forceUpdate = isFirstRun || s_ForceRefresh.exchange(false); // Force update on first run or manual refresh
         s_FirstRun = false;
 
         std::string token;
@@ -70,12 +72,24 @@ static void WorkerLoop()
             currentLanguage = g_Settings.language;
         }
 
+        // BUGFIX: ItemTracker::ForceReloadAll() resets ALL item details.loaded to false,
+        // which causes every UI name to show "Loading..." for a few seconds.
+        // This MUST NOT happen after every single map change (s_ForceRefresh from entry.cpp!).
+        // Only reload details when truly necessary: FirstRun, Key change or Language change.
+        bool shouldReloadAllDetails =
+            isFirstRun
+            || (token != s_LastApiKey)
+            || (currentLanguage != s_LastLanguage);
+
         if (forceUpdate)
         {
             s_Status.store(Gw2Status::Connecting);
-            Gw2Api::Log("Force update triggered - Refreshing all data", "info");
+            Gw2Api::Log(std::string("Force update triggered") +
+                (isFirstRun ? " (FirstRun)" : " (MapChange/KeyChange/Manual)") +
+                " - Refreshing all data", "info");
             s_CurrencyJsonCache.clear();
-            ItemTracker::ForceReloadAll();
+            if (shouldReloadAllDetails)
+                ItemTracker::ForceReloadAll();
 
             nlohmann::json tokenInfo;
             std::string err;

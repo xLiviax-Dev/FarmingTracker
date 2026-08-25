@@ -1722,9 +1722,41 @@ static void RenderPage_Performance()
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("enable_icon_cache_tooltip"));
         if (g_Settings.enableIconCache) {
             ImGui::Indent();
-            if (ImGui::InputInt(Localization::GetText("icon_cache_max_icons"), &g_Settings.iconCacheMaxIcons, 10, 50))
-            { g_Settings.iconCacheMaxIcons = std::clamp(g_Settings.iconCacheMaxIcons, 10, 5000); BackgroundJobs::EnqueueDebouncedSettingsSave(); }
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Localization::GetText("icon_cache_max_icons_tooltip"));
+
+            bool cacheUnlimited = (g_Settings.iconCacheMaxIcons == 0);
+            if (ImGui::Checkbox(Localization::GetText("icon_cache_unlimited"), &cacheUnlimited))
+            {
+                if (cacheUnlimited)
+                    g_Settings.iconCacheMaxIcons = 0; // unlimited
+                else
+                    g_Settings.iconCacheMaxIcons = 3000; // default sane value when turning off unlimited
+                BackgroundJobs::EnqueueDebouncedSettingsSave();
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("%s", Localization::GetText("icon_cache_unlimited_tooltip"));
+
+            if (cacheUnlimited)
+            {
+                // Display only the label when unlimited is active (no slider interaction allowed)
+                ImGui::Text("%s", Localization::GetText("icon_cache_max_icons"));
+                ImGui::SameLine();
+                ImGui::TextDisabled("— %s", Localization::GetText("icon_cache_unlimited"));
+            }
+            else
+            {
+                if (ImGui::SliderInt(Localization::GetText("icon_cache_max_icons"),
+                                    &g_Settings.iconCacheMaxIcons, 2000, 5000, "%d Icons"))
+                {
+                    // Intentionally allow the user to "crank it all the way up" to jump to unlimited.
+                    // This matches the agreed UX: slider goes 2000..5000, and past 5000 = ∞.
+                    if (g_Settings.iconCacheMaxIcons >= 5000)
+                        g_Settings.iconCacheMaxIcons = 0; // auto-promote to unlimited
+                    BackgroundJobs::EnqueueDebouncedSettingsSave();
+                }
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("%s", Localization::GetText("icon_cache_max_icons_tooltip"));
+
             ImGui::Unindent();
         }
         ImGui::Spacing();

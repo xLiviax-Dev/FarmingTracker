@@ -4072,10 +4072,10 @@ ItemTracker::CoinSplit ItemTracker::SplitCoin(long long copperValue)
 
 std::pair<int, Stat> ItemTracker::GetBestDropTotalValue()
 {
-    // Get ignored snapshots BEFORE locking s_Mutex
+    // For BEST DROP statistics, only permanent IgnoredItems should be filtered.
+    // SessionIgnore and SkipOnce are TEMPORARY display filters and must NOT
+    // destroy the "highest value drop of the session" history highlight.
     std::set<int> ignoredSnapshot = IgnoredItemsManager::GetIgnoredItems();
-    std::set<int> sessionIgnoredSnapshot = SessionIgnoreManager::GetIgnoredItems();
-    std::set<int> skipOnceSnapshot = SkipOnceManager::GetSkippedItems();
     
     std::lock_guard<std::mutex> lock(s_Mutex);
 
@@ -4085,7 +4085,7 @@ std::pair<int, Stat> ItemTracker::GetBestDropTotalValue()
     for (const auto& [id, stat] : s_Items)
     {
         if (stat.count == 0) continue;
-        if (ignoredSnapshot.count(id) > 0 || sessionIgnoredSnapshot.count(id) > 0 || skipOnceSnapshot.count(id) > 0) continue;
+        if (ignoredSnapshot.count(id) > 0) continue;
 
         long long totalProfit = GetStatProfit(stat);
         // If no drop is selected yet or the current profit is higher, take this one
@@ -4101,10 +4101,9 @@ std::pair<int, Stat> ItemTracker::GetBestDropTotalValue()
 
 std::pair<int, Stat> ItemTracker::GetBestDrop()
 {
-    // Get ignored snapshots BEFORE locking s_Mutex
+    // Same logic as GetBestDropTotalValue: only permanent ignore list filters the
+    // "Best Drop Single" session highlight, not temporary SkipOnce/SessionIgnore.
     std::set<int> ignoredSnapshot = IgnoredItemsManager::GetIgnoredItems();
-    std::set<int> sessionIgnoredSnapshot = SessionIgnoreManager::GetIgnoredItems();
-    std::set<int> skipOnceSnapshot = SkipOnceManager::GetSkippedItems();
     
     std::lock_guard<std::mutex> lock(s_Mutex);
 
@@ -4114,7 +4113,7 @@ std::pair<int, Stat> ItemTracker::GetBestDrop()
     for (const auto& [id, stat] : s_Items)
     {
         if (stat.count == 0) continue;
-        if (ignoredSnapshot.count(id) > 0 || sessionIgnoredSnapshot.count(id) > 0 || skipOnceSnapshot.count(id) > 0) continue;
+        if (ignoredSnapshot.count(id) > 0) continue;
         
         // Calculate unit profit using GetStatProfit(), which already handles all cases!
         long long totalProfit = GetStatProfit(stat);
